@@ -1,0 +1,62 @@
+import express from 'express';
+import dotenv from 'dotenv';
+import router from './route/index.routes.js';
+// import path from 'path';
+import cors from 'cors';
+import cookieParser from 'cookie-parser';
+// import { fileURLToPath } from 'url';
+import { getMasterSequelize } from './config/db.config.js';
+import { initMasterModels } from './models/master.model.js';
+
+
+dotenv.config();
+
+const app = express();
+
+app.use(express.json());
+
+app.use(cookieParser());
+
+// Configure CORS
+app.use(cors({
+  origin: 'http://localhost:5173', // Allow requests from your frontend origin
+  credentials: true // Allow sending and receiving cookies/credentials
+}));
+
+// Example using Node.js with Express
+app.use((req, res, next) => {
+  // Check the origin of the request and set the header accordingly
+  const allowedOrigins = ['http://localhost:5173']; // List of allowed origins
+  const origin = req.headers.origin;
+
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  next();
+});
+
+// Serve static files from public
+// const __filename = fileURLToPath(import.meta.url);
+// const __dirname = path.dirname(__filename);
+// app.use(express.static(path.join(__dirname, 'public')));
+
+app.use('/', router);
+
+const PORT = process.env.PORT || 3000;
+
+// For development only: force sync master DB tables to match models
+// WARNING: This will DROP and recreate all tables in the master DB!
+// Comment out or remove in production.
+(async () => {
+  const sequelize = getMasterSequelize();
+  initMasterModels(sequelize);
+  await sequelize.sync({ alter: true });
+  console.log(`[INFO]:[index]:startServer(): DB Connected Successfully`)
+  // await sequelize.sync({ force: true }); // <-- REMOVE or comment out in production!
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+})();
