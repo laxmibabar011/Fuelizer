@@ -47,9 +47,10 @@ export const registerClient = async (req, res) => {
     // Use client_key for uniqueness
     const existing = await masterRepo.findClientByKey(client_key);
     if (existing) return sendError(res, 'Client already exists', 'Duplicate client', 409);
+    
     const client = await masterRepo.createClient({
       client_key, client_name, client_owner_name, client_address, client_city, client_state, client_country, client_pincode,
-      gst_number, client_phone, client_email, db_name, is_active,
+      gst_number, client_phone, client_email, db_name,
     });
 
     // 5. Also store the fuel-admin user in the master DB for centralized login/routing

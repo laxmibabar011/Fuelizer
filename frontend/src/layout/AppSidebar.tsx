@@ -139,16 +139,6 @@ const AppSidebar: React.FC = () => {
       path: "/fuel-admin-dashboard",
     },
     {
-      icon: <UserCircleIcon />,
-      name: "Profile",
-      path: "/profile",
-    },
-    {
-      icon: <CalenderIcon />,
-      name: "Calendar",
-      path: "/calendar",
-    },
-    {
       icon: <PlugInIcon />,
       name: "Logout",
       onClick: logout,
