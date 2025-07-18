@@ -28,6 +28,7 @@ export const initMasterModels = (sequelize) => {
     db_name: { type: DataTypes.STRING, unique: true, allowNull: false },
     is_active: { type: DataTypes.BOOLEAN, default: true },
   });
+  
 
   // Relations
   Client.hasMany(User, { foreignKey: 'client_id' });

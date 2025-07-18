@@ -1,38 +1,33 @@
 import { getMasterSequelize, getTenantSequelize } from '../config/db.config.js';
-import { initMasterModels } from '../models/master.model.js';
-import { initTenantModels } from '../models/user.model.js';
+import { MasterRepository } from '../repository/master.repository.js';
+import dotenv from 'dotenv';
+dotenv.config();
 
-/**
- * Middleware to attach the correct tenant DB instance to req
- * based on client_id in the JWT (req.user).
- */
 export const tenantDbMiddleware = async (req, res, next) => {
   try {
-    const { client_id } = req.user;
-    if (!client_id) return res.status(400).json({ message: 'No client_id in token' });
-
-    // Get master DB connection and models
+    // client_id should be present on req.user from authentication middleware
+    const clientId = req.user && req.user.client_id;
+    if (!clientId) {
+      return res.status(400).json({ message: 'No client_id found in user context' });
+    }
+    // Connect to master DB and get client info
     const masterSequelize = getMasterSequelize();
-    const { Client } = initMasterModels(masterSequelize);
-    await masterSequelize.authenticate();
-
-    // Find client DB info by client_id
-    const client = await Client.findByPk(client_id);
-    if (!client) return res.status(404).json({ message: 'Client not found' });
-
-    // Create tenant DB connection using info from master DB
+    const masterRepo = new MasterRepository(masterSequelize);
+    const client = await masterRepo.getClientById(clientId);
+    if (!client) {
+      return res.status(404).json({ message: 'Client not found' });
+    }
+    const dbName = client.db_name;
+    // Create tenant Sequelize instance
     const tenantSequelize = getTenantSequelize({
-      dbName: client.db_name,
+      dbName,
       dbUser: process.env.TENANT_DB_USER,
       dbPass: process.env.TENANT_DB_PASS,
       dbHost: process.env.TENANT_DB_HOST,
     });
-    await tenantSequelize.authenticate();
-    req.tenantDb = tenantSequelize;
-    req.tenantModels = initTenantModels(tenantSequelize);
-    req.client = client; // Attach client metadata if needed
+    req.tenantSequelize = tenantSequelize;
     next();
   } catch (err) {
-    return res.status(500).json({ message: 'Tenant DB error', error: err.message });
+    return res.status(500).json({ message: 'Error resolving tenant DB', error: err.message });
   }
 };
