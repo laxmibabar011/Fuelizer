@@ -1,10 +1,9 @@
 import { getMasterSequelize } from '../config/db.config.js';
 import { MasterRepository } from '../repository/master.repository.js';
-import { initCreditModels } from '../models/credit.model.js';
 import dotenv from 'dotenv';
 dotenv.config();
 import { getTenantDbModels } from '../controller/helper/tenantDb.helper.js';
-
+ 
 export const tenantDbMiddleware = async (req, res, next) => {
   try {
     // client_id should be present on req.user from authentication middleware

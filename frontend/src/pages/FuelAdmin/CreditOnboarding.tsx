@@ -15,7 +15,6 @@ interface FormData {
   userName: string;
   userEmail: string;
   userPassword: string;
-  isApprover: boolean;
 }
 
 const CreditOnboarding: React.FC = () => {
@@ -34,14 +33,13 @@ const CreditOnboarding: React.FC = () => {
     userName: "",
     userEmail: "",
     userPassword: "",
-    isApprover: true,
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: value,
     }));
   };
 
@@ -104,7 +102,6 @@ const CreditOnboarding: React.FC = () => {
         userName: "",
         userEmail: "",
         userPassword: "",
-        isApprover: true,
       });
 
       // Navigate back to dashboard after 2 seconds
@@ -245,20 +242,6 @@ const CreditOnboarding: React.FC = () => {
                   value={formData.userPassword}
                   onChange={handleInputChange}
                 />
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="isApprover"
-                  name="isApprover"
-                  checked={formData.isApprover}
-                  onChange={handleInputChange}
-                  className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
-                />
-                <Label htmlFor="isApprover" className="text-sm">
-                  User is an approver
-                </Label>
               </div>
             </div>
           </div>

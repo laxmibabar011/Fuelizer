@@ -9,7 +9,6 @@ interface CreditPartnerData {
   userName: string;
   userEmail: string;
   userPassword: string;
-  isApprover?: boolean;
 }
 
 class CreditService {

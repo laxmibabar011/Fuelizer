@@ -77,7 +77,7 @@ export const getCurrentUser = async (id) => {
   try {
     const masterSequelize = getMasterSequelize();
     const masterRepo = new MasterRepository(masterSequelize);
-    const user = await masterRepo.getUserById(id);
+    const user = await masterRepo.getMasterUserById(id);
     if (!user) {
       throw new Error('User not found');
     }

@@ -5,26 +5,23 @@ export class CreditRepository {
     this.models = initCreditModels(sequelize);
   }
 
-  // Create a new credit account (CreditCustomer)
+  // Create a new credit account
   async createCreditAccount(accountData, transaction) {
-    return this.models.CreditCustomer.create(accountData, { transaction });
+    return this.models.CreditAccount.create(accountData, { transaction });
   }
 
   // Find a credit account by contact email
   async findCreditAccountByContactEmail(contactEmail) {
-    return this.models.CreditCustomer.findOne({ where: { contactEmail } });
+    return this.models.CreditAccount.findOne({ where: { contactEmail } });
   }
 
-  async getAllCreditCustomers() {
-    return this.models.CreditCustomer.findAll({
-      include: [this.models.CustomerUser],
+  async getAllCreditAccounts() {
+    return this.models.CreditAccount.findAll({
       order: [['createdAt', 'DESC']]
     });
   }
 
-  async getCreditCustomerById(id) {
-    return this.models.CreditCustomer.findByPk(id, {
-      include: [this.models.CustomerUser]
-    });
+  async getCreditAccountById(id) {
+    return this.models.CreditAccount.findByPk(id);
   }
 } 
