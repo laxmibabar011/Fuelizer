@@ -86,9 +86,7 @@ const othersItems: NavItem[] = [
   {
     icon: <PlugInIcon />,
     name: "Authentication",
-    subItems: [
-      { name: "Sign In", path: "/signin", pro: false }
-    ],
+    subItems: [{ name: "Sign In", path: "/signin", pro: false }],
   },
 ];
 
@@ -139,6 +137,11 @@ const AppSidebar: React.FC = () => {
       path: "/fuel-admin-dashboard",
     },
     {
+      icon: <UserCircleIcon />,
+      name: "Credit Management",
+      path: "/fuel-admin/credit",
+    },
+    {
       icon: <PlugInIcon />,
       name: "Logout",
       onClick: logout,
@@ -149,8 +152,8 @@ const AppSidebar: React.FC = () => {
     authUser?.role === "super_admin"
       ? superAdminMenu
       : authUser?.role === "fuel-admin"
-      ? fuelAdminMenu
-      : [];
+        ? fuelAdminMenu
+        : [];
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -161,8 +164,8 @@ const AppSidebar: React.FC = () => {
           isExpanded || isMobileOpen
             ? "w-[290px]"
             : isHovered
-            ? "w-[290px]"
-            : "w-[90px]"
+              ? "w-[290px]"
+              : "w-[90px]"
         }
         ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
         lg:translate-x-0`}
@@ -231,9 +234,7 @@ const AppSidebar: React.FC = () => {
                             : "menu-item-inactive"
                         }`}
                       >
-                        <span className="menu-item-icon-size">
-                          {item.icon}
-                        </span>
+                        <span className="menu-item-icon-size">{item.icon}</span>
                         {(isExpanded || isHovered || isMobileOpen) && (
                           <span className="menu-item-text">{item.name}</span>
                         )}

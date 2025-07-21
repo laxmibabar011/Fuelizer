@@ -22,7 +22,10 @@ import SuperAdminDashboard from "./pages/Dashboard/SuperAdminDashboard";
 import CreateClient from "./pages/SuperAdmin/CreateClient";
 import ClientList from "./pages/SuperAdmin/ClientList";
 import FuelAdminDashboard from "./pages/Dashboard/FuelAdminDashboard";
-import ResetPassword from "./pages/AuthPages/ResetPassword";
+import CreditOnboarding from "./pages/FuelAdmin/CreditOnboarding";
+import CreditDashboard from "./pages/FuelAdmin/CreditDashboard";
+import CreditPartners from "./pages/FuelAdmin/CreditPartners";
+import PartnerDetails from "./pages/FuelAdmin/PartnerDetails";
 
 export default function App() {
   return (
@@ -35,7 +38,6 @@ export default function App() {
 
           {/* Auth Layout */}
           <Route path="/signin" element={<SignIn />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
 
           {/* // --- ROUTE ASSIGNMENT START ---
 // Assign new routes for each role below. 
@@ -43,17 +45,51 @@ export default function App() {
 // Example: allowedRoles={['super-admin', 'fuel-admin']} */}
 
           {/* Super Admin Protected Routes */}
-          <Route element={<PrivateRoute allowedRoles={["super_admin"]}><AppLayout /></PrivateRoute>}>
-            <Route path="/super-admin-dashboard" element={<SuperAdminDashboard />} />
-            <Route path="/super-admin/create-client" element={<CreateClient />} />
+          <Route
+            element={
+              <PrivateRoute allowedRoles={["super_admin"]}>
+                <AppLayout />
+              </PrivateRoute>
+            }
+          >
+            <Route
+              path="/super-admin-dashboard"
+              element={<SuperAdminDashboard />}
+            />
+            <Route
+              path="/super-admin/create-client"
+              element={<CreateClient />}
+            />
             <Route path="/super-admin/clients" element={<ClientList />} />
             <Route path="/profile" element={<UserProfiles />} />
             <Route path="/calendar" element={<Calendar />} />
           </Route>
 
           {/* Fuel Admin Protected Routes */}
-          <Route element={<PrivateRoute allowedRoles={["fuel-admin"]}><AppLayout /></PrivateRoute>}>
-            <Route path="/fuel-admin-dashboard" element={<FuelAdminDashboard />} />
+          <Route
+            element={
+              <PrivateRoute allowedRoles={["fuel-admin"]}>
+                <AppLayout />
+              </PrivateRoute>
+            }
+          >
+            <Route
+              path="/fuel-admin-dashboard"
+              element={<FuelAdminDashboard />}
+            />
+            <Route path="/fuel-admin/credit" element={<CreditDashboard />} />
+            <Route
+              path="/fuel-admin/credit-partners"
+              element={<CreditPartners />}
+            />
+            <Route
+              path="/fuel-admin/credit-partners/:id"
+              element={<PartnerDetails />}
+            />
+            <Route
+              path="/fuel-admin/credit-onboarding"
+              element={<CreditOnboarding />}
+            />
             {/* <Route path="/profile" element={<UserProfiles />} />
             <Route path="/calendar" element={<Calendar />} /> */}
           </Route>
