@@ -5,11 +5,13 @@ export class UserRepository {
     this.models = initTenantModels(sequelize);
   }
 
-  async createUser(userData) {
+  // Create a user in the tenant DB
+  async createTenantUser(userData) {
     return this.models.User.create(userData);
   }
 
-  async findUserByEmail(email) {
+  // Find a user by email in the tenant DB
+  async findTenantUserByEmail(email) {
     return this.models.User.findOne({ where: { email } });
   }
 }

@@ -1,9 +1,8 @@
 import { DataTypes } from 'sequelize';
-import { hashPassword } from '../util/auth.util.js';
 
 export const initCreditModels = (sequelize) => {
-  // CreditCustomer model
-  const CreditCustomer = sequelize.define('CreditCustomer', {
+  // CreditAccount model (formerly CreditCustomer)
+  const CreditAccount = sequelize.define('CreditAccount', {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
     companyName: { type: DataTypes.STRING, allowNull: false },
     contactName: { type: DataTypes.STRING, allowNull: false },
@@ -17,33 +16,6 @@ export const initCreditModels = (sequelize) => {
     },
   });
 
-  // CustomerUser model
-  const CustomerUser = sequelize.define('CustomerUser', {
-    id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
-    name: { type: DataTypes.STRING, allowNull: false },
-    email: { type: DataTypes.STRING, unique: true, allowNull: false },
-    password: { type: DataTypes.STRING, allowNull: false },
-    isApprover: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
-    creditCustomerId: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      references: {
-        model: CreditCustomer,
-        key: 'id',
-      },
-    },
-  });
-
-  // Password hashing hook for CustomerUser
-  // CustomerUser.beforeCreate(async (user) => {
-  //   if (user.password) {
-  //     user.password = await hashPassword(user.password);
-  //   }
-  // });
-
-  // Relationship: CreditCustomer has many CustomerUsers
-  CreditCustomer.hasMany(CustomerUser, { foreignKey: 'creditCustomerId' });
-  CustomerUser.belongsTo(CreditCustomer, { foreignKey: 'creditCustomerId' });
-
-  return { CreditCustomer, CustomerUser };
+  // Only CreditAccount is used for credit info; user management is handled by main User/Role tables
+  return { CreditAccount };
 }; 

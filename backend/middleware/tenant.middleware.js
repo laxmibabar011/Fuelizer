@@ -1,7 +1,8 @@
-import { getMasterSequelize, getTenantSequelize } from '../config/db.config.js';
+import { getMasterSequelize } from '../config/db.config.js';
 import { MasterRepository } from '../repository/master.repository.js';
 import dotenv from 'dotenv';
 dotenv.config();
+import { getTenantDbModels } from '../controller/helper/tenantDb.helper.js';
 
 export const tenantDbMiddleware = async (req, res, next) => {
   try {
@@ -18,14 +19,10 @@ export const tenantDbMiddleware = async (req, res, next) => {
       return res.status(404).json({ message: 'Client not found' });
     }
     const dbName = client.db_name;
-    // Create tenant Sequelize instance
-    const tenantSequelize = getTenantSequelize({
-      dbName,
-      dbUser: process.env.TENANT_DB_USER,
-      dbPass: process.env.TENANT_DB_PASS,
-      dbHost: process.env.TENANT_DB_HOST,
-    });
+    // Use the helper to get tenant DB context (multi-tenant practice)
+    const { tenantSequelize, User, Role } = await getTenantDbModels(dbName);
     req.tenantSequelize = tenantSequelize;
+    req.tenantModels = { User, Role };
     next();
   } catch (err) {
     return res.status(500).json({ message: 'Error resolving tenant DB', error: err.message });

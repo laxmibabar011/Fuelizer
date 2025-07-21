@@ -1,6 +1,12 @@
-import { CreditRepository } from '../repository/credit.repository.js';
+// Controller uses sendResponse for all API responses and logger.info/logger.error for logging
+import { getMasterSequelize } from '../config/db.config.js';
+import { MasterRepository } from '../repository/master.repository.js';
 import { hashPassword } from '../util/auth.util.js';
-import { sendSuccess, sendError } from '../util/response.util.js';
+import { sendResponse } from '../util/response.util.js';
+import { logger } from '../util/logger.util.js';
+import { CreditRepository } from '../repository/credit.repository.js';
+import { USER_ROLES } from '../constants.js';
+import { getTenantDbModels } from './helper/tenantDb.helper.js';
 
 export const onboardPartner = async (req, res) => {
   const {
@@ -12,23 +18,23 @@ export const onboardPartner = async (req, res) => {
     userName,
     userEmail,
     userPassword,
-    isApprover
+    isApprover,
+    client_id, // must be provided to link to correct tenant
+    db_name // must be provided to connect to tenant DB
   } = req.body;
 
-  if (!companyName || !contactName || !contactEmail || !contactPhone || !creditLimit || !userName || !userEmail || !userPassword) {
-    return sendError(res, 'Missing required fields', 'Onboarding failed', 400);
+  if (!companyName || !contactName || !contactEmail || !contactPhone || !creditLimit || !userName || !userEmail || !userPassword || !client_id || !db_name) {
+    return sendResponse(res, { success: false, error: 'Missing required fields', message: 'Onboarding failed', status: 400 });
   }
 
-  const tenantSequelize = req.tenantSequelize;
+  // Always use the helper to get tenant DB context in multi-tenant architecture
+  const { tenantSequelize, User, Role } = await getTenantDbModels(db_name);
+  const creditRepo = new CreditRepository(tenantSequelize);
 
   try {
-    await tenantSequelize.authenticate();
-    const creditRepo = new CreditRepository(tenantSequelize);
-    await tenantSequelize.sync();
-
     const result = await tenantSequelize.transaction(async (t) => {
-      // 1. Create CreditCustomer
-      const creditCustomer = await creditRepo.createCreditCustomer({
+      // 1. Create CreditAccount (credit info only)
+      const creditAccount = await creditRepo.createCreditAccount({
         companyName,
         contactName,
         contactEmail,
@@ -36,23 +42,36 @@ export const onboardPartner = async (req, res) => {
         creditLimit
       }, t);
 
-      // 2. Hash password
+      // 2. Create user in master DB (role='partner', correct client_id)
+      const masterSequelize = getMasterSequelize();
+      const masterRepo = new MasterRepository(masterSequelize);
+      await masterSequelize.authenticate();
       const hashedPassword = await hashPassword(userPassword);
-
-      // 3. Create CustomerUser and associate with CreditCustomer
-      const customerUser = await creditRepo.createCustomerUser({
-        name: userName,
+      const masterUser = await masterRepo.createMasterUser({
         email: userEmail,
         password: hashedPassword,
-        isApprover: isApprover !== undefined ? isApprover : true,
-        creditCustomerId: creditCustomer.id
-      }, t);
+        role: USER_ROLES.PARTNER,
+        client_id: client_id
+      });
 
-      return { creditCustomer, customerUser };
+      // 3. Create 'partner' role in tenant DB if not exists, then create user in tenant DB's User table
+      let partnerRole = await Role.findOne({ where: { name: USER_ROLES.PARTNER } });
+      if (!partnerRole) {
+        partnerRole = await Role.create({ name: USER_ROLES.PARTNER });
+      }
+      const tenantUser = await User.create({
+        email: userEmail,
+        password: hashedPassword,
+        role_id: partnerRole.id
+      });
+
+      return { creditAccount, masterUser, tenantUser };
     });
 
-    return sendSuccess(res, result, 'Credit partner onboarded successfully', 201);
+    logger.info(`[credit.controller]-[onboardPartner]: Credit partner onboarded successfully`);
+    return sendResponse(res, { data: result, message: 'Credit partner onboarded successfully', status: 201 });
   } catch (err) {
-    return sendError(res, err, 'Failed to onboard credit partner', 500);
+    logger.error(`[credit.controller]-[onboardPartner]: ${err.message}`);
+    return sendResponse(res, { success: false, error: err, message: 'Failed to onboard credit partner', status: 500 });
   }
 }; 

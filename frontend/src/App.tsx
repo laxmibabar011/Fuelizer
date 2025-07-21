@@ -22,6 +22,7 @@ import SuperAdminDashboard from "./pages/Dashboard/SuperAdminDashboard";
 import CreateClient from "./pages/SuperAdmin/CreateClient";
 import ClientList from "./pages/SuperAdmin/ClientList";
 import FuelAdminDashboard from "./pages/Dashboard/FuelAdminDashboard";
+import ResetPassword from "./pages/AuthPages/ResetPassword";
 
 export default function App() {
   return (
@@ -34,6 +35,7 @@ export default function App() {
 
           {/* Auth Layout */}
           <Route path="/signin" element={<SignIn />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
 
           {/* // --- ROUTE ASSIGNMENT START ---
 // Assign new routes for each role below. 
