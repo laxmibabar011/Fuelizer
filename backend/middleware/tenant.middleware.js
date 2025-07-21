@@ -1,5 +1,6 @@
 import { getMasterSequelize, getTenantSequelize } from '../config/db.config.js';
 import { MasterRepository } from '../repository/master.repository.js';
+import { initCreditModels } from '../models/credit.model.js';
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -25,6 +26,12 @@ export const tenantDbMiddleware = async (req, res, next) => {
       dbPass: process.env.TENANT_DB_PASS,
       dbHost: process.env.TENANT_DB_HOST,
     });
+
+    // // Initialize credit models for the tenant DB
+    // initCreditModels(tenantSequelize);
+    // // sync models for the tenant DB--DB sync is required for the tenant DB
+    // await tenantSequelize.sync({ alter: true });
+
     req.tenantSequelize = tenantSequelize;
     next();
   } catch (err) {
