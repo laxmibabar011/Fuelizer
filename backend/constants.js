@@ -15,7 +15,10 @@ export const tokenTimeToLive = {
   REFRESH_TOKEN_COOKIE: 7 * 24 * 60 * 60 * 1000, // 7 days
 };
 
-export const UserRoles = {
-  PORTAL_ADMIN: "super-admin",
-  FUEL_ADMIN: "fuel-admin"
+// Enum for all user roles in the system
+export const USER_ROLES = {
+  SUPER_ADMIN: "super_admin",
+  FUEL_ADMIN: "fuel-admin",
+  PARTNER: "partner",
+  // Add more roles as needed
 };

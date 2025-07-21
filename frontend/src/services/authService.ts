@@ -18,6 +18,16 @@ class AuthService {
       headers: { Authorization: `Bearer ${token}` },
     });
   }
+
+  // Forgot password: send OTP to email
+  async forgotPassword(email: string) {
+    return apiClient.post("/forgot-password", { email });
+  }
+
+  // Reset password: verify OTP and set new password
+  async resetPassword(email: string, otp: string, newPassword: string, confirmPassword: string) {
+    return apiClient.post("/reset-password", { email, otp, newPassword, confirmPassword });
+  }
 }
 
 export default new AuthService(); 

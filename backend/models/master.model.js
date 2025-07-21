@@ -29,10 +29,22 @@ export const initMasterModels = (sequelize) => {
     is_active: { type: DataTypes.BOOLEAN, default: true },
   });
   
+  // PasswordReset model for OTP-based password reset (for all users, multi-tenant aware)
+  // Used for forgot password flow
+  const PasswordReset = sequelize.define('PasswordReset', {
+    id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+    user_id: { type: DataTypes.INTEGER, allowNull: false },
+    otp: { type: DataTypes.STRING, allowNull: false },
+    expires_at: { type: DataTypes.DATE, allowNull: false },
+    used: { type: DataTypes.BOOLEAN, defaultValue: false },
+  });
 
   // Relations
   Client.hasMany(User, { foreignKey: 'client_id' });
   User.belongsTo(Client, { foreignKey: 'client_id' });
+  // PasswordReset belongs to User
+  PasswordReset.belongsTo(User, { foreignKey: 'user_id' });
+  User.hasMany(PasswordReset, { foreignKey: 'user_id' });
 
-  return { User, Client };
+  return { User, Client, PasswordReset };
 };

@@ -13,7 +13,7 @@ export default function FuelAdminDashboard() {
             <h1 className="text-3xl font-bold text-brand-600 mb-2">Welcome, Fuel Admin!</h1>
             <p className="text-lg text-gray-700 dark:text-gray-200">
               This is your FUELIZER Fuel Admin Dashboard.<br />
-              Here you will manage your company’s data and settings.
+              Here you will manage your company's data and settings.
             </p>
           </div>
         </div>
