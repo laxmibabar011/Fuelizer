@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { authenticate } from '../middleware/auth.middleware.js';
 import { onboardPartner, listCreditPartners, getCreditPartnerById, updatePartnerStatus } from '../controller/credit.controller.js';
 import { authorizeRoles } from '../middleware/auth.middleware.js';
+import { USER_ROLES } from '../constants.js';
 
 const router = Router();
 
@@ -12,7 +13,7 @@ router.post('/tenant/credit/onboard', authenticate, authorizeRoles('fuel-admin')
 router.get(
   '/tenant/credit/partners',
   authenticate,
-  authorizeRoles('fuel-admin'),
+  authorizeRoles(USER_ROLES.FUEL_ADMIN),
   listCreditPartners
 );
 
@@ -20,7 +21,7 @@ router.get(
 router.get(
   '/tenant/credit/partners/:id',
   authenticate,
-  authorizeRoles('fuel-admin'),
+  authorizeRoles(USER_ROLES.FUEL_ADMIN),
   getCreditPartnerById
 );
 
@@ -28,7 +29,7 @@ router.get(
 router.patch(
   '/tenant/credit/partners/:id/status',
   authenticate,
-  authorizeRoles('fuel-admin'),
+  authorizeRoles(USER_ROLES.FUEL_ADMIN),
   updatePartnerStatus
 );
 

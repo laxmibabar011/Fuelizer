@@ -3,7 +3,7 @@
 // This is required for multi-tenant architecture: always use this to get tenant DB context.
 import { getTenantSequelize } from '../../config/db.config.js';
 import { initTenantModels } from '../../models/user.model.js';
- 
+
 /**
  * Get tenant DB context (connection and initialized models)
  * @param {string} db_name - The tenant database name
@@ -21,7 +21,7 @@ export async function getTenantDbModels(db_name) {
   await tenantSequelize.sync({ alter: true });
   return { tenantSequelize, User, Role };
 }
- 
+
 // Usage example:
 //   const { tenantSequelize, User, Role } = await getTenantDbModels(db_name);
-//   // Now use User, Role, or tenantSequelize as needed in your controller or middleware.
+//   // Now use User, Role, or tenantSequelize as needed in your controller or middleware. 

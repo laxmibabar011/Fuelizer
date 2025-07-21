@@ -16,7 +16,6 @@ export const getMasterSequelize = () => {
     }
   );
 };
-console.log()
 
 // Tenant DB connection (dynamic)
 export const getTenantSequelize = ({ dbName, dbUser, dbPass, dbHost }) => {

@@ -12,7 +12,7 @@ dotenv.config();
 export const registerClient = async (req, res) => {
   try {
     // Only super_admin can register clients
-    if (req.user.role !== 'super_admin') {
+    if (req.user.role !== USER_ROLES.SUPER_ADMIN) {
       return sendResponse(res, { success: false, error: 'Forbidden', message: 'Only super admin can register clients', status: 403 });
     }
     // Destructure all client metadata fields from the request body
