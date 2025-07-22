@@ -19,7 +19,7 @@ interface FormData {
 
 const CreditOnboarding: React.FC = () => {
   const navigate = useNavigate();
-  const { authUser, accessToken } = useAuth();
+  const { accessToken } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState<string>("");
@@ -84,7 +84,7 @@ const CreditOnboarding: React.FC = () => {
     setLoading(true);
 
     try {
-      const response = await creditService.onboardPartner(
+      await creditService.onboardPartner(
         {
           ...formData,
           creditLimit: Number(formData.creditLimit),

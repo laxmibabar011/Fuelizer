@@ -19,14 +19,14 @@ app.use(cookieParser());
 
 // Configure CORS
 app.use(cors({
-  origin: 'http://localhost:5173', // Allow requests from your frontend origin
+  origin: 'http://localhost:4173', // Allow requests from your frontend origin
   credentials: true // Allow sending and receiving cookies/credentials
 }));
 
 // Example using Node.js with Express
 app.use((req, res, next) => {
   // Check the origin of the request and set the header accordingly
-  const allowedOrigins = ['http://localhost:5173']; // List of allowed origins
+  const allowedOrigins = ['http://localhost:4173']; // List of allowed origins
   const origin = req.headers.origin;
 
   if (allowedOrigins.includes(origin)) {
