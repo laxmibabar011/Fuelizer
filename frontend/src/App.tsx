@@ -26,7 +26,6 @@ import CreditOnboarding from "./pages/FuelAdmin/CreditOnboarding";
 import CreditDashboard from "./pages/FuelAdmin/CreditDashboard";
 import CreditPartners from "./pages/FuelAdmin/CreditPartners";
 import PartnerDetails from "./pages/FuelAdmin/PartnerDetails";
-import ResetPassword from "./pages/AuthPages/ResetPassword";
 
 export default function App() {
   return (
@@ -39,7 +38,6 @@ export default function App() {
 
           {/* Auth Layout */}
           <Route path="/signin" element={<SignIn />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
 
           {/* // --- ROUTE ASSIGNMENT START ---
 // Assign new routes for each role below. 

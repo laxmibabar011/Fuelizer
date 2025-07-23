@@ -24,4 +24,4 @@ export async function getTenantDbModels(db_name) {
 
 // Usage example:
 //   const { tenantSequelize, User, Role } = await getTenantDbModels(db_name);
-//   // Now use User, Role, or tenantSequelize as needed in your controller or middleware. 
+//  Now use User, Role, or tenantSequelize as needed in your controller or middleware. 

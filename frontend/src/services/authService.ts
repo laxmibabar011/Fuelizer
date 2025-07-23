@@ -10,32 +10,19 @@ class AuthService {
   }
 
   async refresh() {
+    // This call is used by the interceptor and doesn't need a token
     return apiClient.post("/refresh", {});
   }
 
-  async getMe(token: string) {
-    return apiClient.get("/me", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-  }
-  // Forgot password: send OTP to email
-  async forgotPassword(email: string) {
-    return apiClient.post("/forgot-password", { email });
+  async getMe() {
+    // No more token parameter or manual header!
+    return apiClient.get("/me");
   }
 
-  // Reset password: verify OTP and set new password
-  async resetPassword(
-    email: string,
-    otp: string,
-    newPassword: string,
-    confirmPassword: string
-  ) {
-    return apiClient.post("/reset-password", {
-      email,
-      otp,
-      newPassword,
-      confirmPassword,
-    });
+  // Helper to allow logout navigation from outside React components
+  handleLogoutNavigation() {
+    // This forces a reload and redirection, effectively logging the user out.
+    window.location.href = '/signin';
   }
 }
 

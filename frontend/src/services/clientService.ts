@@ -1,17 +1,15 @@
 import apiClient from "./apiClient";
 
 class ClientService {
-  async listClients(accessToken: string) {
-    return apiClient.get("/superadmin/clients", {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
+  async listClients() {
+    // The token is now added automatically by the apiClient interceptor
+    return apiClient.get("/superadmin/clients");
   }
 
-  async createClient(form: any, accessToken: string) {
-    return apiClient.post("/clients/register", form, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
+  async createClient(form: any) {
+    // The token is now added automatically by the apiClient interceptor
+    return apiClient.post("/clients/register", form);
   }
 }
 
-export default new ClientService(); 
+export default new ClientService();

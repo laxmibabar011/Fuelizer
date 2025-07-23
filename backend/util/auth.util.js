@@ -4,6 +4,7 @@ import { logger } from './logger.util.js';
 import { tokenTimeToLive } from '../constants.js';
 import { getMasterSequelize } from '../config/db.config.js';
 import { MasterRepository } from '../repository/master.repository.js';
+import { USER_ROLES } from '../constants.js';
 
 const SALT_ROUNDS = 10;
 
@@ -86,7 +87,7 @@ export const getCurrentUser = async (id) => {
     if (user.client_id) {
       clientDetails = await masterRepo.getClientById(user.client_id);
     }
-    if (user.role !== 'super_admin' && clientDetails) {
+    if (user.role !== USER_ROLES.SUPER_ADMIN && clientDetails) {
       return {
         id: user.id || '',
         email: user.email || '',

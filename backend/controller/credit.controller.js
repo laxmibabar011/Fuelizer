@@ -111,8 +111,8 @@ export const onboardPartner = async (req, res) => {
     logger.info(`[credit.controller]-[onboardPartner]: Credit partner onboarded successfully`);
     return sendResponse(res, { data: result, message: 'Credit partner onboarded successfully', status: 201 });
   } catch (err) {
-    logger.error(`[credit.controller]-[onboardPartner]: ${err.message}`);
-    return sendResponse(res, { success: false, error: err.message, message: 'Failed to onboard credit partner', status: 500 });
+    logger.error(`[credit.controller]-[onboardPartner]:`, err);
+    return sendResponse(res, { success: false, error: err.errors ? err.errors.map(e => e.message).join(', ') : err.message, message: 'Failed to onboard credit partner', status: 500 });
   }
 };
 
@@ -135,7 +135,8 @@ export const getCreditPartnerById = async (req, res) => {
     }
     return sendResponse(res, { data: partner, message: 'Credit partner details fetched successfully', status: 200 });
   } catch (err) {
-    logger.error(`[credit.controller]-[getCreditPartnerById]: ${err.message}`);
+    logger.error(`[credit.controller]-[getCreditPartnerById]: Error fetching partner ID ${req.params.id}`);
+    logger.error(err); // This will log the full error object, including stack trace
     return sendResponse(res, { success: false, error: err.message, message: 'Failed to fetch credit partner details', status: 500 });
   }
 };
@@ -187,5 +188,123 @@ export const listCreditPartners = async (req, res) => {
   } catch (err) {
     logger.error(`[credit.controller]-[listCreditPartners]: ${err.message}`);
     return sendResponse(res, { success: false, error: err.message, message: 'Failed to fetch credit partners', status: 500 });
+  }
+};
+
+// List vehicles for a partner
+export const getVehiclesByPartnerId = async (req, res) => {
+  try {
+    const { partnerId } = req.params;
+    let tenantContext;
+    try {
+      tenantContext = await getTenantContextFromUser(req);
+    } catch (err) {
+      return sendResponse(res, { success: false, error: err.message, message: 'Failed to fetch vehicles', status: 401 });
+    }
+    const { tenantSequelize } = tenantContext;
+    const creditRepo = new CreditRepository(tenantSequelize);
+    const vehicles = await creditRepo.getVehiclesByPartnerId(partnerId);
+    return sendResponse(res, { data: vehicles, message: 'Vehicles fetched successfully', status: 200 });
+  } catch (err) {
+    logger.error(`[credit.controller]-[getVehiclesByPartnerId]: ${err.message}`);
+    return sendResponse(res, { success: false, error: err.message, message: 'Failed to fetch vehicles', status: 500 });
+  }
+};
+
+// Add vehicles for a partner (bulk)
+export const addVehicles = async (req, res) => {
+  try {
+    const { partnerId } = req.params;
+    const { vehicles } = req.body;
+    if (!Array.isArray(vehicles) || vehicles.length === 0) {
+      return sendResponse(res, { success: false, error: 'No vehicles provided', message: 'No vehicles provided', status: 400 });
+    }
+    let tenantContext;
+    try {
+      tenantContext = await getTenantContextFromUser(req);
+    } catch (err) {
+      return sendResponse(res, { success: false, error: err.message, message: 'Failed to add vehicles', status: 401 });
+    }
+    const { tenantSequelize } = tenantContext;
+    const creditRepo = new CreditRepository(tenantSequelize);
+    const created = await creditRepo.addVehicles(partnerId, vehicles);
+    return sendResponse(res, { data: created, message: 'Vehicles added successfully', status: 201 });
+  } catch (err) {
+    logger.error(`[credit.controller]-[addVehicles]: ${err.message}`);
+    return sendResponse(res, { success: false, error: err.message, message: 'Failed to add vehicles', status: 500 });
+  }
+};
+
+// Update a vehicle
+export const updateVehicle = async (req, res) => {
+  try {
+    const { vehicleId } = req.params;
+    const data = req.body;
+    let tenantContext;
+    try {
+      tenantContext = await getTenantContextFromUser(req);
+    } catch (err) {
+      return sendResponse(res, { success: false, error: err.message, message: 'Failed to update vehicle', status: 401 });
+    }
+    const { tenantSequelize } = tenantContext;
+    const creditRepo = new CreditRepository(tenantSequelize);
+    const updated = await creditRepo.updateVehicle(vehicleId, data);
+    if (!updated) {
+      return sendResponse(res, { success: false, error: 'Vehicle not found', message: 'Vehicle not found', status: 404 });
+    }
+    return sendResponse(res, { data: updated, message: 'Vehicle updated successfully', status: 200 });
+  } catch (err) {
+    logger.error(`[credit.controller]-[updateVehicle]: ${err.message}`);
+    return sendResponse(res, { success: false, error: err.message, message: 'Failed to update vehicle', status: 500 });
+  }
+};
+
+// Set vehicle status
+export const setVehicleStatus = async (req, res) => {
+  try {
+    const { vehicleId } = req.params;
+    const { status } = req.body;
+    if (!['Active', 'Inactive'].includes(status)) {
+      return sendResponse(res, { success: false, error: 'Invalid status', message: 'Status must be Active or Inactive', status: 400 });
+    }
+    let tenantContext;
+    try {
+      tenantContext = await getTenantContextFromUser(req);
+    } catch (err) {
+      return sendResponse(res, { success: false, error: err.message, message: 'Failed to update vehicle status', status: 401 });
+    }
+    const { tenantSequelize } = tenantContext;
+    const creditRepo = new CreditRepository(tenantSequelize);
+    const updated = await creditRepo.setVehicleStatus(vehicleId, status);
+    if (!updated) {
+      return sendResponse(res, { success: false, error: 'Vehicle not found', message: 'Vehicle not found', status: 404 });
+    }
+    return sendResponse(res, { data: updated, message: `Vehicle status updated to ${status}`, status: 200 });
+  } catch (err) {
+    logger.error(`[credit.controller]-[setVehicleStatus]: ${err.message}`);
+    return sendResponse(res, { success: false, error: err.message, message: 'Failed to update vehicle status', status: 500 });
+  }
+};
+
+// Delete a vehicle
+export const deleteVehicle = async (req, res) => {
+  try {
+    const { vehicleId } = req.params;
+    let tenantContext;
+    try {
+      tenantContext = await getTenantContextFromUser(req);
+    } catch (err) {
+      return sendResponse(res, { success: false, error: err.message, message: 'Failed to delete vehicle', status: 401 });
+    }
+    const { tenantSequelize } = tenantContext;
+    const creditRepo = new CreditRepository(tenantSequelize);
+    const deleted = await creditRepo.deleteVehicle(vehicleId);
+    if (!deleted) {
+      return sendResponse(res, { success: false, error: 'Vehicle not found', message: 'Vehicle not found', status: 404 });
+    }
+    return sendResponse(res, { data: {}, message: 'Vehicle deleted successfully', status: 200 });
+  } catch (err) {
+    logger.error(`[credit.controller]-[deleteVehicle]: ${err.message}`);
+    return sendResponse(res, { success: false, error: err.message, message: 'Failed to delete vehicle', status: 500 });
   }
 };

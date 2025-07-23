@@ -19,24 +19,11 @@ app.use(cookieParser());
 
 // Configure CORS
 app.use(cors({
-  origin: 'http://localhost:4173', // Allow requests from your frontend origin
-  credentials: true // Allow sending and receiving cookies/credentials
+  origin: 'http://localhost:5173', // Allow requests from your frontend origin
+  credentials: true, // Allow sending and receiving cookies/credentials
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'], // Explicitly allow PATCH
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
-
-// Example using Node.js with Express
-app.use((req, res, next) => {
-  // Check the origin of the request and set the header accordingly
-  const allowedOrigins = ['http://localhost:4173']; // List of allowed origins
-  const origin = req.headers.origin;
-
-  if (allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  }
-
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  next();
-});
 
 // Serve static files from public
 // const __filename = fileURLToPath(import.meta.url);

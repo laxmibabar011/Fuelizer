@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useAuth } from "../../context/AuthContext";
 import PageMeta from "../../components/common/PageMeta";
 import ClientService from "../../services/clientService";
 
@@ -24,7 +23,7 @@ export default function CreateClient() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
-  const { accessToken } = useAuth();
+  // Removed accessToken as it is no longer needed
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -36,12 +35,7 @@ export default function CreateClient() {
     setSuccess("");
     setError("");
     try {
-      if (!accessToken) {
-        setError("No access token");
-        setLoading(false);
-        return;
-      }
-      const res = await ClientService.createClient(form, accessToken);
+      const res = await ClientService.createClient(form);
       const data = res.data;
       if (data.success) {
         setSuccess("Client registered successfully!");
