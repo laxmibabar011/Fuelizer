@@ -26,6 +26,8 @@ import CreditOnboarding from "./pages/FuelAdmin/CreditOnboarding";
 import CreditDashboard from "./pages/FuelAdmin/CreditDashboard";
 import CreditPartners from "./pages/FuelAdmin/CreditPartners";
 import PartnerDetails from "./pages/FuelAdmin/PartnerDetails";
+import ResetPassword from "./pages/AuthPages/ResetPassword";
+import PartnerDashboard from "./pages/Dashboard/PartnerDashboard";
 
 export default function App() {
   return (
@@ -38,6 +40,7 @@ export default function App() {
 
           {/* Auth Layout */}
           <Route path="/signin" element={<SignIn />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
 
           {/* // --- ROUTE ASSIGNMENT START ---
 // Assign new routes for each role below. 
@@ -92,6 +95,17 @@ export default function App() {
             />
             {/* <Route path="/profile" element={<UserProfiles />} />
             <Route path="/calendar" element={<Calendar />} /> */}
+          </Route>
+
+          {/* Partner Protected Routes */}
+          <Route
+            element={
+              <PrivateRoute allowedRoles={["partner"]}>
+                <AppLayout />
+              </PrivateRoute>
+            }
+          >
+            <Route path="/partner-dashboard" element={<PartnerDashboard />} />
           </Route>
 
           {/* Forms */}

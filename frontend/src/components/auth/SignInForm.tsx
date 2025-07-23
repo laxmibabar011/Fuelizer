@@ -38,6 +38,8 @@ export default function SignInForm() {
           navigate("/super-admin-dashboard");
         } else if (data.data.user.role === "fuel-admin") {
           navigate("/fuel-admin-dashboard");
+        } else if (data.data.user.role === "partner") {
+          navigate("/partner-dashboard");
         } else {
           navigate("/");
         }

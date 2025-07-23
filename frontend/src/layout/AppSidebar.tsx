@@ -147,12 +147,28 @@ const AppSidebar: React.FC = () => {
     },
   ];
 
+  // Role-based menu for partner
+  const partnerMenu = [
+    {
+      icon: <GridIcon />,
+      name: "Dashboard",
+      path: "/partner-dashboard",
+    },
+    {
+      icon: <PlugInIcon />,
+      name: "Logout",
+      onClick: logout,
+    },
+  ];
+
   const menuToShow =
     authUser?.role === "super_admin"
       ? superAdminMenu
       : authUser?.role === "fuel-admin"
         ? fuelAdminMenu
-        : [];
+        : authUser?.role === "partner"
+          ? partnerMenu
+          : [];
 
   const isActive = (path: string) => location.pathname === path;
 
