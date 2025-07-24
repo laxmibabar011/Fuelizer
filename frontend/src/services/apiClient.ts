@@ -1,14 +1,17 @@
 import axios, { AxiosError } from "axios";
 import AuthService from "./authService";
 
-const apiClient = axios.create({
-  baseURL: "http://localhost:9000",
+const baseURL = window.location.hostname === "localhost"
+  ? "http://localhost:9000/api"
+  : "https://fuelizerdev.invenger.cloud/api";
+
+export const apiClient = axios.create({
+  baseURL,
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
 });
-
 // --- JWT REFRESH INTERCEPTOR LOGIC ---
 
 let isRefreshing = false;

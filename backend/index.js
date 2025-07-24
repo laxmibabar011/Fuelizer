@@ -19,18 +19,23 @@ app.use(cookieParser());
 
 // Configure CORS
 app.use(cors({
-  origin: 'http://localhost:5173', // Allow requests from your frontend origin
-  credentials: true, // Allow sending and receiving cookies/credentials
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'], // Explicitly allow PATCH
+  origin: [
+    'http://localhost:5173',
+    'https://fuelizerdev.invenger.cloud',
+    'https://13.233.91.7'
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
+
 
 // Serve static files from public
 // const __filename = fileURLToPath(import.meta.url);
 // const __dirname = path.dirname(__filename);
 // app.use(express.static(path.join(__dirname, 'public')));
 
-app.use('/', router);
+app.use('/api', router);
 
 const PORT = process.env.PORT || 3000;
 
