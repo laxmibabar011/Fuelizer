@@ -10,6 +10,7 @@ import { initMasterModels } from './models/master.model.js';
 
 
 dotenv.config();
+originUrl = process.env.ORIGIN_URL
 
 const app = express();
 
@@ -19,10 +20,7 @@ app.use(cookieParser());
 
 // Configure CORS
 app.use(cors({
-  origin: [
-    'http://localhost:5173',
-    'https://fuelizerdev.invenger.cloud',
-  ],
+  originUrl,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization'],
