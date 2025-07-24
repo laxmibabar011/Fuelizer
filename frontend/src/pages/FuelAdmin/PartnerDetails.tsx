@@ -42,7 +42,8 @@ const PartnerDetails: React.FC = () => {
   const [vehicleLoading, setVehicleLoading] = useState(false);
   const [vehicleError, setVehicleError] = useState("");
   const [showVehicleModal, setShowVehicleModal] = useState(false);
-  const [editingVehicle, setEditingVehicle] = useState<any | null>(null);
+  // const [editingVehicle, setEditingVehicle] = useState<any | null>(null);
+  const [setEditingVehicle] = useState<any | null>(null);
 
   useEffect(() => {
     const fetchPartner = async () => {
@@ -144,18 +145,18 @@ const PartnerDetails: React.FC = () => {
     setShowVehicleModal(true);
   };
   // Save vehicle handler (from modal)
-  const handleSaveVehicle = async (vehicle: any) => {
-    if (vehicle.id) {
-      await creditService.updateVehicle(vehicle.id, vehicle);
-      setVehicles(vs => vs.map(v => v.id === vehicle.id ? vehicle : v));
-    } else {
-      const res = await creditService.addVehicles(String(partner?.id), [vehicle]);
-      if (res.data.success && Array.isArray(res.data.data)) {
-        setVehicles(vs => [...vs, ...res.data.data]);
-      }
-    }
-    setShowVehicleModal(false);
-  };
+  // const handleSaveVehicle = async (vehicle: any) => {
+  //   if (vehicle.id) {
+  //     await creditService.updateVehicle(vehicle.id, vehicle);
+  //     setVehicles(vs => vs.map(v => v.id === vehicle.id ? vehicle : v));
+  //   } else {
+  //     const res = await creditService.addVehicles(String(partner?.id), [vehicle]);
+  //     if (res.data.success && Array.isArray(res.data.data)) {
+  //       setVehicles(vs => [...vs, ...res.data.data]);
+  //     }
+  //   }
+  //   setShowVehicleModal(false);
+  // };
 
   if (loading) {
     return (

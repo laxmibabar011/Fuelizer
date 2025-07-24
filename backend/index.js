@@ -22,7 +22,6 @@ app.use(cors({
   origin: [
     'http://localhost:5173',
     'https://fuelizerdev.invenger.cloud',
-    'https://13.233.91.7'
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
