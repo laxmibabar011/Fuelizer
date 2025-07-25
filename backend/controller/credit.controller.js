@@ -28,12 +28,12 @@ async function getTenantContextFromUser(req) {
     throw new Error('Invalid client_id');
   }
   const db_name = client.db_name;
-  // Get tenant DB context (User, Role models)
-  const { tenantSequelize, User, Role } = await getTenantDbModels(db_name);
+  // Get tenant DB context (User, Role, UserDetails models)
+  const { tenantSequelize, User, Role, UserDetails } = await getTenantDbModels(db_name);
   // Initialize and sync CreditAccount model for credit management
   const { CreditAccount } = initCreditModels(tenantSequelize);
   await tenantSequelize.sync({ alter: true });
-  return { tenantSequelize, User, Role, CreditAccount };
+  return { tenantSequelize, User, Role, CreditAccount, UserDetails };
 }
 
 // Onboard a new credit partner (company + user)
@@ -67,7 +67,7 @@ export const onboardPartner = async (req, res) => {
     } catch (err) {
       return sendResponse(res, { success: false, error: err.message, message: 'Onboarding failed', status: 401 });
     }
-    const { tenantSequelize, User, Role, CreditAccount } = tenantContext;
+    const { tenantSequelize, User, Role, CreditAccount, UserDetails } = tenantContext;
     const creditRepo = new CreditRepository(tenantSequelize);
     const masterSequelize = getMasterSequelize();
     const masterRepo = new MasterRepository(masterSequelize);
@@ -103,6 +103,19 @@ export const onboardPartner = async (req, res) => {
         email: userEmail,
         password: hashedPassword,
         role_id: partnerRole.id
+      });
+
+      // Populate user_details for partner in tenant DB
+      await UserDetails.create({
+        user_id: tenantUser.id,
+        full_name: contactName,
+        email: contactEmail,
+        phone: contactPhone,
+        city: req.body.city || null,
+        state: req.body.state || null,
+        country: req.body.country || null,
+        postal_code: req.body.postal_code || null,
+        gstin: req.body.gstin || null,
       });
 
       return { creditAccount, masterUser, tenantUser };
@@ -306,5 +319,53 @@ export const deleteVehicle = async (req, res) => {
   } catch (err) {
     logger.error(`[credit.controller]-[deleteVehicle]: ${err.message}`);
     return sendResponse(res, { success: false, error: err.message, message: 'Failed to delete vehicle', status: 500 });
+  }
+};
+
+// Fetch user details by user_id from tenant DB
+export const getUserDetails = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    let tenantContext;
+    try {
+      tenantContext = await getTenantContextFromUser(req);
+    } catch (err) {
+      return sendResponse(res, { success: false, error: err.message, message: 'Failed to fetch user details', status: 401 });
+    }
+    const { UserDetails } = tenantContext;
+    const details = await UserDetails.findOne({ where: { user_id: userId } });
+    if (!details) {
+      return sendResponse(res, { success: false, message: 'User details not found', status: 404 });
+    }
+    return sendResponse(res, { data: details, message: 'User details fetched successfully', status: 200 });
+  } catch (err) {
+    logger.error(`[credit.controller]-[getUserDetails]:`, err);
+    return sendResponse(res, { success: false, error: err.message, message: 'Failed to fetch user details', status: 500 });
+  }
+};
+
+// Fetch user details by email from tenant DB
+export const getUserDetailsByEmail = async (req, res) => {
+  try {
+    const { email } = req.params;
+    let tenantContext;
+    try {
+      tenantContext = await getTenantContextFromUser(req);
+    } catch (err) {
+      return sendResponse(res, { success: false, error: err.message, message: 'Failed to fetch user details', status: 401 });
+    }
+    const { User, UserDetails } = tenantContext;
+    const tenantUser = await User.findOne({ where: { email } });
+    if (!tenantUser) {
+      return sendResponse(res, { success: false, message: 'User not found', status: 404 });
+    }
+    const details = await UserDetails.findOne({ where: { user_id: tenantUser.id } });
+    if (!details) {
+      return sendResponse(res, { success: false, message: 'User details not found', status: 404 });
+    }
+    return sendResponse(res, { data: details, message: 'User details fetched successfully', status: 200 });
+  } catch (err) {
+    logger.error(`[credit.controller]-[getUserDetailsByEmail]:`, err);
+    return sendResponse(res, { success: false, error: err.message, message: 'Failed to fetch user details', status: 500 });
   }
 };

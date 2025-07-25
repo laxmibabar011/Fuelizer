@@ -7,7 +7,7 @@ import { initTenantModels } from '../../models/user.model.js';
 /**
  * Get tenant DB context (connection and initialized models)
  * @param {string} db_name - The tenant database name
- * @returns {Promise<{tenantSequelize, User, Role}>}
+ * @returns {Promise<{tenantSequelize, User, Role, UserDetails}>}
  */
 export async function getTenantDbModels(db_name) {
   const tenantSequelize = getTenantSequelize({
@@ -17,9 +17,9 @@ export async function getTenantDbModels(db_name) {
     dbHost: process.env.TENANT_DB_HOST,
   });
   await tenantSequelize.authenticate();
-  const { User, Role } = initTenantModels(tenantSequelize);
+  const { User, Role, UserDetails } = initTenantModels(tenantSequelize);
   await tenantSequelize.sync({ alter: true });
-  return { tenantSequelize, User, Role };
+  return { tenantSequelize, User, Role, UserDetails };
 }
 
 // Usage example:

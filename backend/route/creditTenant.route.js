@@ -9,7 +9,9 @@ import {
   addVehicles,
   updateVehicle,
   setVehicleStatus,
-  deleteVehicle
+  deleteVehicle,
+  getUserDetails,
+  getUserDetailsByEmail
 } from '../controller/credit.controller.js';
 import { authorizeRoles } from '../middleware/auth.middleware.js';
 import { USER_ROLES } from '../constants.js';
@@ -81,6 +83,20 @@ router.delete(
   authenticate,
   authorizeRoles(USER_ROLES.FUEL_ADMIN),
   deleteVehicle
+);
+
+// Fetch user details by user_id
+router.get(
+  '/tenant/userdetails/:userId',
+  authenticate,
+  getUserDetails
+);
+
+// Fetch user details by email
+router.get(
+  '/tenant/userdetails/by-email/:email',
+  authenticate,
+  getUserDetailsByEmail
 );
 
 export default router;

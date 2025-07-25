@@ -10,7 +10,8 @@ import { initMasterModels } from './models/master.model.js';
 
 
 dotenv.config();
-originUrl = process.env.ORIGIN_URL
+const originUrl = process.env.ORIGIN_URL
+console.log(originUrl);
 
 const app = express();
 
@@ -20,7 +21,7 @@ app.use(cookieParser());
 
 // Configure CORS
 app.use(cors({
-  originUrl,
+  origin: originUrl,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization'],
@@ -32,7 +33,7 @@ app.use(cors({
 // const __dirname = path.dirname(__filename);
 // app.use(express.static(path.join(__dirname, 'public')));
 
-app.use('/api', router);
+app.use('/', router);
 
 const PORT = process.env.PORT || 3000;
 

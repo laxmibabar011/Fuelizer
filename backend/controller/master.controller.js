@@ -28,12 +28,25 @@ export const registerClient = async (req, res) => {
     await createDatabase(db_name);
 
     // Always use the helper to get tenant DB context in multi-tenant architecture
-    const { tenantSequelize, User: TenantUser, Role } = await getTenantDbModels(db_name);
+    const { tenantSequelize, User: TenantUser, Role, UserDetails } = await getTenantDbModels(db_name);
 
     // 3. Create default 'fuel-admin' role and user in tenant DB
     const adminRole = await Role.create({ name: USER_ROLES.FUEL_ADMIN });
     const adminPassword = await hashPassword(client_password);
     const tenantAdmin = await TenantUser.create({ email: client_email, password: adminPassword, role_id: adminRole.id });
+
+    // Populate user_details for fuel-admin in tenant DB
+    await UserDetails.create({
+      user_id: tenantAdmin.id,
+      full_name: client_owner_name,
+      email: client_email,
+      phone: client_phone,
+      city: client_city,
+      state: client_state,
+      country: client_country,
+      postal_code: client_pincode,
+      gstin: gst_number,
+    });
 
     // 4. Store client metadata in master DB using repository
     const masterSequelize = getMasterSequelize();
