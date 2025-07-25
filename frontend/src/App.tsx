@@ -93,8 +93,10 @@ export default function App() {
               path="/fuel-admin/credit-onboarding"
               element={<CreditOnboarding />}
             />
-            {/* <Route path="/profile" element={<UserProfiles />} />
-            <Route path="/calendar" element={<Calendar />} /> */}
+            <Route 
+            path="/fuel-admin/profile" 
+            element={<UserProfiles />} />
+            <Route path="/fuel-admin/calendar" element={<Calendar />} />
           </Route>
 
           {/* Partner Protected Routes */}
@@ -106,6 +108,8 @@ export default function App() {
             }
           >
             <Route path="/partner-dashboard" element={<PartnerDashboard />} />
+              <Route path="/partner/profile" element={<UserProfiles />} />
+
           </Route>
 
           {/* Forms */}

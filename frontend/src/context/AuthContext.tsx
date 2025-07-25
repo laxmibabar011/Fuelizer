@@ -64,6 +64,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             } catch (error) {
                 setAuthUser(null);
                 setAccessToken(null);
+                // Redirect to /signin if not already there
+                if (window.location.pathname !== "/signin") {
+                    navigate("/signin");
+                }
             } finally {
                 setLoading(false);
             }

@@ -33,7 +33,7 @@ app.use(cors({
 // const __dirname = path.dirname(__filename);
 // app.use(express.static(path.join(__dirname, 'public')));
 
-app.use('/', router);
+app.use('/api', router);
 
 const PORT = process.env.PORT || 3000;
 
