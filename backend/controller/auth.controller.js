@@ -70,51 +70,54 @@ export default class AuthController {
   static async superAdminLogin(req, res) {
     try {
       const { email, password } = req.body;
+      logger.info(`[AuthController]-[superAdminLogin]: Attempting login for email: ${email}`);
       if (!email || !password) {
-        return sendResponse(res, { success: false, error: 'Missing credentials', message: 'Super-admin login failed', status: 400 });
+        return sendResponse(res, { success: false, error: 'Email and password required', message: 'Super-admin login failed', status: 400 });
       }
-
       const masterSequelize = getMasterSequelize();
       const masterRepo = new MasterRepository(masterSequelize);
-      const user = await masterRepo.findSuperAdminUserByEmail(email);
-      if (!user) {
-        return sendResponse(res, { success: false, error: 'Super-admin not found', message: 'Super-admin login failed', status: 404 });
+      const superAdmin = await masterRepo.getSuperAdminByEmail(email);
+      if (!superAdmin) {
+        return sendResponse(res, { success: false, error: 'Invalid credentials', message: 'Super-admin login failed', status: 401 });
       }
-
-      const valid = await comparePassword(password, user.password);
-      if (!valid) {
-        return sendResponse(res, { success: false, error: 'Invalid password', message: 'Super-admin login failed', status: 401 });
+      const isPasswordValid = await comparePassword(password, superAdmin.password);
+      if (!isPasswordValid) {
+        return sendResponse(res, { success: false, error: 'Invalid credentials', message: 'Super-admin login failed', status: 401 });
       }
-
-      const accessToken = generateAccessToken({ userId: user.id, email: user.email, role: 'super_admin' });
-      const refreshToken = generateRefreshToken({ userId: user.id });
-
-      await masterRepo.createPasswordReset({
-        user_id: user.id.toString(),
-        client_id: null,
-        token: refreshToken,
-        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+      const accessToken = generateAccessToken({
+        userId: superAdmin.id,
+        email: superAdmin.email,
+        role: 'super_admin'
       });
-
+      const refreshToken = generateRefreshToken({
+        userId: superAdmin.id,
+        email: superAdmin.email
+      });
+      logger.info(`[AuthController]-[superAdminLogin]: Generated refreshToken: ${refreshToken}`);
+      await masterRepo.updateSuperAdminRefreshToken(superAdmin.id, {
+        refresh_token: refreshToken,
+        refresh_token_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        refresh_token_revoked: false
+      });
       res.cookie('refreshToken', refreshToken, {
         httpOnly: true,
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        maxAge: 7 * 24 * 60 * 60 * 1000,
         sameSite: 'Lax',
         secure: process.env.NODE_ENV === 'production',
         path: '/'
       });
-
-      logger.info(`[AuthController]-[superAdminLogin]: Super-admin ${email} logged in successfully`);
+      logger.info(`[AuthController]-[superAdminLogin]: Super-admin ${superAdmin.id} logged in`);
       return sendResponse(res, {
         data: {
           accessToken,
-          user: { userId: user.id, email: user.email, role: user.role }
+          user: { userId: superAdmin.id, email: superAdmin.email, role: 'super_admin' }
         },
-        message: 'Super-admin login successful'
+        message: 'Super-admin login successful',
+        status: 200
       });
     } catch (err) {
       logger.error(`[AuthController]-[superAdminLogin]: ${err.message}`);
-      return sendResponse(res, { success: false, error: err.message, message: 'Super-admin login error' });
+      return sendResponse(res, { success: false, error: err.message, message: 'Super-admin login error', status: 500 });
     }
   }
   
@@ -127,46 +130,53 @@ export default class AuthController {
       }
       const payload = verifyRefreshToken(refreshToken);
       logger.info(`[AuthController]-[refresh]: Token payload: ${JSON.stringify(payload)}`);
-      if (!payload || !payload.userId || !payload.clientId) {
+      if (!payload || !payload.userId) {
         return sendResponse(res, { success: false, error: 'Invalid refresh token', message: 'Token refresh failed', status: 401 });
       }
-      logger.info(`[AuthController]-[refresh]: Fetching client for clientId: ${payload.clientId}`);
+      let user, newAccessToken, newRefreshToken;
       const masterSequelize = getMasterSequelize();
       const masterRepo = new MasterRepository(masterSequelize);
-      const client = await masterRepo.findClientById(payload.clientId);
-      if (!client || !client.is_active) {
-        return sendResponse(res, { success: false, error: 'Invalid or inactive client', message: 'Token refresh failed', status: 404 });
-      }
-      logger.info(`[AuthController]-[refresh]: Fetching tenant models for db_name: ${client.db_name}`);
-      const { tenantSequelize, User, RefreshToken } = await getTenantDbModels(client.db_name);
-      logger.info(`[AuthController]-[refresh]: Querying RefreshToken for user_id: ${payload.userId}`);
-      const tokenRecord = await RefreshToken.findOne({
-        where: {
-          token: refreshToken,
-          user_id: payload.userId,
-          revoked: false,
-          expires_at: { [Op.gt]: new Date() } // Explicitly check expires_at
+      if (payload.clientId) {
+        // Tenant user
+        const client = await masterRepo.findClientById(payload.clientId);
+        if (!client || !client.is_active) {
+          return sendResponse(res, { success: false, error: 'Invalid or inactive client', message: 'Token refresh failed', status: 404 });
         }
-      });
-      if (!tokenRecord) {
-        return sendResponse(res, { success: false, error: 'Invalid or revoked refresh token', message: 'Token refresh failed', status: 401 });
+        const { tenantSequelize, User, RefreshToken } = await getTenantDbModels(client.db_name);
+        const tokenRecord = await RefreshToken.findOne({
+          where: { token: refreshToken, user_id: payload.userId, revoked: false, expires_at: { [Op.gt]: new Date() } }
+        });
+        if (!tokenRecord) {
+          return sendResponse(res, { success: false, error: 'Invalid or revoked refresh token', message: 'Token refresh failed', status: 401 });
+        }
+        user = await User.findByPk(payload.userId);
+        if (!user) {
+          return sendResponse(res, { success: false, error: 'User not found', message: 'Token refresh failed', status: 404 });
+        }
+        newAccessToken = generateAccessToken({ userId: user.user_id, email: user.email, roleId: user.role_id, clientId: payload.clientId, tenantDbName: client.db_name });
+        newRefreshToken = generateRefreshToken({ userId: user.user_id, email: user.email, clientId: payload.clientId });
+        await RefreshToken.update({ revoked: true }, { where: { token: refreshToken } });
+        await RefreshToken.create({
+          user_id: user.user_id,
+          token: newRefreshToken,
+          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          client_id: payload.clientId
+        });
+      } else {
+        // Super-admin
+        const superAdmin = await masterRepo.getSuperAdminById(payload.userId);
+        if (!superAdmin || superAdmin.refresh_token !== refreshToken || superAdmin.refresh_token_revoked || superAdmin.refresh_token_expires_at < new Date()) {
+          return sendResponse(res, { success: false, error: 'Invalid or revoked refresh token', message: 'Token refresh failed', status: 401 });
+        }
+        user = superAdmin;
+        newAccessToken = generateAccessToken({ userId: user.id, email: user.email, role: 'super_admin' });
+        newRefreshToken = generateRefreshToken({ userId: user.id, email: user.email });
+        await masterRepo.updateSuperAdminRefreshToken(user.id, {
+          refresh_token: newRefreshToken,
+          refresh_token_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          refresh_token_revoked: false
+        });
       }
-      logger.info(`[AuthController]-[refresh]: Fetching user for userId: ${payload.userId}`);
-      const user = await User.findByPk(payload.userId);
-      if (!user) {
-        return sendResponse(res, { success: false, error: 'User not found', message: 'Token refresh failed', status: 404 });
-      }
-      const newAccessToken = generateAccessToken({ userId: user.user_id, email: user.email, roleId: user.role_id, clientId: payload.clientId, tenantDbName: client.db_name });
-      const newRefreshToken = generateRefreshToken({ userId: user.user_id, email: user.email, clientId: payload.clientId });
-      logger.info(`[AuthController]-[refresh]: Revoking old refreshToken`);
-      await RefreshToken.update({ revoked: true }, { where: { token: refreshToken } });
-      logger.info(`[AuthController]-[refresh]: Creating new refreshToken`);
-      await RefreshToken.create({
-        user_id: user.user_id,
-        token: newRefreshToken,
-        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        client_id: payload.clientId
-      });
       res.cookie('refreshToken', newRefreshToken, {
         httpOnly: true,
         maxAge: 7 * 24 * 60 * 60 * 1000,
@@ -174,9 +184,9 @@ export default class AuthController {
         secure: process.env.NODE_ENV === 'production',
         path: '/'
       });
-      logger.info(`[AuthController]-[refresh]: Token refreshed for user ${user.user_id} (clientId: ${payload.clientId})`);
+      logger.info(`[AuthController]-[refresh]: Token refreshed for user ${user.user_id || user.id}`);
       return sendResponse(res, {
-        data: { accessToken: newAccessToken, user: { userId: user.user_id, email: user.email, roleId: user.role_id } },
+        data: { accessToken: newAccessToken, user: { userId: user.user_id || user.id, email: user.email, roleId: user.role_id, role: user.role } },
         message: 'Token refreshed successfully',
         status: 200
       });
@@ -195,31 +205,34 @@ export default class AuthController {
       }
       const payload = verifyRefreshToken(refreshToken);
       logger.info(`[AuthController]-[logout]: Token payload: ${JSON.stringify(payload)}`);
-      if (!payload || !payload.userId || !payload.clientId) {
+      if (!payload || !payload.userId) {
         return sendResponse(res, { success: false, error: 'Invalid refresh token', message: 'Logout failed', status: 401 });
       }
       const masterSequelize = getMasterSequelize();
       const masterRepo = new MasterRepository(masterSequelize);
-      const client = await masterRepo.findClientById(payload.clientId);
-      if (!client || !client.is_active) {
-        return sendResponse(res, { success: false, error: 'Invalid or inactive client', message: 'Logout failed', status: 404 });
-      }
-      const { tenantSequelize, RefreshToken } = await getTenantDbModels(client.db_name);
-      logger.info(`[AuthController]-[logout]: Revoking refreshToken for user_id: ${payload.userId}`);
-      await RefreshToken.update({ revoked: true }, {
-        where: {
-          token: refreshToken,
-          user_id: payload.userId,
-          expires_at: { [Op.gt]: new Date() } // Add expires_at check
+      if (payload.clientId) {
+        const client = await masterRepo.findClientById(payload.clientId);
+        if (!client || !client.is_active) {
+          return sendResponse(res, { success: false, error: 'Invalid or inactive client', message: 'Logout failed', status: 404 });
         }
-      });
+        const { tenantSequelize, RefreshToken } = await getTenantDbModels(client.db_name);
+        await RefreshToken.update({ revoked: true }, {
+          where: { token: refreshToken, user_id: payload.userId, expires_at: { [Op.gt]: new Date() } }
+        });
+      } else {
+        await masterRepo.updateSuperAdminRefreshToken(payload.userId, {
+          refresh_token: null,
+          refresh_token_expires_at: null,
+          refresh_token_revoked: true
+        });
+      }
       res.clearCookie('refreshToken', {
         httpOnly: true,
         sameSite: 'Lax',
         secure: process.env.NODE_ENV === 'production',
         path: '/'
       });
-      logger.info(`[AuthController]-[logout]: User ${payload.userId} logged out (clientId: ${payload.clientId})`);
+      logger.info(`[AuthController]-[logout]: User ${payload.userId} logged out`);
       return sendResponse(res, { message: 'Logged out successfully', status: 200 });
     } catch (err) {
       logger.error(`[AuthController]-[logout]: ${err.message}`);
@@ -250,7 +263,7 @@ export default class AuthController {
         // Super-admin
         const masterSequelize = getMasterSequelize();
         const masterRepo = new MasterRepository(masterSequelize);
-        const user = await masterRepo.getSuperAdminUserById(userId);
+        const user = await masterRepo.getSuperAdminById(userId); // Fixed method name
         if (!user) {
           return sendResponse(res, { success: false, error: 'Super-admin not found', message: 'Failed to fetch current user', status: 404 });
         }

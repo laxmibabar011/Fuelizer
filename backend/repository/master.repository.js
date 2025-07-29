@@ -2,7 +2,11 @@ import { initMasterModels } from '../models/master.model.js';
 
 export class MasterRepository {
   constructor(sequelize) {
-    this.models = initMasterModels(sequelize);
+    this.sequelize = sequelize;
+    const { User, Client, PasswordReset } = initMasterModels(sequelize);
+    this.User = User;
+    this.Client = Client;
+    this.PasswordReset = PasswordReset;
   }
 
   // Create a new client (organization)
@@ -30,9 +34,27 @@ export class MasterRepository {
     return this.models.Client.findAll();
   }
 
-  // Get super-admin user by ID in master DB
-  async getSuperAdminUserById(id) {
-    return this.models.User.findByPk(id);
+  async getSuperAdminByEmail(email) {
+    return await this.User.findOne({ where: { email, role: 'super_admin' } });
+  }
+
+  async getSuperAdminById(id) {
+    return await this.User.findByPk(id, { where: { role: 'super_admin' } });
+  }
+
+  async updateSuperAdminRefreshToken(userId, data) {
+    return await this.User.update(
+      {
+        refresh_token: data.refresh_token,
+        refresh_token_expires_at: data.refresh_token_expires_at,
+        refresh_token_revoked: data.refresh_token_revoked
+      },
+      { where: { id: userId, role: 'super_admin' } }
+    );
+  }
+
+  async findClientById(clientId) {
+    return await this.Client.findOne({ where: { client_id: clientId } });
   }
 
   // Set client active/inactive
@@ -58,7 +80,6 @@ export class MasterRepository {
       }
     });
   }
-
   // Mark an OTP as used
   async markPasswordResetUsed(id) {
     return this.models.PasswordReset.update({ used: true }, { where: { id } });

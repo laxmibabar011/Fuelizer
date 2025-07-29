@@ -6,13 +6,16 @@ export const initMasterModels = (sequelize) => {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
     email: { type: DataTypes.STRING, unique: true, allowNull: false },
     password: { type: DataTypes.STRING, allowNull: false },
-    role: { type: DataTypes.STRING, allowNull: false, defaultValue: 'super_admin' } // Only for super-admin
+    role: { type: DataTypes.STRING, allowNull: false, defaultValue: 'super_admin' },
+    refresh_token: { type: DataTypes.STRING, allowNull: true }, // Store refresh token
+    refresh_token_expires_at: { type: DataTypes.DATE, allowNull: true }, // Expiration
+    refresh_token_revoked: { type: DataTypes.BOOLEAN, allowNull: true, defaultValue: false } // Revocation status
   });
 
   // Client metadata (onboarding fields)
   const Client = sequelize.define('Client', {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
-    client_id: { type: DataTypes.STRING(50), unique: true, allowNull: false }, // Renamed from client_key
+    client_id: { type: DataTypes.STRING(50), unique: true, allowNull: false },
     client_name: { type: DataTypes.STRING, allowNull: false },
     client_owner_name: { type: DataTypes.STRING, allowNull: false },
     client_address: { type: DataTypes.STRING, allowNull: true },
@@ -27,7 +30,7 @@ export const initMasterModels = (sequelize) => {
     is_active: { type: DataTypes.BOOLEAN, defaultValue: true }
   });
 
-  // PasswordReset model for OTP-based password reset (supports super-admin and tenant users)
+  // PasswordReset model for OTP-based password reset
   const PasswordReset = sequelize.define('PasswordReset', {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
     user_id: { type: DataTypes.STRING(50), allowNull: false }, // Matches tenant_db.User.user_id or super_admin id

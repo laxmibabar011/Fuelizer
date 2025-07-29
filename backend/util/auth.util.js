@@ -40,8 +40,11 @@ export const generateAccessToken = (payload) => {
 export const generateRefreshToken = (payload) => {
   try {
     logger.info(`[auth.util]-[generateRefreshToken]: Payload: ${JSON.stringify(payload)}`);
-    if (!payload.userId || !payload.clientId) {
-      throw new Error('Missing userId or clientId in payload');
+    if (!payload.userId) {
+      logger.error(`[auth.util]-[generateRefreshToken]: Missing userId`);
+    }
+    if (!process.env.JWT_REFRESH_SECRET) {
+      logger.error(`[auth.util]-[generateRefreshToken]: JWT_REFRESH_SECRET is undefined`);
     }
     const token = jwt.sign(
       { userId: payload.userId, email: payload.email, clientId: payload.clientId || null },
@@ -52,7 +55,6 @@ export const generateRefreshToken = (payload) => {
     return token;
   } catch (error) {
     logger.error(`[auth.util]-[generateRefreshToken]: ${error.message}`);
-    throw new Error('Error generating refresh token: ' + error.message);
   }
 };
 
@@ -79,44 +81,5 @@ export const verifyRefreshToken = (token) => {
   } catch (error) {
     logger.error(`[auth.util]-[verifyRefreshToken]: ${error.message}`);
     throw error;
-  }
-};
-
-export const getCurrentUser = async (userId, clientId, tenantDbName) => {
-  try {
-    let user;
-    if (clientId && tenantDbName) {
-      // Tenant user
-      const { User, Role, UserDetails } = await getTenantDbModels(tenantDbName);
-      user = await User.findByPk(userId, { include: ['Role', 'UserDetails'] });
-      if (!user) {
-        throw new Error('User not found');
-      }
-      logger.info(`[auth.util]-[getCurrentUser]: Tenant user fetched: ${user.email}`);
-      return {
-        userId: user.user_id,
-        email: user.email,
-        role: user.Role?.name || '',
-        clientId,
-        details: user.UserDetails || {}
-      };
-    } else {
-      // Super-admin
-      const masterSequelize = getMasterSequelize();
-      const masterRepo = new MasterRepository(masterSequelize);
-      user = await masterRepo.getSuperAdminUserById(userId);
-      if (!user) {
-        throw new Error('Super-admin not found');
-      }
-      logger.info(`[auth.util]-[getCurrentUser]: Super-admin fetched: ${user.email}`);
-      return {
-        userId: user.id,
-        email: user.email,
-        role: user.role
-      };
-    }
-  } catch (error) {
-    logger.error(`[auth.util]-[getCurrentUser]: ${error.message}`);
-    throw new Error('Error getting current user: ' + error.message);
   }
 };
