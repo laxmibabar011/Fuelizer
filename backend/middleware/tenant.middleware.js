@@ -1,30 +1,31 @@
 import { getMasterSequelize } from '../config/db.config.js';
 import { MasterRepository } from '../repository/master.repository.js';
-import dotenv from 'dotenv';
-dotenv.config();
 import { getTenantDbModels } from '../controller/helper/tenantDb.helper.js';
 
+// Middleware to resolve tenant database for non-super-admin users
 export const tenantDbMiddleware = async (req, res, next) => {
   try {
-    // client_id should be present on req.user from authentication middleware
-    const clientId = req.user && req.user.client_id;
+    const clientId = req.user?.clientId; // Use clientId from JWT
     if (!clientId) {
-      return res.status(400).json({ message: 'No client_id found in user context' });
+      // Skip tenant DB resolution for super-admin
+      if (req.user?.role === 'super_admin') {
+        return next();
+      }
+      return res.status(400).json({ success: false, message: 'No clientId found in user context' });
     }
-    // Connect to master DB and get client info
+
     const masterSequelize = getMasterSequelize();
     const masterRepo = new MasterRepository(masterSequelize);
     const client = await masterRepo.getClientById(clientId);
-    if (!client) {
-      return res.status(404).json({ message: 'Client not found' });
+    if (!client || !client.is_active) {
+      return res.status(404).json({ success: false, message: 'Client not found or inactive' });
     }
-    const dbName = client.db_name;
-    // Use the helper to get tenant DB context (multi-tenant practice)
-    const { tenantSequelize, User, Role } = await getTenantDbModels(dbName);
+
+    const { tenantSequelize, User, Role, UserDetails, RefreshToken } = await getTenantDbModels(client.db_name);
     req.tenantSequelize = tenantSequelize;
-    req.tenantModels = { User, Role };
+    req.tenantModels = { User, Role, UserDetails, RefreshToken };
     next();
   } catch (err) {
-    return res.status(500).json({ message: 'Error resolving tenant DB', error: err.message });
+    return res.status(500).json({ success: false, message: 'Error resolving tenant DB', error: err.message });
   }
 };

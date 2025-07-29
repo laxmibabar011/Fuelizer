@@ -1,170 +1,378 @@
-// Controller uses sendResponse for all API responses and logger.info/logger.error for logging
 import { getMasterSequelize } from '../config/db.config.js';
+import { getTenantDbModels } from '../controller/helper/tenantDb.helper.js';
 import { MasterRepository } from '../repository/master.repository.js';
-import { comparePassword, generateAccessToken, generateRefreshToken, verifyRefreshToken, getCurrentUser as getCurrentUserUtil, hashPassword } from '../util/auth.util.js';
+import { comparePassword, generateAccessToken, generateRefreshToken, hashPassword ,verifyRefreshToken } from '../util/auth.util.js';
 import { sendResponse } from '../util/response.util.js';
 import { logger } from '../util/logger.util.js';
 import { sendOtpEmail } from '../util/mailer.util.js';
-// import { tokenTimeToLive, USER_ROLES } from '../constants.js';
+import { Sequelize } from 'sequelize';
+const { Op } = Sequelize;
 
-export const login = async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    if (!email || !password) return sendResponse(res, { success: false, error: 'Missing credentials', message: 'Login failed', status: 400 });
 
-    const masterSequelize = getMasterSequelize();
-    const masterRepo = new MasterRepository(masterSequelize);
-    await masterSequelize.authenticate();
+export default class AuthController {
+  static async login(req, res) {
+    try {
+      const { email, password, clientId } = req.body;
+      if (!email || !password || !clientId) {
+        return sendResponse(res, { success: false, error: 'Missing credentials or clientId', message: 'Login failed', status: 400 });
+      }
 
-    // Find user in master DB
-    const user = await masterRepo.findMasterUserByEmail(email);
-    if (!user) return sendResponse(res, { success: false, error: 'User not found', message: 'Login failed', status: 404 });
+      const masterSequelize = getMasterSequelize();
+      const masterRepo = new MasterRepository(masterSequelize);
+      const client = await masterRepo.findClientById(clientId);
+      if (!client || !client.is_active) {
+        return sendResponse(res, { success: false, error: 'Invalid or inactive clientId', message: 'Login failed', status: 404 });
+      }
 
-    // Check password
-    const valid = await comparePassword(password, user.password);
-    if (!valid) return sendResponse(res, { success: false, error: 'Invalid password', message: 'Login failed', status: 401 });
+      const { tenantSequelize, User, RefreshToken } = await getTenantDbModels(client.db_name);
+      const user = await User.findOne({ where: { email } });
+      if (!user) {
+        return sendResponse(res, { success: false, error: 'User not found', message: 'Login failed', status: 404 });
+      }
 
-    // Generate tokens
-    const accessToken = generateAccessToken(user);
-    const refreshToken = generateRefreshToken(user);
+      const valid = await comparePassword(password, user.password_hash);
+      if (!valid) {
+        return sendResponse(res, { success: false, error: 'Invalid password', message: 'Login failed', status: 401 });
+      }
 
-    // Store access token in DB
-    await masterRepo.updateMasterUserAccessToken(user.id, accessToken);
+      const accessToken = generateAccessToken({ userId: user.user_id, email: user.email, roleId: user.role_id, clientId, tenantDbName: client.db_name });
+      const refreshToken = generateRefreshToken({ userId: user.user_id, clientId });
 
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      sameSite: 'Lax',
-      secure: false,
-      path: '/',
-    });
+      await RefreshToken.create({
+        user_id: user.user_id,
+        token: refreshToken,
+        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+        client_id: clientId
+      });
 
-    logger.info(`[auth.controller]-[login]: User ${email} logged in successfully`);
-    return sendResponse(res, {
-      data: {
-        accessToken,
-        user: { id: user.id, email: user.email, role: user.role, client_id: user.client_id }
-      },
-      message: 'Login successful',
-    });
-  } catch (err) {
-    logger.error(`[auth.controller]-[login]: ${err.message}`);
-    return sendResponse(res, { success: false, error: err, message: 'Login error' });
-  }
-};
+      res.cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        sameSite: 'Lax',
+        secure: process.env.NODE_ENV === 'production',
+        path: '/'
+      });
 
-export const refresh = async (req, res) => {
-  try {
-    const { refreshToken } = req.cookies;
-    if (!refreshToken) return sendResponse(res, { success: false, error: 'No refresh token', message: 'Unauthorized', status: 401 });
-
-    const payload = verifyRefreshToken(refreshToken);
-
-    // Issue new access token
-    const accessToken = generateAccessToken(payload);
-
-    // Update access token in DB
-    const masterSequelize = getMasterSequelize();
-    const masterRepo = new MasterRepository(masterSequelize);
-    await masterRepo.updateMasterUserAccessToken(payload.id, accessToken);
-
-    logger.info(`[auth.controller]-[refresh]: Token refreshed for user ${payload.email}`);
-    return sendResponse(res, { data: { accessToken }, message: 'Token refreshed' });
-  } catch (err) {
-    logger.error(`[auth.controller]-[refresh]: ${err.message}`);
-    return sendResponse(res, { success: false, error: err, message: 'Refresh error', status: 401 });
-  }
-};
-
-export const logout = async (req, res) => {
-  try {
-    // Remove access token from DB
-    const masterSequelize = getMasterSequelize();
-    const masterRepo = new MasterRepository(masterSequelize);
-    // Try to get user ID from access token (if provided)
-    let userId = null;
-    const authHeader = req.headers['authorization'];
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      try {
-        const token = authHeader.split(' ')[1];
-        const payload = token ? verifyRefreshToken(token) : null;
-        userId = payload ? payload.id : null;
-      } catch (e) { /* ignore */ }
+      logger.info(`[AuthController]-[login]: User ${email} logged in successfully (clientId: ${clientId})`);
+      return sendResponse(res, {
+        data: {
+          accessToken,
+          user: { userId: user.user_id, email: user.email, roleId: user.role_id }
+        },
+        message: 'Login successful'
+      });
+    } catch (err) {
+      logger.error(`[AuthController]-[login]: ${err.message}`);
+      return sendResponse(res, { success: false, error: err.message, message: 'Login error' });
     }
-    if (userId) {
-      await masterRepo.updateMasterUserAccessToken(userId, null);
-    }
-    res.clearCookie('refreshToken');
-    logger.info(`[auth.controller]-[logout]: User logged out`);
-    return sendResponse(res, { data: {}, message: 'Logged out' });
-  } catch (err) {
-    logger.error(`[auth.controller]-[logout]: ${err.message}`);
-    return sendResponse(res, { success: false, error: err, message: 'Logout error' });
   }
-};
 
-export const getCurrentUser = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const userProfile = await getCurrentUserUtil(userId);
-    logger.info(`[auth.controller]-[getCurrentUser]: Profile fetched for user ${userId}`);
-    return sendResponse(res, { data: userProfile, message: 'Current user fetched' });
-  } catch (err) {
-    logger.error(`[auth.controller]-[getCurrentUser]: ${err.message}`);
-    return sendResponse(res, { success: false, error: err, message: 'Failed to fetch current user' });
-  }
-};
+  static async superAdminLogin(req, res) {
+    try {
+      const { email, password } = req.body;
+      if (!email || !password) {
+        return sendResponse(res, { success: false, error: 'Missing credentials', message: 'Super-admin login failed', status: 400 });
+      }
 
-// Forgot Password: Request OTP
-export const forgotPassword = async (req, res) => {
-  try {
-    const { email } = req.body;
-    if (!email) return sendResponse(res, { success: false, error: 'Email required', message: 'Email required', status: 400 });
-    const masterSequelize = getMasterSequelize();
-    const masterRepo = new MasterRepository(masterSequelize);
-    const user = await masterRepo.findMasterUserByEmail(email);
-    if (!user) return sendResponse(res, { success: false, error: 'User not found', message: 'User not found', status: 404 });
-    // Generate OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expires_at = new Date(Date.now() + 10 * 60 * 1000); // 10 min
-    await masterRepo.createPasswordReset({ user_id: user.id, otp, expires_at });
-    await sendOtpEmail(email, otp);
-    logger.info(`[auth.controller]-[forgotPassword]: OTP sent to ${email}`);
-    return sendResponse(res, { message: 'OTP sent to email' });
-  } catch (err) {
-    logger.error(`[auth.controller]-[forgotPassword]: ${err.message}`);
-    return sendResponse(res, { success: false, error: err, message: 'Failed to send OTP' });
-  }
-};
+      const masterSequelize = getMasterSequelize();
+      const masterRepo = new MasterRepository(masterSequelize);
+      const user = await masterRepo.findSuperAdminUserByEmail(email);
+      if (!user) {
+        return sendResponse(res, { success: false, error: 'Super-admin not found', message: 'Super-admin login failed', status: 404 });
+      }
 
-// Reset Password: Verify OTP and set new password
-export const resetPassword = async (req, res) => {
-  try {
-    const { email, otp, newPassword, confirmPassword } = req.body;
-    if (!email || !otp || !newPassword || !confirmPassword) {
-      return sendResponse(res, { success: false, error: 'All fields required', message: 'All fields required', status: 400 });
+      const valid = await comparePassword(password, user.password);
+      if (!valid) {
+        return sendResponse(res, { success: false, error: 'Invalid password', message: 'Super-admin login failed', status: 401 });
+      }
+
+      const accessToken = generateAccessToken({ userId: user.id, email: user.email, role: 'super_admin' });
+      const refreshToken = generateRefreshToken({ userId: user.id });
+
+      await masterRepo.createPasswordReset({
+        user_id: user.id.toString(),
+        client_id: null,
+        token: refreshToken,
+        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+      });
+
+      res.cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        sameSite: 'Lax',
+        secure: process.env.NODE_ENV === 'production',
+        path: '/'
+      });
+
+      logger.info(`[AuthController]-[superAdminLogin]: Super-admin ${email} logged in successfully`);
+      return sendResponse(res, {
+        data: {
+          accessToken,
+          user: { userId: user.id, email: user.email, role: user.role }
+        },
+        message: 'Super-admin login successful'
+      });
+    } catch (err) {
+      logger.error(`[AuthController]-[superAdminLogin]: ${err.message}`);
+      return sendResponse(res, { success: false, error: err.message, message: 'Super-admin login error' });
     }
-    if (newPassword !== confirmPassword) {
-      return sendResponse(res, { success: false, error: 'Passwords do not match', message: 'Passwords do not match', status: 400 });
-    }
-    const masterSequelize = getMasterSequelize();
-    const masterRepo = new MasterRepository(masterSequelize);
-    const user = await masterRepo.findMasterUserByEmail(email);
-    if (!user) return sendResponse(res, { success: false, error: 'User not found', message: 'User not found', status: 404 });
-    // Find valid OTP
-    const reset = await masterRepo.findValidPasswordReset({ user_id: user.id, otp });
-    if (!reset) {
-      return sendResponse(res, { success: false, error: 'Invalid or expired OTP', message: 'Invalid or expired OTP', status: 400 });
-    }
-    // Mark OTP as used
-    await masterRepo.markPasswordResetUsed(reset.id);
-    // Hash new password
-    const hashed = await hashPassword(newPassword);
-    await user.update({ password: hashed });
-    logger.info(`[auth.controller]-[resetPassword]: Password reset for ${email}`);
-    return sendResponse(res, { message: 'Password reset successful' });
-  } catch (err) {
-    logger.error(`[auth.controller]-[resetPassword]: ${err.message}`);
-    return sendResponse(res, { success: false, error: err, message: 'Failed to reset password' });
   }
-};
+  
+  static async refresh(req, res) {
+    try {
+      const refreshToken = req.cookies?.refreshToken;
+      logger.info(`[AuthController]-[refresh]: Received refreshToken: ${refreshToken}`);
+      if (!refreshToken) {
+        return sendResponse(res, { success: false, error: 'Refresh token required', message: 'Token refresh failed', status: 400 });
+      }
+      const payload = verifyRefreshToken(refreshToken);
+      logger.info(`[AuthController]-[refresh]: Token payload: ${JSON.stringify(payload)}`);
+      if (!payload || !payload.userId || !payload.clientId) {
+        return sendResponse(res, { success: false, error: 'Invalid refresh token', message: 'Token refresh failed', status: 401 });
+      }
+      logger.info(`[AuthController]-[refresh]: Fetching client for clientId: ${payload.clientId}`);
+      const masterSequelize = getMasterSequelize();
+      const masterRepo = new MasterRepository(masterSequelize);
+      const client = await masterRepo.findClientById(payload.clientId);
+      if (!client || !client.is_active) {
+        return sendResponse(res, { success: false, error: 'Invalid or inactive client', message: 'Token refresh failed', status: 404 });
+      }
+      logger.info(`[AuthController]-[refresh]: Fetching tenant models for db_name: ${client.db_name}`);
+      const { tenantSequelize, User, RefreshToken } = await getTenantDbModels(client.db_name);
+      logger.info(`[AuthController]-[refresh]: Querying RefreshToken for user_id: ${payload.userId}`);
+      const tokenRecord = await RefreshToken.findOne({
+        where: {
+          token: refreshToken,
+          user_id: payload.userId,
+          revoked: false,
+          expires_at: { [Op.gt]: new Date() } // Explicitly check expires_at
+        }
+      });
+      if (!tokenRecord) {
+        return sendResponse(res, { success: false, error: 'Invalid or revoked refresh token', message: 'Token refresh failed', status: 401 });
+      }
+      logger.info(`[AuthController]-[refresh]: Fetching user for userId: ${payload.userId}`);
+      const user = await User.findByPk(payload.userId);
+      if (!user) {
+        return sendResponse(res, { success: false, error: 'User not found', message: 'Token refresh failed', status: 404 });
+      }
+      const newAccessToken = generateAccessToken({ userId: user.user_id, email: user.email, roleId: user.role_id, clientId: payload.clientId, tenantDbName: client.db_name });
+      const newRefreshToken = generateRefreshToken({ userId: user.user_id, email: user.email, clientId: payload.clientId });
+      logger.info(`[AuthController]-[refresh]: Revoking old refreshToken`);
+      await RefreshToken.update({ revoked: true }, { where: { token: refreshToken } });
+      logger.info(`[AuthController]-[refresh]: Creating new refreshToken`);
+      await RefreshToken.create({
+        user_id: user.user_id,
+        token: newRefreshToken,
+        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        client_id: payload.clientId
+      });
+      res.cookie('refreshToken', newRefreshToken, {
+        httpOnly: true,
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        sameSite: 'Lax',
+        secure: process.env.NODE_ENV === 'production',
+        path: '/'
+      });
+      logger.info(`[AuthController]-[refresh]: Token refreshed for user ${user.user_id} (clientId: ${payload.clientId})`);
+      return sendResponse(res, {
+        data: { accessToken: newAccessToken, user: { userId: user.user_id, email: user.email, roleId: user.role_id } },
+        message: 'Token refreshed successfully',
+        status: 200
+      });
+    } catch (err) {
+      logger.error(`[AuthController]-[refresh]: ${err.message}`);
+      return sendResponse(res, { success: false, error: err.message, message: 'Refresh error', status: 500 });
+    }
+  }
+
+  static async logout(req, res) {
+    try {
+      const refreshToken = req.cookies?.refreshToken;
+      logger.info(`[AuthController]-[logout]: Received refreshToken: ${refreshToken}`);
+      if (!refreshToken) {
+        return sendResponse(res, { success: false, error: 'Refresh token required', message: 'Logout failed', status: 400 });
+      }
+      const payload = verifyRefreshToken(refreshToken);
+      logger.info(`[AuthController]-[logout]: Token payload: ${JSON.stringify(payload)}`);
+      if (!payload || !payload.userId || !payload.clientId) {
+        return sendResponse(res, { success: false, error: 'Invalid refresh token', message: 'Logout failed', status: 401 });
+      }
+      const masterSequelize = getMasterSequelize();
+      const masterRepo = new MasterRepository(masterSequelize);
+      const client = await masterRepo.findClientById(payload.clientId);
+      if (!client || !client.is_active) {
+        return sendResponse(res, { success: false, error: 'Invalid or inactive client', message: 'Logout failed', status: 404 });
+      }
+      const { tenantSequelize, RefreshToken } = await getTenantDbModels(client.db_name);
+      logger.info(`[AuthController]-[logout]: Revoking refreshToken for user_id: ${payload.userId}`);
+      await RefreshToken.update({ revoked: true }, {
+        where: {
+          token: refreshToken,
+          user_id: payload.userId,
+          expires_at: { [Op.gt]: new Date() } // Add expires_at check
+        }
+      });
+      res.clearCookie('refreshToken', {
+        httpOnly: true,
+        sameSite: 'Lax',
+        secure: process.env.NODE_ENV === 'production',
+        path: '/'
+      });
+      logger.info(`[AuthController]-[logout]: User ${payload.userId} logged out (clientId: ${payload.clientId})`);
+      return sendResponse(res, { message: 'Logged out successfully', status: 200 });
+    } catch (err) {
+      logger.error(`[AuthController]-[logout]: ${err.message}`);
+      return sendResponse(res, { success: false, error: err.message, message: 'Logout failed', status: 500 });
+    }
+  }
+
+  static async getCurrentUser(req, res) {
+    try {
+      const { userId, clientId, tenantDbName, role } = req.user;
+      let userProfile;
+
+      if (clientId && tenantDbName) {
+        // Tenant user
+        const { User } = await getTenantDbModels(tenantDbName);
+        const user = await User.findByPk(userId, { include: ['Role', 'UserDetails'] });
+        if (!user) {
+          return sendResponse(res, { success: false, error: 'User not found', message: 'Failed to fetch current user', status: 404 });
+        }
+        userProfile = {
+          userId: user.user_id,
+          email: user.email,
+          role: user.Role?.name,
+          clientId,
+          details: user.UserDetails
+        };
+      } else {
+        // Super-admin
+        const masterSequelize = getMasterSequelize();
+        const masterRepo = new MasterRepository(masterSequelize);
+        const user = await masterRepo.getSuperAdminUserById(userId);
+        if (!user) {
+          return sendResponse(res, { success: false, error: 'Super-admin not found', message: 'Failed to fetch current user', status: 404 });
+        }
+        userProfile = {
+          userId: user.id,
+          email: user.email,
+          role: user.role
+        };
+      }
+
+      logger.info(`[AuthController]-[getCurrentUser]: Profile fetched for user ${userId}`);
+      return sendResponse(res, { data: userProfile, message: 'Current user fetched' });
+    } catch (err) {
+      logger.error(`[AuthController]-[getCurrentUser]: ${err.message}`);
+      return sendResponse(res, { success: false, error: err.message, message: 'Failed to fetch current user' });
+    }
+  }
+
+  static async forgotPassword(req, res) {
+    try {
+      const { email, clientId } = req.body;
+      if (!email) {
+        return sendResponse(res, { success: false, error: 'Email required', message: 'Email required', status: 400 });
+      }
+
+      let user, userId, targetClientId;
+      const masterSequelize = getMasterSequelize();
+      const masterRepo = new MasterRepository(masterSequelize);
+
+      if (clientId) {
+        // Tenant user
+        const client = await masterRepo.findClientById(clientId);
+        if (!client || !client.is_active) {
+          return sendResponse(res, { success: false, error: 'Invalid or inactive client', message: 'User not found', status: 404 });
+        }
+        const { User } = await getTenantDbModels(client.db_name);
+        user = await User.findOne({ where: { email } });
+        if (!user) {
+          return sendResponse(res, { success: false, error: 'User not found', message: 'User not found', status: 404 });
+        }
+        userId = user.user_id;
+        targetClientId = clientId;
+      } else {
+        // Super-admin
+        user = await masterRepo.findSuperAdminUserByEmail(email);
+        if (!user) {
+          return sendResponse(res, { success: false, error: 'Super-admin not found', message: 'User not found', status: 404 });
+        }
+        userId = user.id.toString();
+        targetClientId = null;
+      }
+
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      const expires_at = new Date(Date.now() + 10 * 60 * 1000); // 10 min
+      await masterRepo.createPasswordReset({ user_id: userId, client_id: targetClientId, otp, expires_at });
+      await sendOtpEmail(email, otp);
+
+      logger.info(`[AuthController]-[forgotPassword]: OTP sent to ${email}`);
+      return sendResponse(res, { message: 'OTP sent to email' });
+    } catch (err) {
+      logger.error(`[AuthController]-[forgotPassword]: ${err.message}`);
+      return sendResponse(res, { success: false, error: err.message, message: 'Failed to send OTP' });
+    }
+  }
+
+  static async resetPassword(req, res) {
+    try {
+      const { email, otp, newPassword, confirmPassword, clientId } = req.body;
+      if (!email || !otp || !newPassword || !confirmPassword) {
+        return sendResponse(res, { success: false, error: 'All fields required', message: 'All fields required', status: 400 });
+      }
+      if (newPassword !== confirmPassword) {
+        return sendResponse(res, { success: false, error: 'Passwords do not match', message: 'Passwords do not match', status: 400 });
+      }
+
+      const masterSequelize = getMasterSequelize();
+      const masterRepo = new MasterRepository(masterSequelize);
+      let user, userId, targetClientId;
+
+      if (clientId) {
+        // Tenant user
+        const client = await masterRepo.findClientById(clientId);
+        if (!client || !client.is_active) {
+          return sendResponse(res, { success: false, error: 'Invalid or inactive client', message: 'User not found', status: 404 });
+        }
+        const { User } = await getTenantDbModels(client.db_name);
+        user = await User.findOne({ where: { email } });
+        if (!user) {
+          return sendResponse(res, { success: false, error: 'User not found', message: 'User not found', status: 404 });
+        }
+        userId = user.user_id;
+        targetClientId = clientId;
+      } else {
+        // Super-admin
+        user = await masterRepo.findSuperAdminUserByEmail(email);
+        if (!user) {
+          return sendResponse(res, { success: false, error: 'Super-admin not found', message: 'User not found', status: 404 });
+        }
+        userId = user.id.toString();
+        targetClientId = null;
+      }
+
+      const reset = await masterRepo.findValidPasswordReset({ user_id: userId, client_id: targetClientId, otp });
+      if (!reset) {
+        return sendResponse(res, { success: false, error: 'Invalid or expired OTP', message: 'Invalid or expired OTP', status: 400 });
+      }
+
+      await masterRepo.markPasswordResetUsed(reset.id);
+      const hashed = await hashPassword(newPassword);
+
+      if (clientId) {
+        const { User } = await getTenantDbModels((await masterRepo.findClientById(clientId)).db_name);
+        await User.update({ password_hash: hashed }, { where: { user_id: userId } });
+      } else {
+        await user.update({ password: hashed });
+      }
+
+      logger.info(`[AuthController]-[resetPassword]: Password reset for ${email}`);
+      return sendResponse(res, { message: 'Password reset successful' });
+    } catch (err) {
+      logger.error(`[AuthController]-[resetPassword]: ${err.message}`);
+      return sendResponse(res, { success: false, error: err.message, message: 'Failed to reset password' });
+    }
+  }
+}

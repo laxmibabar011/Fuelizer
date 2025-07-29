@@ -10,69 +10,55 @@ export class MasterRepository {
     return this.models.Client.create(clientData);
   }
 
-  // Find a client by client_key (unique)
-  async findClientByKey(client_key) {
-    return this.models.Client.findOne({ where: { client_key } });
+  // Find a client by client_id (unique)
+  async findClientById(clientId) {
+    return this.models.Client.findOne({ where: { client_id: clientId } });
   }
 
-  // Create a user in the master DB
-  async createMasterUser(userData) {
-    return this.models.User.create(userData);
+  // Create a super-admin user in master DB
+  async createSuperAdminUser(userData) {
+    return this.models.User.create({ ...userData, role: 'super_admin' });
   }
 
-  // Find a user by email in the master DB
-  async findMasterUserByEmail(email) {
-    return this.models.User.findOne({ where: { email } });
+  // Find a super-admin user by email in master DB
+  async findSuperAdminUserByEmail(email) {
+    return this.models.User.findOne({ where: { email, role: 'super_admin' } });
   }
 
   // List all clients
   async getAllClients() {
     return this.models.Client.findAll();
   }
-  
-  // Get client by ID
-  async getClientById(id) {
-    return this.models.Client.findByPk(id);
-  }
-  
-  // List all users (across all clients) in master DB
-  async getAllMasterUsers() {
-    return this.models.User.findAll();
-  }
-  
-  // Get user by ID in master DB
-  async getMasterUserById(id) {
+
+  // Get super-admin user by ID in master DB
+  async getSuperAdminUserById(id) {
     return this.models.User.findByPk(id);
   }
 
-  // Update a user's access_token by user ID in master DB
-  async updateMasterUserAccessToken(userId, accessToken) {
-    return this.models.User.update({ access_token: accessToken }, { where: { id: userId } });
-  }
-  async setClientActive(id, isActive) {
-    return this.models.Client.update({ is_active: isActive }, { where: { id } });
-  }
-  // Set user active/inactive in master DB
-  async setMasterUserActive(id, isActive) {
-    return this.models.User.update({ is_active: isActive }, { where: { id } });
+  // Set client active/inactive
+  async setClientActive(clientId, isActive) {
+    return this.models.Client.update({ is_active: isActive }, { where: { client_id: clientId } });
   }
 
   // PasswordReset methods for forgot password/OTP
   // Create a new OTP record
-  async createPasswordReset({ user_id, otp, expires_at }) {
-    return this.models.PasswordReset.create({ user_id, otp, expires_at });
+  async createPasswordReset({ user_id, client_id, otp, expires_at }) {
+    return this.models.PasswordReset.create({ user_id, client_id, otp, expires_at });
   }
+
   // Find a valid (not used, not expired) OTP for a user
-  async findValidPasswordReset({ user_id, otp }) {
+  async findValidPasswordReset({ user_id, client_id, otp }) {
     return this.models.PasswordReset.findOne({
       where: {
         user_id,
+        client_id,
         otp,
         used: false,
-        expires_at: { [this.models.PasswordReset.sequelize.Op.gt]: new Date() },
-      },
+        expires_at: { [this.models.PasswordReset.sequelize.Op.gt]: new Date() }
+      }
     });
   }
+
   // Mark an OTP as used
   async markPasswordResetUsed(id) {
     return this.models.PasswordReset.update({ used: true }, { where: { id } });

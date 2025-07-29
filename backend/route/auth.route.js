@@ -1,13 +1,14 @@
 import { Router } from 'express';
-import { login, getCurrentUser, refresh, logout, forgotPassword, resetPassword } from '../controller/auth.controller.js';
+import AuthController from '../controller/auth.controller.js';
 import { authenticate } from '../middleware/auth.middleware.js';
 
 const router = Router();
-router.post('/login', login);
-router.get('/me', authenticate, getCurrentUser);
-router.post('/refresh', refresh);
-router.post('/logout', logout);
-// Forgot password endpoints
-router.post('/forgot-password', forgotPassword); // Request OTP
-router.post('/reset-password', resetPassword);   // Verify OTP and reset password
+router.post('/login', AuthController.login);
+router.post('/super-admin/login', AuthController.superAdminLogin);
+router.get('/me', authenticate, AuthController.getCurrentUser);
+router.post('/refresh', AuthController.refresh);
+router.post('/logout', AuthController.logout);
+router.post('/forgot-password', AuthController.forgotPassword);
+router.post('/reset-password', AuthController.resetPassword);
+
 export default router;
