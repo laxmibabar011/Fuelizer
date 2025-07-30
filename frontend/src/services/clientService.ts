@@ -8,7 +8,7 @@ class ClientService {
 
   async createClient(form: any) {
     // The token is now added automatically by the apiClient interceptor
-    return apiClient.post("api/clients/register", form);
+    return apiClient.post("api/master/clients/register", form);
   }
 }
 

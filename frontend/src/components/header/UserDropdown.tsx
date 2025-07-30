@@ -3,7 +3,7 @@ import { DropdownItem } from "../ui/dropdown/DropdownItem";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { Link } from "react-router";
 import { useAuth } from "../../context/AuthContext";
-import creditService from "../../services/creditService";
+import authService from "../../services/authService";
 
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false);
@@ -13,8 +13,10 @@ export default function UserDropdown() {
 
   useEffect(() => {
     if (!authUser?.email) return;
-    creditService.getUserDetailsByEmail(authUser.email)
-      .then(res => {
+    // Use /me endpoint for all user types instead of getUserDetailsByEmail
+    authService
+      .getMe()
+      .then((res) => {
         if (res.data.success) setUserDetails(res.data.data);
         setLoading(false);
       })
@@ -39,7 +41,9 @@ export default function UserDropdown() {
         </span>
 
         <span className="block mr-1 font-medium text-theme-sm">
-          {loading ? "..." : userDetails?.full_name || authUser?.email || "User"}
+          {loading
+            ? "..."
+            : userDetails?.full_name || authUser?.email || "User"}
         </span>
         <svg
           className={`stroke-gray-500 dark:stroke-gray-400 transition-transform duration-200 ${
@@ -68,7 +72,9 @@ export default function UserDropdown() {
       >
         <div>
           <span className="block font-medium text-gray-700 text-theme-sm dark:text-gray-400">
-            {loading ? "..." : userDetails?.full_name || authUser?.email || "User"}
+            {loading
+              ? "..."
+              : userDetails?.full_name || authUser?.email || "User"}
           </span>
           <span className="mt-0.5 block text-theme-xs text-gray-500 dark:text-gray-400">
             {authUser?.email}

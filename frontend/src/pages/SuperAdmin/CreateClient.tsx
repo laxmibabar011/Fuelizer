@@ -3,7 +3,7 @@ import PageMeta from "../../components/common/PageMeta";
 import ClientService from "../../services/clientService";
 
 const initialState = {
-  client_key: "",
+  client_id: "",
   client_name: "",
   client_owner_name: "",
   client_address: "",
@@ -88,4 +88,4 @@ export default function CreateClient() {
       </form>
     </div>
   );
-} 
+}

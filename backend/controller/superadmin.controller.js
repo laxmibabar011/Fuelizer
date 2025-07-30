@@ -84,7 +84,7 @@ export default class SuperAdminController {
       const masterRepo = new MasterRepository(masterSequelize);
 
       // First, check if user is a super-admin in master_db
-      let user = await masterRepo.getSuperAdminUserById(id);
+      let user = await masterRepo.getSuperAdminById(id);
       if (user) {
         return sendResponse(res, {
           data: { user_id: user.id, email: user.email, role: user.role, client_id: null },

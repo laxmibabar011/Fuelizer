@@ -9,22 +9,21 @@ const run = async () => {
     const masterRepo = new MasterRepository(sequelize);
     await sequelize.authenticate();
 
-    // For development only: sync master DB tables to match models
-    // WARNING: This will alter tables in the master DB! Remove in production.
+    // For development only: sync master DB tables
     await sequelize.sync({ alter: true });
 
     const email = 'superadmin@gmail.com';
-    const password = 'superadmin123'; // Change after first login
+    const password = 'superadmin123';
     const role = 'super_admin';
 
-    const existing = await masterRepo.findSuperAdminUserByEmail(email);
+    const existing = await masterRepo.getSuperAdminByEmail(email); // Use getSuperAdminByEmail
     if (existing) {
       logger.info('[setupSuperAdmin]: Super admin already exists.');
       process.exit(0);
     }
 
     const hashed = await hashPassword(password);
-    await masterRepo.createSuperAdminUser({ email, password: hashed, role, client_id: null });
+    await masterRepo.createSuperAdminUser({ email, password: hashed, role });
     logger.info('[setupSuperAdmin]: Super admin created!');
     process.exit(0);
   } catch (err) {

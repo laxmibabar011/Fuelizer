@@ -4,6 +4,7 @@ import { ChevronLeftIcon, EyeCloseIcon, EyeIcon } from "../../icons";
 import Label from "../form/Label";
 import Input from "../form/input/InputField";
 import Checkbox from "../form/input/Checkbox";
+import Switch from "../form/switch/Switch";
 import Button from "../ui/button/Button";
 import { useAuth } from "../../context/AuthContext";
 import AuthService from "../../services/authService";
@@ -11,10 +12,12 @@ import AuthService from "../../services/authService";
 export default function SignInForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [clientId, setClientId] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false); // false = tenant, true = super admin
   const navigate = useNavigate();
   const { setAuthUser, setAccessToken } = useAuth();
 
@@ -22,8 +25,23 @@ export default function SignInForm() {
     e.preventDefault();
     setError("");
     setLoading(true);
+
     try {
-      const response = await AuthService.login(email, password);
+      let response;
+
+      if (isSuperAdmin) {
+        // Super admin login - only email and password
+        response = await AuthService.superAdminLogin(email, password);
+      } else {
+        // Tenant login - email, password, and clientId
+        if (!clientId.trim()) {
+          setError("Client ID is required for tenant login");
+          setLoading(false);
+          return;
+        }
+        response = await AuthService.tenantLogin(email, password, clientId);
+      }
+
       const data = response.data;
       if (
         data.success &&
@@ -33,12 +51,14 @@ export default function SignInForm() {
       ) {
         setAccessToken(data.data.accessToken);
         setAuthUser(data.data.user);
+
         // Redirect based on role
-        if (data.data.user.role === "super_admin") {
+        const userRole = data.data.user.role;
+        if (userRole === "super_admin") {
           navigate("/super-admin-dashboard");
-        } else if (data.data.user.role === "fuel-admin") {
+        } else if (userRole === "fuel-admin") {
           navigate("/fuel-admin-dashboard");
-        } else if (data.data.user.role === "partner") {
+        } else if (userRole === "partner") {
           navigate("/partner-dashboard");
         } else {
           navigate("/");
@@ -46,8 +66,29 @@ export default function SignInForm() {
       } else {
         setError(data.message || "Login failed");
       }
-    } catch (err) {
-      setError("Network error");
+    } catch (err: any) {
+      if (err.response) {
+        const status = err.response.status;
+        const message = err.response.data?.message || "Login failed";
+
+        if (status === 400) {
+          setError("Missing required fields or invalid data");
+        } else if (status === 401) {
+          setError("Invalid credentials");
+        } else if (status === 404) {
+          setError(
+            isSuperAdmin
+              ? "Super admin not found"
+              : "Client not found or inactive"
+          );
+        } else if (status === 500) {
+          setError("Server error. Please try again later.");
+        } else {
+          setError(message);
+        }
+      } else {
+        setError("Network error. Please check your connection.");
+      }
     } finally {
       setLoading(false);
     }
@@ -64,6 +105,7 @@ export default function SignInForm() {
           Back to dashboard
         </Link>
       </div>
+
       <div className="flex flex-col justify-center flex-1 w-full max-w-md mx-auto">
         <div>
           <div className="mb-5 sm:mb-8">
@@ -71,32 +113,75 @@ export default function SignInForm() {
               Sign In
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Enter your email and password to sign in!
+              Enter your credentials to access your account
             </p>
           </div>
+
           <div>
-           
-            <div className="relative py-3 sm:py-5">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200 dark:border-gray-800"></div>
+            {/* Login Type Toggle */}
+            <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-medium text-gray-900 dark:text-white">
+                    {isSuperAdmin ? "Super Admin Login" : "Tenant User Login"}
+                  </h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {isSuperAdmin
+                      ? "Login as system administrator"
+                      : "Login as organization member"}
+                  </p>
+                </div>
+                <Switch
+                  label=""
+                  defaultChecked={isSuperAdmin}
+                  onChange={(checked) => {
+                    setIsSuperAdmin(checked);
+                    setError(""); // Clear any previous errors when switching
+                    if (checked) {
+                      setClientId(""); // Clear clientId when switching to super admin
+                    }
+                  }}
+                />
               </div>
-              
             </div>
+
             <form onSubmit={handleSubmit}>
               <div className="space-y-6">
+                {/* Client ID field - only for tenant users */}
+                {!isSuperAdmin && (
+                  <div>
+                    <Label>
+                      Client ID <span className="text-error-500">*</span>
+                    </Label>
+                    <Input
+                      type="text"
+                      placeholder="Enter your organization's client ID"
+                      value={clientId}
+                      onChange={(e) => setClientId(e.target.value)}
+                    />
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Contact your administrator if you don't have a client ID
+                    </p>
+                  </div>
+                )}
+
+                {/* Email field */}
                 <div>
                   <Label>
-                    Email <span className="text-error-500">*</span>{" "}
+                    Email <span className="text-error-500">*</span>
                   </Label>
                   <Input
-                    placeholder="info@gmail.com"
+                    type="email"
+                    placeholder="Enter your email address"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                   />
                 </div>
+
+                {/* Password field */}
                 <div>
                   <Label>
-                    Password <span className="text-error-500">*</span>{" "}
+                    Password <span className="text-error-500">*</span>
                   </Label>
                   <div className="relative">
                     <Input
@@ -117,6 +202,8 @@ export default function SignInForm() {
                     </span>
                   </div>
                 </div>
+
+                {/* Remember me and forgot password */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <Checkbox checked={isChecked} onChange={setIsChecked} />
@@ -131,7 +218,15 @@ export default function SignInForm() {
                     Forgot password?
                   </Link>
                 </div>
-                {error && <div className="text-red-500 text-sm">{error}</div>}
+
+                {/* Error message */}
+                {error && (
+                  <div className="text-red-500 text-sm bg-red-50 dark:bg-red-900/10 p-3 rounded-md border border-red-200 dark:border-red-800">
+                    {error}
+                  </div>
+                )}
+
+                {/* Submit button */}
                 <div>
                   <Button
                     className="w-full"
@@ -139,7 +234,9 @@ export default function SignInForm() {
                     type="submit"
                     disabled={loading}
                   >
-                    {loading ? "Signing in..." : "Sign in"}
+                    {loading
+                      ? "Signing in..."
+                      : `Sign in as ${isSuperAdmin ? "Super Admin" : "Tenant User"}`}
                   </Button>
                 </div>
               </div>

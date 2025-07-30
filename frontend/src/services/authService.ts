@@ -1,60 +1,61 @@
 import apiClient from "./apiClient";
- 
+
 class AuthService {
-
-  async login(email: string, password: string) {
-
-    return apiClient.post("api/login", { email, password });
-
+  // Super admin login (2 parameters: email, password)
+  async superAdminLogin(email: string, password: string) {
+    return apiClient.post("api/auth/super-admin/login", { email, password });
   }
- 
+
+  // Tenant user login (3 parameters: email, password, clientId)
+  async tenantLogin(email: string, password: string, clientId: string) {
+    return apiClient.post("api/auth/login", { email, password, clientId });
+  }
+
   async logout() {
-
-    return apiClient.post("api/logout", {});
-
+    return apiClient.post("api/auth/logout", {});
   }
- 
+
   async refresh() {
-
-    // This call is used by the interceptor and doesn't need a token
-
-    return apiClient.post("api/refresh", {});
-
+    return apiClient.post("api/auth/refresh", {});
   }
- 
+
   async getMe() {
-
-    // No more token parameter or manual header!
-
-    return apiClient.get("api/me");
-
+    return apiClient.get("api/auth/me");
   }
- 
-   async forgotPassword(email: string) {
 
-    return apiClient.post("api/forgot-password", { email });
-
+  async forgotPassword(email: string, clientId?: string) {
+    const payload: { email: string; clientId?: string } = { email };
+    if (clientId) {
+      payload.clientId = clientId;
+    }
+    return apiClient.post("api/auth/forgot-password", payload);
   }
- 
-  // Reset password: verify OTP and set new password
 
-  async resetPassword(email: string, otp: string, newPassword: string, confirmPassword: string) {
+  async resetPassword(
+    email: string,
+    otp: string,
+    newPassword: string,
+    confirmPassword: string,
+    clientId?: string
+  ) {
+    const payload: {
+      email: string;
+      otp: string;
+      newPassword: string;
+      confirmPassword: string;
+      clientId?: string;
+    } = { email, otp, newPassword, confirmPassword };
 
-    return apiClient.post("api/reset-password", { email, otp, newPassword, confirmPassword });
+    if (clientId) {
+      payload.clientId = clientId;
+    }
 
+    return apiClient.post("api/auth/reset-password", payload);
   }
- 
-  // Helper to allow logout navigation from outside React components
 
   handleLogoutNavigation() {
-
-    // This forces a reload and redirection, effectively logging the user out.
-
-    window.location.href = '/signin';
-
+    window.location.href = "/signin";
   }
-
 }
- 
+
 export default new AuthService();
- 
