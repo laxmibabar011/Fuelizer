@@ -149,11 +149,11 @@ export default class AuthController {
         if (!tokenRecord) {
           return sendResponse(res, { success: false, error: 'Invalid or revoked refresh token', message: 'Token refresh failed', status: 401 });
         }
-        user = await User.findByPk(payload.userId);
+        user = await User.findByPk(payload.userId, { include: ['Role'] });
         if (!user) {
           return sendResponse(res, { success: false, error: 'User not found', message: 'Token refresh failed', status: 404 });
         }
-        newAccessToken = generateAccessToken({ userId: user.user_id, email: user.email, roleId: user.role_id, clientId: payload.clientId, tenantDbName: client.db_name });
+        newAccessToken = generateAccessToken({ userId: user.user_id, email: user.email, role: user.Role?.name, roleId: user.role_id, clientId: payload.clientId, tenantDbName: client.db_name });
         newRefreshToken = generateRefreshToken({ userId: user.user_id, email: user.email, clientId: payload.clientId });
         await RefreshToken.update({ revoked: true }, { where: { token: refreshToken } });
         await RefreshToken.create({
