@@ -2,9 +2,9 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { logger } from './logger.util.js';
 import { tokenTimeToLive } from '../constants.js';
-import { getMasterSequelize } from '../config/db.config.js';
-import { MasterRepository } from '../repository/master.repository.js';
-import { getTenantDbModels } from '../controller/helper/tenantDb.helper.js';
+// import { getMasterSequelize } from '../config/db.config.js';
+// import { MasterRepository } from '../repository/master.repository.js';
+// import { getTenantDbModels } from '../controller/helper/tenantDb.helper.js';
 
 const SALT_ROUNDS = 10;
 

@@ -308,7 +308,7 @@ export default class AuthController {
         targetClientId = clientId;
       } else {
         // Super-admin
-        user = await masterRepo.findSuperAdminUserByEmail(email);
+        user = await masterRepo.getSuperAdminByEmail(email); // Fixed method name
         if (!user) {
           return sendResponse(res, { success: false, error: 'Super-admin not found', message: 'User not found', status: 404 });
         }
@@ -358,7 +358,7 @@ export default class AuthController {
         targetClientId = clientId;
       } else {
         // Super-admin
-        user = await masterRepo.findSuperAdminUserByEmail(email);
+        user = await masterRepo.getSuperAdminByEmail(email); // Fixed method name
         if (!user) {
           return sendResponse(res, { success: false, error: 'Super-admin not found', message: 'User not found', status: 404 });
         }
