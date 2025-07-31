@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Multi-Tenant SaaS Test</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2em; }
+    form { margin-bottom: 2em; }
+    input, button { margin: 0.2em; }
+    #result { margin-top: 1em; color: green; }
+    #error { margin-top: 1em; color: red; }
+  </style>
+</head>
+<body>
+  <h2>Super Admin Login</h2>
+  <form id="loginForm">
+    <input type="text" id="loginemail" placeholder="email" required />
+    <input type="password" id="loginPassword" placeholder="Password" required />
+    <button type="submit">Login</button>
+  </form>
+  <div id="loginResult"></div>
+
+  <h2>Register Client/Tenant</h2>
+  <form id="registerForm">
+    <input type="text" id="clientKey" placeholder="Client Key" required />
+    <input type="text" id="clientName" placeholder="Client Name" required />
+    <input type="text" id="clientOwnerName" placeholder="Owner Name" required />
+    <input type="text" id="clientAddress" placeholder="Address" />
+    <input type="text" id="clientCity" placeholder="City" />
+    <input type="text" id="clientState" placeholder="State" />
+    <input type="text" id="clientCountry" placeholder="Country" />
+    <input type="text" id="clientPincode" placeholder="Pincode" />
+    <input type="text" id="gstNumber" placeholder="GST Number" />
+    <input type="text" id="clientPhone" placeholder="Phone" />
+    <input type="email" id="clientEmail" placeholder="Email" required />
+    <input type="password" id="clientPassword" placeholder="Fuel Admin Password" required />
+    <input type="text" id="dbName" placeholder="DB Name" required />
+    <button type="submit">Register Client</button>
+  </form>
+  <div id="registerResult"></div>
+
+  <script>
+    document.getElementById('loginForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('loginemail').value;
+      const password = document.getElementById('loginPassword').value;
+      const res = await fetch('/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+        credentials: 'include'
+      });
+      const data = await res.json();
+      if (data.success) {
+        document.getElementById('loginResult').innerHTML = 'Login successful!';
+      } else {
+        document.getElementById('loginResult').innerHTML = 'Login failed: ' + data.message;
+      }
+    };
+
+    document.getElementById('registerForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const payload = {
+        client_key: document.getElementById('clientKey').value,
+        client_name: document.getElementById('clientName').value,
+        client_owner_name: document.getElementById('clientOwnerName').value,
+        client_address: document.getElementById('clientAddress').value,
+        client_city: document.getElementById('clientCity').value,
+        client_state: document.getElementById('clientState').value,
+        client_country: document.getElementById('clientCountry').value,
+        client_pincode: document.getElementById('clientPincode').value,
+        gst_number: document.getElementById('gstNumber').value,
+        client_phone: document.getElementById('clientPhone').value,
+        client_email: document.getElementById('clientEmail').value,
+        client_password: document.getElementById('clientPassword').value,
+        db_name: document.getElementById('dbName').value
+      };
+      const res = await fetch('/clients/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload),
+        credentials: 'include'
+      });
+      const data = await res.json();
+      if (data.success) {
+        document.getElementById('registerResult').innerHTML = 'Client registered!';
+      } else {
+        document.getElementById('registerResult').innerHTML = 'Registration failed: ' + data.message;
+      }
+    };
+  </script>
+</body>
+</html>
