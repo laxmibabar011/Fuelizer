@@ -15,11 +15,13 @@ export default function UserAddressCard({ user }: UserAddressCardProps) {
     console.log("Saving changes...");
     closeModal();
   };
-  const country = user.country || "-";
-  const city = user.city || "-";
-  const state = user.state || "-";
-  const postalCode = user.postal_code || "-";
-  const taxId = user.gstin || "-";
+  // Handle the nested structure from /me endpoint
+  const userDetails = user.details || user;
+  const country = userDetails.country || "-";
+  const city = userDetails.city || "-";
+  const state = userDetails.state || "-";
+  const postalCode = userDetails.postal_code || "-";
+  const taxId = userDetails.gstin || "-";
   return (
     <>
       <div className="p-5 border border-gray-200 rounded-2xl dark:border-gray-800 lg:p-6">
@@ -103,22 +105,22 @@ export default function UserAddressCard({ user }: UserAddressCardProps) {
               <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
                 <div>
                   <Label>Country</Label>
-                  <Input type="text" value="United States" />
+                  <Input type="text" value={country} />
                 </div>
 
                 <div>
                   <Label>City/State</Label>
-                  <Input type="text" value="Arizona, United States." />
+                  <Input type="text" value={`${city}, ${state}`} />
                 </div>
 
                 <div>
                   <Label>Postal Code</Label>
-                  <Input type="text" value="ERT 2489" />
+                  <Input type="text" value={postalCode} />
                 </div>
 
                 <div>
                   <Label>TAX ID</Label>
-                  <Input type="text" value="AS4568384" />
+                  <Input type="text" value={taxId} />
                 </div>
               </div>
             </div>
