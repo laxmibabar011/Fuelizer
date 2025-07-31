@@ -95,8 +95,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           })
           .catch((err) => {
             console.error("Proactive refresh failed:", err);
-            // If proactive refresh fails, the session is likely dead. Logout.
-            logout();
+            // Only logout if it's a 401 or 500 error (server issues)
+            // Don't logout for network errors or temporary issues
+            if (err.response?.status === 401 || err.response?.status === 500) {
+              console.log("Server error during refresh, logging out...");
+              logout();
+            } else {
+              console.log("Non-critical refresh error, continuing...");
+            }
           });
       }
     }, REFRESH_INTERVAL);

@@ -215,8 +215,7 @@ export default function ResetPassword() {
                 type="text"
                 placeholder="Enter 6-digit OTP"
                 value={otp}
-                onChange={(e) => setOtp(e.target.value)}
-                maxLength={6}
+                onChange={(e) => setOtp(e.target.value.slice(0, 6))}
               />
             </div>
 

@@ -24,7 +24,7 @@ export const getMasterSequelize = () => {
 };
 
 // Tenant DB connection (dynamic with pooling)
-const tenantConnections = new Map();
+export const tenantConnections = new Map();
 
 export const getTenantSequelize = ({ dbName }) => {
   if (!tenantConnections.has(dbName)) {

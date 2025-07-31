@@ -142,18 +142,44 @@ export default class AuthController {
         if (!client || !client.is_active) {
           return sendResponse(res, { success: false, error: 'Invalid or inactive client', message: 'Token refresh failed', status: 404 });
         }
-        const { tenantSequelize, User, RefreshToken } = await getTenantDbModels(client.db_name);
+        
+        // Get tenant models with better error handling
+        let tenantSequelize, User, RefreshToken, Role;
+        try {
+          const models = await getTenantDbModels(client.db_name);
+          tenantSequelize = models.tenantSequelize;
+          User = models.User;
+          RefreshToken = models.RefreshToken;
+          Role = models.Role;
+        } catch (dbErr) {
+          logger.error(`[AuthController]-[refresh]: Database connection error for ${client.db_name}: ${dbErr.message}`);
+          return sendResponse(res, { success: false, error: 'Database connection failed', message: 'Token refresh failed', status: 500 });
+        }
         const tokenRecord = await RefreshToken.findOne({
           where: { token: refreshToken, user_id: payload.userId, revoked: false, expires_at: { [Op.gt]: new Date() } }
         });
         if (!tokenRecord) {
           return sendResponse(res, { success: false, error: 'Invalid or revoked refresh token', message: 'Token refresh failed', status: 401 });
         }
-        user = await User.findByPk(payload.userId, { include: ['Role'] });
+        // First get user without include to avoid cache issues
+        user = await User.findByPk(payload.userId);
         if (!user) {
           return sendResponse(res, { success: false, error: 'User not found', message: 'Token refresh failed', status: 404 });
         }
-        newAccessToken = generateAccessToken({ userId: user.user_id, email: user.email, role: user.Role?.name, roleId: user.role_id, clientId: payload.clientId, tenantDbName: client.db_name });
+        
+        // Then get role separately to avoid cache lookup issues
+        let roleName = null;
+        try {
+          const role = await Role.findByPk(user.role_id);
+          roleName = role?.name;
+        } catch (roleErr) {
+          logger.warn(`[AuthController]-[refresh]: Could not fetch role for user ${user.user_id}: ${roleErr.message}`);
+          // Continue without role name, will use roleId
+        }
+        
+        // Use roleId as fallback if role name is not available
+        const finalRole = roleName || `role_${user.role_id}`;
+        newAccessToken = generateAccessToken({ userId: user.user_id, email: user.email, role: finalRole, roleId: user.role_id, clientId: payload.clientId, tenantDbName: client.db_name });
         newRefreshToken = generateRefreshToken({ userId: user.user_id, email: user.email, clientId: payload.clientId });
         await RefreshToken.update({ revoked: true }, { where: { token: refreshToken } });
         await RefreshToken.create({
