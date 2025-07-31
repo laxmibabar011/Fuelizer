@@ -1,7 +1,7 @@
 import axios, { AxiosError } from "axios";
- 
+
 const baseURL = import.meta.env.VITE_API_BASE_URL;
- 
+
 const apiClient = axios.create({
   baseURL,
   withCredentials: true,
@@ -9,14 +9,17 @@ const apiClient = axios.create({
     "Content-Type": "application/json",
   },
 });
- 
+
 // --- JWT REFRESH INTERCEPTOR LOGIC ---
- 
+
 let isRefreshing = false;
-let failedQueue: { resolve: (value: unknown) => void; reject: (reason?: any) => void }[] = [];
- 
+let failedQueue: {
+  resolve: (value: unknown) => void;
+  reject: (reason?: any) => void;
+}[] = [];
+
 const processQueue = (error: Error | null, token: string | null = null) => {
-  failedQueue.forEach(prom => {
+  failedQueue.forEach((prom) => {
     if (error) {
       prom.reject(error);
     } else {
@@ -25,47 +28,52 @@ const processQueue = (error: Error | null, token: string | null = null) => {
   });
   failedQueue = [];
 };
- 
+
 apiClient.interceptors.response.use(
   (response) => {
     return response;
   },
   async (error: AxiosError) => {
     const originalRequest = error.config;
- 
+
     // Prevent refresh loops if the /refresh endpoint itself fails
-    if (originalRequest?.url === '/refresh') {
+    if (originalRequest?.url === "/api/auth/refresh") {
       return Promise.reject(error);
     }
- 
-    if (error.response?.status === 401 && originalRequest && !(originalRequest as any)._retry) {
+
+    if (
+      error.response?.status === 401 &&
+      originalRequest &&
+      !(originalRequest as any)._retry
+    ) {
       if (isRefreshing) {
         // --- FIX: Mark queued requests as retries to prevent loops ---
         (originalRequest as any)._retry = true;
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
-          .then(token => {
+          .then((token) => {
             if (originalRequest.headers) {
-              originalRequest.headers['Authorization'] = 'Bearer ' + token;
+              originalRequest.headers["Authorization"] = "Bearer " + token;
             }
             return apiClient(originalRequest);
           })
-          .catch(err => {
+          .catch((err) => {
             return Promise.reject(err);
           });
       }
- 
+
       (originalRequest as any)._retry = true;
       isRefreshing = true;
- 
+
       try {
         // Call the refresh endpoint directly, removing the AuthService dependency
-        const res = await apiClient.post("/refresh", {});
+        const res = await apiClient.post("/api/auth/refresh", {});
         const newAccessToken = res.data.data.accessToken;
-        apiClient.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
+        apiClient.defaults.headers.common["Authorization"] =
+          `Bearer ${newAccessToken}`;
         if (originalRequest.headers) {
-          originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
+          originalRequest.headers["Authorization"] = `Bearer ${newAccessToken}`;
         }
         processQueue(null, newAccessToken);
         return apiClient(originalRequest);
@@ -79,9 +87,9 @@ apiClient.interceptors.response.use(
         isRefreshing = false;
       }
     }
- 
+
     return Promise.reject(error);
   }
 );
- 
+
 export default apiClient;

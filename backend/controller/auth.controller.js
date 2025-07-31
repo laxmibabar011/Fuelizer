@@ -16,35 +16,35 @@ export default class AuthController {
       if (!email || !password || !clientId) {
         return sendResponse(res, { success: false, error: 'Missing credentials or clientId', message: 'Login failed', status: 400 });
       }
-
+ 
       const masterSequelize = getMasterSequelize();
       const masterRepo = new MasterRepository(masterSequelize);
       const client = await masterRepo.findClientById(clientId);
       if (!client || !client.is_active) {
         return sendResponse(res, { success: false, error: 'Invalid or inactive clientId', message: 'Login failed', status: 404 });
       }
-
-      const { tenantSequelize, User, RefreshToken } = await getTenantDbModels(client.db_name);
-      const user = await User.findOne({ where: { email } });
+ 
+      const { tenantSequelize, User, RefreshToken, Role } = await getTenantDbModels(client.db_name);
+      const user = await User.findOne({ where: { email }, include: ['Role'] });
       if (!user) {
         return sendResponse(res, { success: false, error: 'User not found', message: 'Login failed', status: 404 });
       }
-
+ 
       const valid = await comparePassword(password, user.password_hash);
       if (!valid) {
         return sendResponse(res, { success: false, error: 'Invalid password', message: 'Login failed', status: 401 });
       }
-
-      const accessToken = generateAccessToken({ userId: user.user_id, email: user.email, roleId: user.role_id, clientId, tenantDbName: client.db_name });
+ 
+      const accessToken = generateAccessToken({ userId: user.user_id, email: user.email, role: user.Role?.name, clientId, tenantDbName: client.db_name });
       const refreshToken = generateRefreshToken({ userId: user.user_id, clientId });
-
+ 
       await RefreshToken.create({
         user_id: user.user_id,
         token: refreshToken,
         expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
         client_id: clientId
       });
-
+ 
       res.cookie('refreshToken', refreshToken, {
         httpOnly: true,
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
@@ -52,12 +52,12 @@ export default class AuthController {
         secure: process.env.NODE_ENV === 'production',
         path: '/'
       });
-
+ 
       logger.info(`[AuthController]-[login]: User ${email} logged in successfully (clientId: ${clientId})`);
       return sendResponse(res, {
         data: {
           accessToken,
-          user: { userId: user.user_id, email: user.email, roleId: user.role_id }
+          user: { userId: user.user_id, email: user.email, role: user.Role?.name || null }
         },
         message: 'Login successful'
       });
@@ -142,18 +142,44 @@ export default class AuthController {
         if (!client || !client.is_active) {
           return sendResponse(res, { success: false, error: 'Invalid or inactive client', message: 'Token refresh failed', status: 404 });
         }
-        const { tenantSequelize, User, RefreshToken } = await getTenantDbModels(client.db_name);
+        
+        // Get tenant models with better error handling
+        let tenantSequelize, User, RefreshToken, Role;
+        try {
+          const models = await getTenantDbModels(client.db_name);
+          tenantSequelize = models.tenantSequelize;
+          User = models.User;
+          RefreshToken = models.RefreshToken;
+          Role = models.Role;
+        } catch (dbErr) {
+          logger.error(`[AuthController]-[refresh]: Database connection error for ${client.db_name}: ${dbErr.message}`);
+          return sendResponse(res, { success: false, error: 'Database connection failed', message: 'Token refresh failed', status: 500 });
+        }
         const tokenRecord = await RefreshToken.findOne({
           where: { token: refreshToken, user_id: payload.userId, revoked: false, expires_at: { [Op.gt]: new Date() } }
         });
         if (!tokenRecord) {
           return sendResponse(res, { success: false, error: 'Invalid or revoked refresh token', message: 'Token refresh failed', status: 401 });
         }
+        // First get user without include to avoid cache issues
         user = await User.findByPk(payload.userId);
         if (!user) {
           return sendResponse(res, { success: false, error: 'User not found', message: 'Token refresh failed', status: 404 });
         }
-        newAccessToken = generateAccessToken({ userId: user.user_id, email: user.email, roleId: user.role_id, clientId: payload.clientId, tenantDbName: client.db_name });
+        
+        // Then get role separately to avoid cache lookup issues
+        let roleName = null;
+        try {
+          const role = await Role.findByPk(user.role_id);
+          roleName = role?.name;
+        } catch (roleErr) {
+          logger.warn(`[AuthController]-[refresh]: Could not fetch role for user ${user.user_id}: ${roleErr.message}`);
+          // Continue without role name, will use roleId
+        }
+        
+        // Use roleId as fallback if role name is not available
+        const finalRole = roleName || `role_${user.role_id}`;
+        newAccessToken = generateAccessToken({ userId: user.user_id, email: user.email, role: finalRole, roleId: user.role_id, clientId: payload.clientId, tenantDbName: client.db_name });
         newRefreshToken = generateRefreshToken({ userId: user.user_id, email: user.email, clientId: payload.clientId });
         await RefreshToken.update({ revoked: true }, { where: { token: refreshToken } });
         await RefreshToken.create({

@@ -16,7 +16,7 @@ export const tenantDbMiddleware = async (req, res, next) => {
 
     const masterSequelize = getMasterSequelize();
     const masterRepo = new MasterRepository(masterSequelize);
-    const client = await masterRepo.getClientById(clientId);
+    const client = await masterRepo.findClientById(clientId);
     if (!client || !client.is_active) {
       return res.status(404).json({ success: false, message: 'Client not found or inactive' });
     }
