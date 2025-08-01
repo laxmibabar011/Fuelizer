@@ -54,7 +54,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
     setAuthUser(null);
     setAccessToken(null);
-    navigate("/signin");
+    navigate("/login");
   };
 
   // Effect for the initial "silent refresh" on app load
@@ -70,9 +70,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } catch (error) {
         setAuthUser(null);
         setAccessToken(null);
-        // Redirect to /signin if not already there
-        if (window.location.pathname !== "/signin") {
-          navigate("/signin");
+        // Redirect to /login if not already there
+        if (window.location.pathname !== "/login") {
+          navigate("/login");
         }
       } finally {
         setLoading(false);

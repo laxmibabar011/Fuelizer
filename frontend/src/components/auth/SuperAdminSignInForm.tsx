@@ -8,10 +8,9 @@ import Button from "../ui/button/Button";
 import { useAuth } from "../../context/AuthContext";
 import AuthService from "../../services/authService";
 
-export default function SignInForm() {
+export default function SuperAdminSignInForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [clientId, setClientId] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -25,14 +24,7 @@ export default function SignInForm() {
     setLoading(true);
 
     try {
-      // Tenant login - email, password, and clientId
-      if (!clientId.trim()) {
-        setError("Bunk ID is required for login");
-        setLoading(false);
-        return;
-      }
-      
-      const response = await AuthService.tenantLogin(email, password, clientId);
+      const response = await AuthService.superAdminLogin(email, password);
 
       const data = response.data;
       if (
@@ -44,15 +36,8 @@ export default function SignInForm() {
         setAccessToken(data.data.accessToken);
         setAuthUser(data.data.user);
 
-        // Redirect based on role
-        const userRole = data.data.user.role;
-        if (userRole === "fuel-admin") {
-          navigate("/fuel-admin-dashboard");
-        } else if (userRole === "partner") {
-          navigate("/partner-dashboard");
-        } else {
-          navigate("/");
-        }
+        // Redirect to super admin dashboard
+        navigate("/super-admin-dashboard");
       } else {
         setError(data.message || "Login failed");
       }
@@ -66,7 +51,7 @@ export default function SignInForm() {
         } else if (status === 401) {
           setError("Invalid credentials");
         } else if (status === 404) {
-          setError("Client not found or inactive");
+          setError("Super admin not found");
         } else if (status === 500) {
           setError("Server error. Please try again later.");
         } else {
@@ -96,32 +81,16 @@ export default function SignInForm() {
         <div>
           <div className="mb-5 sm:mb-8">
             <h1 className="mb-2 font-semibold text-gray-800 text-title-sm dark:text-white/90 sm:text-title-md">
-              Fuelizer
+              Super Admin Login
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              To Continue, Enter your Bunk ID, Email and Password
+              Access system administration panel
             </p>
           </div>
 
           <div>
             <form onSubmit={handleSubmit}>
               <div className="space-y-6">
-                {/* Client ID field */}
-                <div>
-                  <Label>
-                    Bunk ID <span className="text-error-500">*</span>
-                  </Label>
-                  <Input
-                    type="text"
-                    placeholder="Enter your organization's Bunk ID"
-                    value={clientId}
-                    onChange={(e) => setClientId(e.target.value)}
-                  />
-                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                    Contact your administrator if you don't have a Bunk ID
-                  </p>
-                </div>
-
                 {/* Email field */}
                 <div>
                   <Label>
@@ -167,13 +136,13 @@ export default function SignInForm() {
                     <span className="block font-normal text-gray-700 text-theme-sm dark:text-gray-400">
                       Keep me logged in
                     </span>
-                  </div> */}
+                  </div>
                   <Link
                     to="/reset-password"
                     className="text-sm text-brand-500 hover:text-brand-600 dark:text-brand-400"
                   >
                     Forgot password?
-                  </Link>
+                  </Link> */}
                 </div>
 
                 {/* Error message */}
@@ -191,7 +160,7 @@ export default function SignInForm() {
                     type="submit"
                     disabled={loading}
                   >
-                    {loading ? "Logging in..." : "Log in"}
+                    {loading ? "Logging in..." : "Log in as Super Admin"}
                   </Button>
                 </div>
               </div>
@@ -201,4 +170,4 @@ export default function SignInForm() {
       </div>
     </div>
   );
-}
+} 

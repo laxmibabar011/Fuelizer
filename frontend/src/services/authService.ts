@@ -54,7 +54,7 @@ class AuthService {
   }
 
   handleLogoutNavigation() {
-    window.location.href = "/signin";
+    window.location.href = "/login";
   }
 }
 

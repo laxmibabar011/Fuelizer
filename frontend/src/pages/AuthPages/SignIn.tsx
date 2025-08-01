@@ -6,8 +6,8 @@ export default function SignIn() {
   return (
     <>
       <PageMeta
-        title="Fuelizer SignIn "
-        description="Fuelizer SignIn Page"
+        title="Login | FUELIZER"
+        description="Login to your FUELIZER organization"
       />
       <AuthLayout>
         <SignInForm />

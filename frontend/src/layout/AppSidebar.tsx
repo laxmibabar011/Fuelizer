@@ -85,7 +85,7 @@ import { useAuth } from "../context/AuthContext";
 //   {
 //     icon: <PlugInIcon />,
 //     name: "Authentication",
-//     subItems: [{ name: "Sign In", path: "/signin", pro: false }],
+//     subItems: [{ name: "Sign In", path: "/login", pro: false }],
 //   },
 // ];
 

@@ -96,7 +96,7 @@ const CreditOnboarding: React.FC = () => {
         }
       );
   
-      setSuccess("Credit partner onboarded successfully!");
+      setSuccess("Credit customer onboarded successfully!");
       // Use the correct path to the new partner's ID
       const newId =
         response.data.data?.creditAccount?.id ||
@@ -131,10 +131,10 @@ const CreditOnboarding: React.FC = () => {
     <div className="mx-auto max-w-4xl p-6">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-          Onboard Credit Partner
+          Onboard Credit Customer
         </h1>
         <p className="mt-2 text-gray-600 dark:text-gray-400">
-          Add a new credit partner to your system
+          Add a new credit customer to your system
         </p>
       </div>
 
@@ -284,7 +284,7 @@ const CreditOnboarding: React.FC = () => {
                 disabled={loading}
                 className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:opacity-50"
               >
-                {loading ? "Onboarding..." : "Onboard Partner"}
+                {loading ? "Onboarding..." : "Onboard Customer"}
               </button>
             </div>
           </Form>

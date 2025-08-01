@@ -86,10 +86,10 @@ const CreditPartners: React.FC = () => {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              Credit Partners
+              Credit Customers
             </h1>
             <p className="mt-2 text-gray-600 dark:text-gray-400">
-              Manage and monitor all credit partners
+              Manage and monitor all credit customers
             </p>
           </div>
           <button
@@ -109,7 +109,7 @@ const CreditPartners: React.FC = () => {
                 d="M12 6v6m0 0v6m0-6h6m-6 0H6"
               />
             </svg>
-            Add New Partner
+            Add New Customer
           </button>
         </div>
       </div>
@@ -118,7 +118,7 @@ const CreditPartners: React.FC = () => {
       <div className="mb-6 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <Label htmlFor="search">Search Partners</Label>
+            <Label htmlFor="search">Search Customers</Label>
             <Input
               type="text"
               id="search"
@@ -174,10 +174,10 @@ const CreditPartners: React.FC = () => {
           <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Partners ({filteredPartners.length})
+                Customers ({filteredPartners.length})
               </h3>
               <div className="text-sm text-gray-500 dark:text-gray-400">
-                Showing {filteredPartners.length} of {partners.length} partners
+                Showing {filteredPartners.length} of {partners.length} customers
               </div>
             </div>
           </div>
@@ -286,12 +286,12 @@ const CreditPartners: React.FC = () => {
                 />
               </svg>
               <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">
-                No partners found
+                No customers found
               </h3>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                 {searchTerm || statusFilter !== "all"
                   ? "Try adjusting your search or filter criteria."
-                  : "Get started by adding your first credit partner."}
+                  : "Get started by adding your first credit customer."}
               </p>
               {!searchTerm && statusFilter === "all" && (
                 <div className="mt-6">
@@ -312,7 +312,7 @@ const CreditPartners: React.FC = () => {
                         d="M12 6v6m0 0v6m0-6h6m-6 0H6"
                       />
                     </svg>
-                    Add New Partner
+                    Add New Customer
                   </button>
                 </div>
               )}
