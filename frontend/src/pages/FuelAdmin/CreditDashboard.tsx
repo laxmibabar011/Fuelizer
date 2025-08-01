@@ -157,7 +157,7 @@ const CreditDashboard: React.FC = () => {
           Credit Management
         </h1>
         <p className="mt-2 text-gray-600 dark:text-gray-400">
-          Manage credit partners and monitor credit activities
+          Manage credit customers and monitor credit activities
         </p>
       </div>
 
@@ -188,7 +188,7 @@ const CreditDashboard: React.FC = () => {
                 d="M12 6v6m0 0v6m0-6h6m-6 0H6"
               />
             </svg>
-            Onboard New Partner
+            Onboard New Customer
           </button>
 
           <button
@@ -208,7 +208,7 @@ const CreditDashboard: React.FC = () => {
                 d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
               />
             </svg>
-            View All Partners
+            View All Customers
           </button>
         </div>
       </div>
@@ -234,7 +234,7 @@ const CreditDashboard: React.FC = () => {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Total Partners
+                Total Credit Customers
               </p>
               <p className="text-2xl font-semibold text-gray-900 dark:text-white">
                 {creditStats.totalPartners}
@@ -262,7 +262,7 @@ const CreditDashboard: React.FC = () => {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Active Partners
+                Active Credit Customers
               </p>
               <p className="text-2xl font-semibold text-gray-900 dark:text-white">
                 {creditStats.activePartners}
@@ -290,7 +290,7 @@ const CreditDashboard: React.FC = () => {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Total Credit Limit
+                Total Credit Limit (₹)
               </p>
               <p className="text-2xl font-semibold text-gray-900 dark:text-white">
                 ₹{creditStats.totalCreditLimit.toLocaleString()}
@@ -318,7 +318,7 @@ const CreditDashboard: React.FC = () => {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Total Outstanding
+                Total Outstanding (₹)
               </p>
               <p className="text-2xl font-semibold text-gray-900 dark:text-white">
                 ₹{creditStats.totalOutstanding.toLocaleString()}
@@ -333,7 +333,7 @@ const CreditDashboard: React.FC = () => {
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Recent Partners
+              Recent Credit Customers
             </h3>
             <button
               onClick={() => navigate("/fuel-admin/credit-partners")}
@@ -348,7 +348,7 @@ const CreditDashboard: React.FC = () => {
             <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Partner Name
+                  Customer Name
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Contact Email
@@ -419,10 +419,10 @@ const CreditDashboard: React.FC = () => {
                       />
                     </svg>
                     <p className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                      No partners yet
+                      No customers yet
                     </p>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                      Get started by onboarding your first credit partner
+                      Get started by onboarding your first credit customer
                     </p>
                     <button
                       onClick={() => navigate("/fuel-admin/credit-onboarding")}
@@ -441,7 +441,7 @@ const CreditDashboard: React.FC = () => {
                           d="M12 6v6m0 0v6m0-6h6m-6 0H6"
                         />
                       </svg>
-                      Onboard First Partner
+                      Onboard First Customer
                     </button>
                   </td>
                 </tr>

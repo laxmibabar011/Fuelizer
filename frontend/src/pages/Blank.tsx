@@ -21,12 +21,18 @@ export default function Blank() {
         <p className="text-center text-gray-600 mb-8">
           Unlock seamless business solutions with our powerful platform.
         </p>
-        <div className="flex justify-center">
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <button
             className="px-8 py-3 rounded-lg bg-[#465fff] text-white text-lg font-semibold shadow hover:bg-[#3b4ed8] transition"
-            onClick={() => navigate("/signin")}
+            onClick={() => navigate("/login")}
           >
             Login
+          </button>
+          <button
+            className="px-8 py-3 rounded-lg bg-gray-800 text-white text-lg font-semibold shadow hover:bg-gray-700 transition"
+            onClick={() => navigate("/super-admin-login")}
+          >
+            Super Admin Login
           </button>
         </div>
       </div>
