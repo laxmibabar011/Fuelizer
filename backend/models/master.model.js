@@ -9,7 +9,14 @@ export const initMasterModels = (sequelize) => {
     role: { type: DataTypes.STRING, allowNull: false, defaultValue: 'super_admin' },
     refresh_token: { type: DataTypes.STRING, allowNull: true }, // Store refresh token
     refresh_token_expires_at: { type: DataTypes.DATE, allowNull: true }, // Expiration
-    refresh_token_revoked: { type: DataTypes.BOOLEAN, allowNull: true, defaultValue: false } // Revocation status
+    refresh_token_revoked: { type: DataTypes.BOOLEAN, allowNull: true, defaultValue: false },// Revocation status
+    full_name: { type: DataTypes.STRING, allowNull: false },
+    phone: { type: DataTypes.STRING, allowNull: true },
+    city: { type: DataTypes.STRING, allowNull: true },
+    state: { type: DataTypes.STRING, allowNull: true },
+    country: { type: DataTypes.STRING, allowNull: true },
+    postal_code: { type: DataTypes.STRING, allowNull: true },
+    gstin: { type: DataTypes.STRING, allowNull: true }
   });
 
   // Client metadata (onboarding fields)

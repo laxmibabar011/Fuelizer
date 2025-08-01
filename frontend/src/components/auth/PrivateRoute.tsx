@@ -14,7 +14,7 @@ const PrivateRoute = ({ children, allowedRoles }: PrivateRouteProps) => {
     return null;
   }
   if (!authUser) {
-    return <Navigate to="/signin" replace />;
+    return <Navigate to="/login" replace />;
   }
   if (allowedRoles && !allowedRoles.includes(authUser.role)) {
     return <Navigate to="/" replace />; // Or a Not Authorized page

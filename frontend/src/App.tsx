@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router";
 import SignIn from "./pages/AuthPages/SignIn";
+import SuperAdminSignIn from "./pages/AuthPages/SuperAdminSignIn";
 import NotFound from "./pages/OtherPage/NotFound";
 import UserProfiles from "./pages/UserProfiles";
 import Videos from "./pages/UiElements/Videos";
@@ -39,7 +40,8 @@ export default function App() {
           <Route path="/" element={<Blank />} />
 
           {/* Auth Layout */}
-          <Route path="/signin" element={<SignIn />} />
+          <Route path="/login" element={<SignIn />} />
+          <Route path="/super-admin-login" element={<SuperAdminSignIn />} />
           <Route path="/reset-password" element={<ResetPassword />} />
 
           {/* // --- ROUTE ASSIGNMENT START ---

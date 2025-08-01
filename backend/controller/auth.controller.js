@@ -296,7 +296,14 @@ export default class AuthController {
         userProfile = {
           userId: user.id,
           email: user.email,
-          role: user.role
+          role: user.role,
+          full_name: user.full_name,
+          phone: user.phone,
+          city: user.city,
+          state: user.state,
+          country: user.country,
+          postal_code: user.postal_code,
+          gstin: user.gstin
         };
       }
 
