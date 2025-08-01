@@ -12,16 +12,16 @@ const { Op } = Sequelize;
 export default class AuthController {
   static async login(req, res) {
     try {
-      const { email, password, clientId } = req.body;
-      if (!email || !password || !clientId) {
-        return sendResponse(res, { success: false, error: 'Missing credentials or clientId', message: 'Login failed', status: 400 });
+      const { email, password, bunkId } = req.body;
+      if (!email || !password || !bunkId) {
+        return sendResponse(res, { success: false, error: 'Missing credentials or bunkId', message: 'Login failed', status: 400 });
       }
  
       const masterSequelize = getMasterSequelize();
       const masterRepo = new MasterRepository(masterSequelize);
-      const client = await masterRepo.findClientById(clientId);
+      const client = await masterRepo.findClientById(bunkId);
       if (!client || !client.is_active) {
-        return sendResponse(res, { success: false, error: 'Invalid or inactive clientId', message: 'Login failed', status: 404 });
+        return sendResponse(res, { success: false, error: 'Invalid or inactive bunkId', message: 'Login failed', status: 404 });
       }
  
       const { tenantSequelize, User, RefreshToken, Role } = await getTenantDbModels(client.db_name);
@@ -35,14 +35,14 @@ export default class AuthController {
         return sendResponse(res, { success: false, error: 'Invalid password', message: 'Login failed', status: 401 });
       }
  
-      const accessToken = generateAccessToken({ userId: user.user_id, email: user.email, role: user.Role?.name, clientId, tenantDbName: client.db_name });
-      const refreshToken = generateRefreshToken({ userId: user.user_id, clientId });
+      const accessToken = generateAccessToken({ userId: user.user_id, email: user.email, role: user.Role?.name, bunkId, tenantDbName: client.db_name });
+      const refreshToken = generateRefreshToken({ userId: user.user_id, bunkId });
  
       await RefreshToken.create({
         user_id: user.user_id,
         token: refreshToken,
         expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-        client_id: clientId
+        bunk_id: bunkId
       });
  
       res.cookie('refreshToken', refreshToken, {
@@ -53,7 +53,7 @@ export default class AuthController {
         path: '/'
       });
  
-      logger.info(`[AuthController]-[login]: User ${email} logged in successfully (clientId: ${clientId})`);
+      logger.info(`[AuthController]-[login]: User ${email} logged in successfully (bunkId: ${bunkId})`);
       return sendResponse(res, {
         data: {
           accessToken,
@@ -136,9 +136,9 @@ export default class AuthController {
       let user, newAccessToken, newRefreshToken;
       const masterSequelize = getMasterSequelize();
       const masterRepo = new MasterRepository(masterSequelize);
-      if (payload.clientId) {
+      if (payload.bunkId) {
         // Tenant user
-        const client = await masterRepo.findClientById(payload.clientId);
+        const client = await masterRepo.findClientById(payload.bunkId);
         if (!client || !client.is_active) {
           return sendResponse(res, { success: false, error: 'Invalid or inactive client', message: 'Token refresh failed', status: 404 });
         }
@@ -179,14 +179,14 @@ export default class AuthController {
         
         // Use roleId as fallback if role name is not available
         const finalRole = roleName || `role_${user.role_id}`;
-        newAccessToken = generateAccessToken({ userId: user.user_id, email: user.email, role: finalRole, roleId: user.role_id, clientId: payload.clientId, tenantDbName: client.db_name });
-        newRefreshToken = generateRefreshToken({ userId: user.user_id, email: user.email, clientId: payload.clientId });
+        newAccessToken = generateAccessToken({ userId: user.user_id, email: user.email, role: finalRole, roleId: user.role_id, bunkId: payload.bunkId, tenantDbName: client.db_name });
+        newRefreshToken = generateRefreshToken({ userId: user.user_id, email: user.email, bunkId: payload.bunkId });
         await RefreshToken.update({ revoked: true }, { where: { token: refreshToken } });
         await RefreshToken.create({
           user_id: user.user_id,
           token: newRefreshToken,
           expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-          client_id: payload.clientId
+          bunk_id: payload.bunkId
         });
       } else {
         // Super-admin
@@ -236,8 +236,8 @@ export default class AuthController {
       }
       const masterSequelize = getMasterSequelize();
       const masterRepo = new MasterRepository(masterSequelize);
-      if (payload.clientId) {
-        const client = await masterRepo.findClientById(payload.clientId);
+      if (payload.bunkId) {
+        const client = await masterRepo.findClientById(payload.bunkId);
         if (!client || !client.is_active) {
           return sendResponse(res, { success: false, error: 'Invalid or inactive client', message: 'Logout failed', status: 404 });
         }
@@ -268,10 +268,10 @@ export default class AuthController {
 
   static async getCurrentUser(req, res) {
     try {
-      const { userId, clientId, tenantDbName, role } = req.user;
+      const { userId, bunkId, tenantDbName, role } = req.user;
       let userProfile;
 
-      if (clientId && tenantDbName) {
+      if (bunkId && tenantDbName) {
         // Tenant user
         const { User } = await getTenantDbModels(tenantDbName);
         const user = await User.findByPk(userId, { include: ['Role', 'UserDetails'] });
@@ -282,7 +282,7 @@ export default class AuthController {
           userId: user.user_id,
           email: user.email,
           role: user.Role?.name,
-          clientId,
+          bunkId,
           details: user.UserDetails
         };
       } else {
@@ -317,7 +317,7 @@ export default class AuthController {
 
   static async forgotPassword(req, res) {
     try {
-      const { email, clientId } = req.body;
+      const { email, bunkId } = req.body;
       if (!email) {
         return sendResponse(res, { success: false, error: 'Email required', message: 'Email required', status: 400 });
       }
@@ -326,9 +326,9 @@ export default class AuthController {
       const masterSequelize = getMasterSequelize();
       const masterRepo = new MasterRepository(masterSequelize);
 
-      if (clientId) {
+      if (bunkId) {
         // Tenant user
-        const client = await masterRepo.findClientById(clientId);
+        const client = await masterRepo.findClientById(bunkId);
         if (!client || !client.is_active) {
           return sendResponse(res, { success: false, error: 'Invalid or inactive client', message: 'User not found', status: 404 });
         }
@@ -338,7 +338,7 @@ export default class AuthController {
           return sendResponse(res, { success: false, error: 'User not found', message: 'User not found', status: 404 });
         }
         userId = user.user_id;
-        targetClientId = clientId;
+        targetClientId = bunkId;
       } else {
         // Super-admin
         user = await masterRepo.getSuperAdminByEmail(email); // Fixed method name
@@ -351,7 +351,7 @@ export default class AuthController {
 
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
       const expires_at = new Date(Date.now() + 10 * 60 * 1000); // 10 min
-      await masterRepo.createPasswordReset({ user_id: userId, client_id: targetClientId, otp, expires_at });
+      await masterRepo.createPasswordReset({ user_id: userId, bunk_id: targetClientId, otp, expires_at });
       await sendOtpEmail(email, otp);
 
       logger.info(`[AuthController]-[forgotPassword]: OTP sent to ${email}`);
@@ -364,7 +364,7 @@ export default class AuthController {
 
   static async resetPassword(req, res) {
     try {
-      const { email, otp, newPassword, confirmPassword, clientId } = req.body;
+      const { email, otp, newPassword, confirmPassword, bunkId } = req.body;
       if (!email || !otp || !newPassword || !confirmPassword) {
         return sendResponse(res, { success: false, error: 'All fields required', message: 'All fields required', status: 400 });
       }
@@ -376,9 +376,9 @@ export default class AuthController {
       const masterRepo = new MasterRepository(masterSequelize);
       let user, userId, targetClientId;
 
-      if (clientId) {
+      if (bunkId) {
         // Tenant user
-        const client = await masterRepo.findClientById(clientId);
+        const client = await masterRepo.findClientById(bunkId);
         if (!client || !client.is_active) {
           return sendResponse(res, { success: false, error: 'Invalid or inactive client', message: 'User not found', status: 404 });
         }
@@ -388,7 +388,7 @@ export default class AuthController {
           return sendResponse(res, { success: false, error: 'User not found', message: 'User not found', status: 404 });
         }
         userId = user.user_id;
-        targetClientId = clientId;
+        targetClientId = bunkId;
       } else {
         // Super-admin
         user = await masterRepo.getSuperAdminByEmail(email); // Fixed method name
@@ -399,7 +399,7 @@ export default class AuthController {
         targetClientId = null;
       }
 
-      const reset = await masterRepo.findValidPasswordReset({ user_id: userId, client_id: targetClientId, otp });
+      const reset = await masterRepo.findValidPasswordReset({ user_id: userId, bunk_id: targetClientId, otp });
       if (!reset) {
         return sendResponse(res, { success: false, error: 'Invalid or expired OTP', message: 'Invalid or expired OTP', status: 400 });
       }
@@ -407,8 +407,8 @@ export default class AuthController {
       await masterRepo.markPasswordResetUsed(reset.id);
       const hashed = await hashPassword(newPassword);
 
-      if (clientId) {
-        const { User } = await getTenantDbModels((await masterRepo.findClientById(clientId)).db_name);
+      if (bunkId) {
+        const { User } = await getTenantDbModels((await masterRepo.findClientById(bunkId)).db_name);
         await User.update({ password_hash: hashed }, { where: { user_id: userId } });
       } else {
         await user.update({ password: hashed });

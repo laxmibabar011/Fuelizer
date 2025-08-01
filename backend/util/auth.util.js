@@ -24,7 +24,7 @@ export const generateAccessToken = (payload) => {
         email: payload.email,
         role: payload.role || null,
         roleId: payload.roleId || null,
-        clientId: payload.clientId || null,
+        bunkId: payload.bunkId || null,
         tenantDbName: payload.tenantDbName || null
       },
       process.env.JWT_SECRET,
@@ -47,7 +47,7 @@ export const generateRefreshToken = (payload) => {
       logger.error(`[auth.util]-[generateRefreshToken]: JWT_REFRESH_SECRET is undefined`);
     }
     const token = jwt.sign(
-      { userId: payload.userId, email: payload.email, clientId: payload.clientId || null },
+      { userId: payload.userId, email: payload.email, bunkId: payload.bunkId || null },
       process.env.JWT_REFRESH_SECRET,
       { expiresIn: tokenTimeToLive.REFRESH_TOKEN_COOKIE }
     );

@@ -52,7 +52,7 @@ export default class SuperAdminController {
               user_id: user.user_id,
               email: user.email,
               role: user.Role?.name || null,
-              client_id: client.client_id,
+              bunk_id: client.bunk_id,
               details: user.UserDetails || {}
             }))
           );
@@ -64,7 +64,7 @@ export default class SuperAdminController {
           user_id: user.id,
           email: user.email,
           role: user.role,
-          client_id: null
+          bunk_id: null
         })),
         ...tenantUsers
       ];
@@ -87,7 +87,7 @@ export default class SuperAdminController {
       let user = await masterRepo.getSuperAdminById(id);
       if (user) {
         return sendResponse(res, {
-          data: { user_id: user.id, email: user.email, role: user.role, client_id: null },
+          data: { user_id: user.id, email: user.email, role: user.role, bunk_id: null },
           message: 'User details'
         });
       }
@@ -104,7 +104,7 @@ export default class SuperAdminController {
                 user_id: user.user_id,
                 email: user.email,
                 role: user.Role?.name || null,
-                client_id: client.client_id,
+                bunk_id: client.bunk_id,
                 details: user.UserDetails || {}
               },
               message: 'User details'

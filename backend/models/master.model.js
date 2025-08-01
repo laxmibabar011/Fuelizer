@@ -22,7 +22,7 @@ export const initMasterModels = (sequelize) => {
   // Client metadata (onboarding fields)
   const Client = sequelize.define('Client', {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
-    client_id: { type: DataTypes.STRING(50), unique: true, allowNull: false },
+    bunk_id: { type: DataTypes.STRING(50), unique: true, allowNull: false },
     client_name: { type: DataTypes.STRING, allowNull: false },
     client_owner_name: { type: DataTypes.STRING, allowNull: false },
     client_address: { type: DataTypes.STRING, allowNull: true },
@@ -41,7 +41,7 @@ export const initMasterModels = (sequelize) => {
   const PasswordReset = sequelize.define('PasswordReset', {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
     user_id: { type: DataTypes.STRING(50), allowNull: false }, // Matches tenant_db.User.user_id or super_admin id
-    client_id: { type: DataTypes.STRING(50), allowNull: true }, // null for super-admin
+    bunk_id: { type: DataTypes.STRING(50), allowNull: true }, // null for super-admin
     otp: { type: DataTypes.STRING, allowNull: true },
     expires_at: { type: DataTypes.DATE, allowNull: false },
     used: { type: DataTypes.BOOLEAN, defaultValue: false }

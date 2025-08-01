@@ -16,17 +16,17 @@ export default class MasterController {
       }
 
       const {
-        client_id, client_name, client_owner_name, client_address, client_city, client_state, client_country, client_pincode,
+        bunk_id, client_name, client_owner_name, client_address, client_city, client_state, client_country, client_pincode,
         gst_number, client_phone, client_email, client_password, db_name
       } = req.body;
 
-      if (!client_id || !client_name || !client_owner_name || !client_email || !client_password || !db_name) {
+      if (!bunk_id || !client_name || !client_owner_name || !client_email || !client_password || !db_name) {
         return sendResponse(res, { success: false, error: 'Missing fields', message: 'Required fields missing', status: 400 });
       }
 
       const masterSequelize = getMasterSequelize();
       const masterRepo = new MasterRepository(masterSequelize);
-      const existing = await masterRepo.findClientById(client_id);
+      const existing = await masterRepo.findClientById(bunk_id);
       if (existing) {
         return sendResponse(res, { success: false, error: 'Client already exists', message: 'Duplicate client', status: 409 });
       }
@@ -57,7 +57,7 @@ export default class MasterController {
       });
 
       const client = await masterRepo.createClient({
-        client_id,
+        bunk_id,
         client_name,
         client_owner_name,
         client_address,

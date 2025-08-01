@@ -33,7 +33,7 @@ export const initTenantModels = (sequelize) => {
     expires_at: { type: DataTypes.DATE, allowNull: false },
     revoked: { type: DataTypes.BOOLEAN, defaultValue: false },
     created_at: { type: DataTypes.DATE, defaultValue: Sequelize.NOW },
-    client_id: { type: DataTypes.STRING(50), allowNull: false } // Add client_id
+    bunk_id: { type: DataTypes.STRING(50), allowNull: false } // Add bunk_id
   });
 
   // Associations
