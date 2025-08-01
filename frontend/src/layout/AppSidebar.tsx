@@ -150,7 +150,6 @@ const AppSidebar: React.FC = () => {
       name: "Logout",
       onClick: logout,
     },
-
   ];
 
   // Role-based menu for partner
@@ -170,7 +169,6 @@ const AppSidebar: React.FC = () => {
       name: "Logout",
       onClick: logout,
     },
-   
   ];
 
   const menuToShow =
@@ -204,7 +202,17 @@ const AppSidebar: React.FC = () => {
           !isExpanded && !isHovered ? "lg:justify-center" : "justify-start"
         }`}
       >
-        <Link to="/">
+        <Link
+          to={
+            authUser?.role === "super_admin"
+              ? "/super-admin-dashboard"
+              : authUser?.role === "fuel-admin"
+                ? "/fuel-admin-dashboard"
+                : authUser?.role === "partner"
+                  ? "/partner-dashboard"
+                  : "/"
+          }
+        >
           {isExpanded || isHovered || isMobileOpen ? (
             <>
               <img

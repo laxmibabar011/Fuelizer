@@ -1,10 +1,24 @@
 import { Link } from "react-router";
+import { useAuth } from "../../context/AuthContext";
 
 interface BreadcrumbProps {
   pageTitle: string;
 }
 
 const PageBreadcrumb: React.FC<BreadcrumbProps> = ({ pageTitle }) => {
+  const { authUser } = useAuth();
+
+  // Determine the home route based on user role
+  const getHomeRoute = () => {
+    if (authUser?.role === "super_admin") {
+      return "/super-admin-dashboard";
+    } else if (authUser?.role === "fuel-admin") {
+      return "/fuel-admin-dashboard";
+    } else if (authUser?.role === "partner") {
+      return "/partner-dashboard";
+    }
+    return "/"; // Fallback for unknown roles or not logged in
+  };
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
       <h2
@@ -18,7 +32,7 @@ const PageBreadcrumb: React.FC<BreadcrumbProps> = ({ pageTitle }) => {
           <li>
             <Link
               className="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400"
-              to="/"
+              to={getHomeRoute()}
             >
               Home
               <svg
