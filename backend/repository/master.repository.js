@@ -2,79 +2,73 @@ import { initMasterModels } from '../models/master.model.js';
 
 export class MasterRepository {
   constructor(sequelize) {
-    this.models = initMasterModels(sequelize);
+    this.sequelize = sequelize;
+    const { User, Client, PasswordReset } = initMasterModels(sequelize);
+    this.User = User;
+    this.Client = Client;
+    this.PasswordReset = PasswordReset;
   }
 
-  // Create a new client (organization)
+  async getSuperAdminByEmail(email) {
+    return await this.User.findOne({ where: { email, role: 'super_admin' } });
+  }
+
+  async getSuperAdminById(id) {
+    return await this.User.findByPk(id, { where: { role: 'super_admin' } });
+  }
+
+  async getAllSuperAdminUsers() {
+    return await this.User.findAll({ where: { role: 'super_admin' } });
+  }
+
+  async updateSuperAdminRefreshToken(userId, data) {
+    return await this.User.update(
+      {
+        refresh_token: data.refresh_token,
+        refresh_token_expires_at: data.refresh_token_expires_at,
+        refresh_token_revoked: data.refresh_token_revoked
+      },
+      { where: { id: userId, role: 'super_admin' } }
+    );
+  }
+
+  async findClientById(clientId) {
+    return await this.Client.findOne({ where: { client_id: clientId } });
+  }
+
+  async findAllClients() {
+    return await this.Client.findAll();
+  }
+
+  async createSuperAdminUser(userData) {
+    return await this.User.create({ ...userData, role: 'super_admin' });
+  }
+
   async createClient(clientData) {
-    return this.models.Client.create(clientData);
+    return await this.Client.create(clientData);
   }
 
-  // Find a client by client_key (unique)
-  async findClientByKey(client_key) {
-    return this.models.Client.findOne({ where: { client_key } });
+  async setClientActive(clientId, isActive) {
+    return await this.Client.update({ is_active: isActive }, { where: { client_id: clientId } });
   }
 
-  // Create a user in the master DB
-  async createMasterUser(userData) {
-    return this.models.User.create(userData);
+  async createPasswordReset({ user_id, client_id, otp, expires_at }) {
+    return await this.PasswordReset.create({ user_id, client_id, otp, expires_at });
   }
 
-  // Find a user by email in the master DB
-  async findMasterUserByEmail(email) {
-    return this.models.User.findOne({ where: { email } });
-  }
-
-  // List all clients
-  async getAllClients() {
-    return this.models.Client.findAll();
-  }
-  
-  // Get client by ID
-  async getClientById(id) {
-    return this.models.Client.findByPk(id);
-  }
-  
-  // List all users (across all clients) in master DB
-  async getAllMasterUsers() {
-    return this.models.User.findAll();
-  }
-  
-  // Get user by ID in master DB
-  async getMasterUserById(id) {
-    return this.models.User.findByPk(id);
-  }
-
-  // Update a user's access_token by user ID in master DB
-  async updateMasterUserAccessToken(userId, accessToken) {
-    return this.models.User.update({ access_token: accessToken }, { where: { id: userId } });
-  }
-  async setClientActive(id, isActive) {
-    return this.models.Client.update({ is_active: isActive }, { where: { id } });
-  }
-  // Set user active/inactive in master DB
-  async setMasterUserActive(id, isActive) {
-    return this.models.User.update({ is_active: isActive }, { where: { id } });
-  }
-
-  // PasswordReset methods for forgot password/OTP
-  // Create a new OTP record
-  async createPasswordReset({ user_id, otp, expires_at }) {
-    return this.models.PasswordReset.create({ user_id, otp, expires_at });
-  }
-  // Find a valid (not used, not expired) OTP for a user
-  async findValidPasswordReset({ user_id, otp }) {
-    return this.models.PasswordReset.findOne({
+  async findValidPasswordReset({ user_id, client_id, otp }) {
+    return await this.PasswordReset.findOne({
       where: {
         user_id,
+        client_id,
         otp,
         used: false,
-        expires_at: { [this.models.PasswordReset.sequelize.Op.gt]: new Date() },
-      },
+        expires_at: { [this.sequelize.Op.gt]: new Date() }
+      }
     });
   }
-  // Mark an OTP as used
+
   async markPasswordResetUsed(id) {
-    return this.models.PasswordReset.update({ used: true }, { where: { id } });
+    return await this.PasswordReset.update({ used: true }, { where: { id } });
   }
 }

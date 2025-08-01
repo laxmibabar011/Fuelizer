@@ -1,41 +1,60 @@
 import apiClient from "./apiClient";
 
 class AuthService {
-  async login(email: string, password: string) {
-    return apiClient.post("/login", { email, password });
+  // Super admin login (2 parameters: email, password)
+  async superAdminLogin(email: string, password: string) {
+    return apiClient.post("api/auth/super-admin/login", { email, password });
+  }
+
+  // Tenant user login (3 parameters: email, password, clientId)
+  async tenantLogin(email: string, password: string, clientId: string) {
+    return apiClient.post("api/auth/login", { email, password, clientId });
   }
 
   async logout() {
-    return apiClient.post("/logout", {});
+    return apiClient.post("api/auth/logout", {});
   }
 
   async refresh() {
-    return apiClient.post("/refresh", {});
+    return apiClient.post("api/auth/refresh", {});
   }
 
-  async getMe(token: string) {
-    return apiClient.get("/me", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-  }
-  // Forgot password: send OTP to email
-  async forgotPassword(email: string) {
-    return apiClient.post("/forgot-password", { email });
+  async getMe() {
+    return apiClient.get("api/auth/me");
   }
 
-  // Reset password: verify OTP and set new password
+  async forgotPassword(email: string, clientId?: string) {
+    const payload: { email: string; clientId?: string } = { email };
+    if (clientId) {
+      payload.clientId = clientId;
+    }
+    return apiClient.post("api/auth/forgot-password", payload);
+  }
+
   async resetPassword(
     email: string,
     otp: string,
     newPassword: string,
-    confirmPassword: string
+    confirmPassword: string,
+    clientId?: string
   ) {
-    return apiClient.post("/reset-password", {
-      email,
-      otp,
-      newPassword,
-      confirmPassword,
-    });
+    const payload: {
+      email: string;
+      otp: string;
+      newPassword: string;
+      confirmPassword: string;
+      clientId?: string;
+    } = { email, otp, newPassword, confirmPassword };
+
+    if (clientId) {
+      payload.clientId = clientId;
+    }
+
+    return apiClient.post("api/auth/reset-password", payload);
+  }
+
+  handleLogoutNavigation() {
+    window.location.href = "/signin";
   }
 }
 

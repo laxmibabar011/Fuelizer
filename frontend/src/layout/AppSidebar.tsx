@@ -141,10 +141,36 @@ const AppSidebar: React.FC = () => {
       path: "/fuel-admin/credit",
     },
     {
+      icon: <UserCircleIcon />,
+      name: "Profile",
+      path: "/fuel-admin/profile",
+    },
+    {
       icon: <PlugInIcon />,
       name: "Logout",
       onClick: logout,
     },
+
+  ];
+
+  // Role-based menu for partner
+  const partnerMenu = [
+    {
+      icon: <GridIcon />,
+      name: "Dashboard",
+      path: "/partner-dashboard",
+    },
+    {
+      icon: <UserCircleIcon />,
+      name: "Profile",
+      path: "/partner/profile",
+    },
+    {
+      icon: <PlugInIcon />,
+      name: "Logout",
+      onClick: logout,
+    },
+   
   ];
 
   const menuToShow =
@@ -152,7 +178,9 @@ const AppSidebar: React.FC = () => {
       ? superAdminMenu
       : authUser?.role === "fuel-admin"
         ? fuelAdminMenu
-        : [];
+        : authUser?.role === "partner"
+          ? partnerMenu
+          : [];
 
   const isActive = (path: string) => location.pathname === path;
 

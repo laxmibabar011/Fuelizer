@@ -12,29 +12,56 @@ interface CreditPartnerData {
 }
 
 class CreditService {
-  async onboardPartner(data: CreditPartnerData, token: string) {
-    return apiClient.post("/tenant/credit/onboard", data, {
-      headers: { Authorization: `Bearer ${token}` },
+  async onboardPartner(data: CreditPartnerData) {
+    return apiClient.post("api/tenant/credit/onboard", data);
+  }
+
+  async getAllPartners() {
+    return apiClient.get("api/tenant/credit/partners");
+  }
+
+  async getPartnerById(id: string) {
+    return apiClient.get(`api/tenant/credit/partners/${id}`);
+  }
+
+  async updatePartnerStatus(id: number, status: string) {
+    return apiClient.patch(`api/tenant/credit/partners/${id}/status`, {
+      status,
     });
   }
 
-  async getAllPartners(token: string) {
-    return apiClient.get("/tenant/credit/partners", {
-      headers: { Authorization: `Bearer ${token}` },
+  async addVehicles(partnerId: string, vehicles: any[]) {
+    return apiClient.post(`api/tenant/credit/partners/${partnerId}/vehicles`, {
+      vehicles,
     });
   }
 
-  async getPartnerById(id: string, token: string) {
-    return apiClient.get(`/tenant/credit/partners/${id}`, {
-      headers: { Authorization: `Bearer ${token}` },
+  async getVehicles(partnerId: string) {
+    return apiClient.get(`api/tenant/credit/partners/${partnerId}/vehicles`);
+  }
+
+  async updateVehicle(vehicleId: string, data: any) {
+    return apiClient.put(`api/tenant/credit/vehicles/${vehicleId}`, data);
+  }
+
+  async setVehicleStatus(vehicleId: string, status: string) {
+    return apiClient.patch(`api/tenant/credit/vehicles/${vehicleId}/status`, {
+      status,
     });
   }
 
-  async updatePartnerStatus(id: number, status: string, token: string) {
-    return apiClient.patch(`/tenant/credit/partners/${id}/status`, { status }, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+  async deleteVehicle(vehicleId: string) {
+    return apiClient.delete(`api/tenant/credit/vehicles/${vehicleId}`);
   }
+
+  // Note: userdetails endpoints are not used anymore, using /me endpoint instead
+  // async getUserDetails(userId: string) {
+  //   return apiClient.get(`api/tenant/userdetails/${userId}`);
+  // }
+
+  // async getUserDetailsByEmail(email: string) {
+  //   return apiClient.get(`api/tenant/userdetails/by-email/${encodeURIComponent(email)}`);
+  // }
 }
 
-export default new CreditService(); 
+export default new CreditService();

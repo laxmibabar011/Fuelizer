@@ -52,7 +52,7 @@ const CreditDashboard: React.FC = () => {
       setError("");
       try {
         // Fetch all partners to calculate stats and get recent ones
-        const res = await creditService.getAllPartners(accessToken || "");
+        const res = await creditService.getAllPartners();
         if (res.data.success && Array.isArray(res.data.data)) {
           const partners: Partner[] = res.data.data;
 

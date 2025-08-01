@@ -13,22 +13,39 @@ export const getMasterSequelize = () => {
       host: process.env.MASTER_DB_HOST,
       dialect: 'postgres',
       logging: false,
+      pool: {
+        max: 5,
+        min: 0,
+        acquire: 30000,
+        idle: 10000
+      }
     }
   );
 };
 
-// Tenant DB connection (dynamic)
-export const getTenantSequelize = ({ dbName, dbUser, dbPass, dbHost }) => {
-  return new Sequelize(dbName, dbUser, dbPass, {
-    host: dbHost,
-    dialect: 'postgres',
-    logging: false,
-  });
+// Tenant DB connection (dynamic with pooling)
+export const tenantConnections = new Map();
+
+export const getTenantSequelize = ({ dbName }) => {
+  if (!tenantConnections.has(dbName)) {
+    const sequelize = new Sequelize(dbName, process.env.TENANT_DB_USER, process.env.TENANT_DB_PASS, {
+      host: process.env.TENANT_DB_HOST,
+      dialect: 'postgres',
+      logging: false,
+      pool: {
+        max: 5,
+        min: 0,
+        acquire: 30000,
+        idle: 10000
+      }
+    });
+    tenantConnections.set(dbName, sequelize);
+  }
+  return tenantConnections.get(dbName);
 };
 
 // Utility to create a new database
 export async function createDatabase(dbName) {
-  // Connect to the default 'postgres' database as a superuser or a user with CREATEDB privilege
   const adminSequelize = new Sequelize(
     'postgres',
     process.env.MASTER_DB_USER,
@@ -36,7 +53,7 @@ export async function createDatabase(dbName) {
     {
       host: process.env.MASTER_DB_HOST,
       dialect: 'postgres',
-      logging: false,
+      logging: false
     }
   );
 
@@ -44,7 +61,6 @@ export async function createDatabase(dbName) {
     await adminSequelize.query(`CREATE DATABASE "${dbName}";`);
     console.log(`Database ${dbName} created!`);
   } catch (err) {
-    // If database already exists, ignore error
     if (err.original && err.original.code === '42P04') {
       console.log(`Database ${dbName} already exists.`);
     } else {
