@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useAuth } from "../../context/AuthContext";
+// import { useAuth } from "../../context/AuthContext";
 import PageMeta from "../../components/common/PageMeta";
 import {
   Table,
@@ -12,7 +12,7 @@ import ClientService from "../../services/clientService";
 
 interface Client {
   id: number;
-  client_key: string;
+  client_id: string;
   client_name: string;
   client_email: string;
   client_status?: string;
@@ -20,22 +20,16 @@ interface Client {
 }
 
 export default function ClientList() {
-  const { accessToken } = useAuth();
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     const fetchClients = async () => {
-      if (!accessToken) {
-        setError("No access token");
-        setLoading(false);
-        return;
-      }
       setLoading(true);
       setError("");
       try {
-        const res = await ClientService.listClients(accessToken);
+        const res = await ClientService.listClients();
         const data = res.data;
         if (data.success && Array.isArray(data.data)) {
           setClients(data.data);
@@ -49,7 +43,7 @@ export default function ClientList() {
       }
     };
     fetchClients();
-  }, [accessToken]);
+  }, []);
 
   return (
     <div className="max-w-5xl mx-auto p-8 bg-white dark:bg-gray-900 rounded-lg shadow">
@@ -69,16 +63,28 @@ export default function ClientList() {
               <Table>
                 <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
                   <TableRow>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
-                      Client Key
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
+                      Client ID
                     </TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
                       Name
                     </TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
                       Email
                     </TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
                       DB Name
                     </TableCell>
                   </TableRow>
@@ -87,7 +93,7 @@ export default function ClientList() {
                   {clients.map((client) => (
                     <TableRow key={client.id}>
                       <TableCell className="px-5 py-4 sm:px-6 text-start">
-                        {client.client_key}
+                        {client.client_id}
                       </TableCell>
                       <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                         {client.client_name}
@@ -108,4 +114,4 @@ export default function ClientList() {
       )}
     </div>
   );
-} 
+}

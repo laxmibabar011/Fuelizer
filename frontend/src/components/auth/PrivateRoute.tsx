@@ -22,4 +22,4 @@ const PrivateRoute = ({ children, allowedRoles }: PrivateRouteProps) => {
   return <>{children}</>;
 };
 
-export default PrivateRoute; 
+export default PrivateRoute;

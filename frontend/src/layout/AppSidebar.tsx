@@ -141,6 +141,30 @@ const AppSidebar: React.FC = () => {
       path: "/fuel-admin/credit",
     },
     {
+      icon: <UserCircleIcon />,
+      name: "Profile",
+      path: "/fuel-admin/profile",
+    },
+    {
+      icon: <PlugInIcon />,
+      name: "Logout",
+      onClick: logout,
+    },
+  ];
+
+  // Role-based menu for partner
+  const partnerMenu = [
+    {
+      icon: <GridIcon />,
+      name: "Dashboard",
+      path: "/partner-dashboard",
+    },
+    {
+      icon: <UserCircleIcon />,
+      name: "Profile",
+      path: "/partner/profile",
+    },
+    {
       icon: <PlugInIcon />,
       name: "Logout",
       onClick: logout,
@@ -152,7 +176,9 @@ const AppSidebar: React.FC = () => {
       ? superAdminMenu
       : authUser?.role === "fuel-admin"
         ? fuelAdminMenu
-        : [];
+        : authUser?.role === "partner"
+          ? partnerMenu
+          : [];
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -176,7 +202,17 @@ const AppSidebar: React.FC = () => {
           !isExpanded && !isHovered ? "lg:justify-center" : "justify-start"
         }`}
       >
-        <Link to="/">
+        <Link
+          to={
+            authUser?.role === "super_admin"
+              ? "/super-admin-dashboard"
+              : authUser?.role === "fuel-admin"
+                ? "/fuel-admin-dashboard"
+                : authUser?.role === "partner"
+                  ? "/partner-dashboard"
+                  : "/"
+          }
+        >
           {isExpanded || isHovered || isMobileOpen ? (
             <>
               <img

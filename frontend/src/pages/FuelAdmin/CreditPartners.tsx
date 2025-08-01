@@ -31,7 +31,7 @@ const CreditPartners: React.FC = () => {
       setLoading(true);
       setError("");
       try {
-        const res = await creditService.getAllPartners(accessToken || "");
+        const res = await creditService.getAllPartners();
         if (res.data.success && Array.isArray(res.data.data)) {
           setPartners(res.data.data);
         } else {

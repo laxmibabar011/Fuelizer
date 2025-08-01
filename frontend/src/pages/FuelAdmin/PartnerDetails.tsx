@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
 import creditService from "../../services/creditService";
-import { useAuth } from "../../context/AuthContext";
+// import { useAuth } from "../../context/AuthContext";
+import { Table, TableHeader, TableBody, TableRow, TableCell } from "../../components/ui/table";
+import { Modal } from "../../components/ui/modal";
 
 interface PartnerUser {
   id: number;
@@ -29,11 +31,19 @@ interface Partner {
 const PartnerDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { accessToken } = useAuth();
+  // const { accessToken } = useAuth();
   const [partner, setPartner] = useState<Partner | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
   const [updating, setUpdating] = useState(false);
+
+  // Add vehicle state
+  const [vehicles, setVehicles] = useState<any[]>([]);
+  const [vehicleLoading, setVehicleLoading] = useState(false);
+  const [vehicleError, setVehicleError] = useState("");
+  const [showVehicleModal, setShowVehicleModal] = useState(false);
+  // const [editingVehicle, setEditingVehicle] = useState<any | null>(null);
+  const [setEditingVehicle] = useState<any | null>(null);
 
   useEffect(() => {
     const fetchPartner = async () => {
@@ -41,8 +51,7 @@ const PartnerDetails: React.FC = () => {
       setError("");
       try {
         const res = await creditService.getPartnerById(
-          id || "",
-          accessToken || ""
+          id || ""
         );
         if (res.data.success && res.data.data) {
           setPartner(res.data.data);
@@ -58,7 +67,26 @@ const PartnerDetails: React.FC = () => {
       }
     };
     fetchPartner();
-  }, [id, accessToken]);
+  }, [id]);
+
+  // Fetch vehicles for this partner
+  useEffect(() => {
+    if (!partner) return;
+    setVehicleLoading(true);
+    setVehicleError("");
+    creditService.getVehicles(String(partner.id))
+      .then(res => {
+        if (res.data.success && Array.isArray(res.data.data)) {
+          setVehicles(res.data.data);
+        } else {
+          setVehicleError(res.data.message || "Failed to fetch vehicles");
+        }
+      })
+      .catch(err => {
+        setVehicleError(err.response?.data?.message || "Failed to fetch vehicles");
+      })
+      .finally(() => setVehicleLoading(false));
+  }, [partner]);
 
   const getStatusColor = (status?: string) => {
     switch (status) {
@@ -86,8 +114,7 @@ const PartnerDetails: React.FC = () => {
     try {
       await creditService.updatePartnerStatus(
         partner.id,
-        newStatus,
-        accessToken || ""
+        newStatus
       );
       setPartner({ ...partner, status: newStatus });
     } catch (err) {
@@ -96,6 +123,40 @@ const PartnerDetails: React.FC = () => {
       setUpdating(false);
     }
   };
+
+  // Vehicle status change handler
+  const handleVehicleStatusChange = async (vehicleId: string, status: string) => {
+    await creditService.setVehicleStatus(vehicleId, status);
+    setVehicles(vs => vs.map(v => v.id === vehicleId ? { ...v, status } : v));
+  };
+  // Vehicle delete handler
+  const handleDeleteVehicle = async (vehicleId: string) => {
+    await creditService.deleteVehicle(vehicleId);
+    setVehicles(vs => vs.filter(v => v.id !== vehicleId));
+  };
+  // Vehicle edit handler (open modal)
+  const handleEditVehicle = (vehicle: any) => {
+    setEditingVehicle(vehicle);
+    setShowVehicleModal(true);
+  };
+  // Add vehicle handler (open modal)
+  const handleAddVehicle = () => {
+    setEditingVehicle(null);
+    setShowVehicleModal(true);
+  };
+  // Save vehicle handler (from modal)
+  // const handleSaveVehicle = async (vehicle: any) => {
+  //   if (vehicle.id) {
+  //     await creditService.updateVehicle(vehicle.id, vehicle);
+  //     setVehicles(vs => vs.map(v => v.id === vehicle.id ? vehicle : v));
+  //   } else {
+  //     const res = await creditService.addVehicles(String(partner?.id), [vehicle]);
+  //     if (res.data.success && Array.isArray(res.data.data)) {
+  //       setVehicles(vs => [...vs, ...res.data.data]);
+  //     }
+  //   }
+  //   setShowVehicleModal(false);
+  // };
 
   if (loading) {
     return (
@@ -329,39 +390,72 @@ const PartnerDetails: React.FC = () => {
             </div>
           </div>
 
-          {/* Users */}
+          {/* Associated Vehicles */}
+          {partner && (
           <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Associated Users ({partner.CustomerUsers?.length || 0})
-            </h3>
-            <div className="space-y-3">
-              {partner.CustomerUsers?.map((user) => (
-                <div
-                  key={user.id}
-                  className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
-                >
-                  <div>
-                    <p className="font-medium text-gray-900 dark:text-white">
-                      {user.name}
-                    </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {user.email}
-                    </p>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    {user.isApprover && (
-                      <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                        Approver
-                      </span>
-                    )}
-                    <span className="text-sm text-gray-500 dark:text-gray-400">
-                      Added: {user.createdAt}
-                    </span>
-                  </div>
-                </div>
-              ))}
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Associated Vehicles ({vehicles.length})
+              </h3>
+              <button
+                onClick={handleAddVehicle}
+                className="inline-flex items-center px-3 py-1 bg-brand-600 text-white rounded hover:bg-brand-700 text-sm"
+              >
+                + Add Vehicle
+              </button>
             </div>
+            {vehicleError && <div className="mb-2 text-red-600">{vehicleError}</div>}
+            {vehicleLoading ? (
+              <div className="text-gray-500">Loading vehicles...</div>
+            ) : vehicles.length === 0 ? (
+              <div className="text-gray-500">No vehicles found.</div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableCell>Number</TableCell>
+                    <TableCell>Type</TableCell>
+                    <TableCell>Model</TableCell>
+                    <TableCell>Capacity</TableCell>
+                    <TableCell>Fuel Type</TableCell>
+                    <TableCell>Status</TableCell>
+                    <TableCell>Actions</TableCell>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {vehicles.map((v) => (
+                    <TableRow key={v.id}>
+                      <TableCell>{v.vehicleNumber}</TableCell>
+                      <TableCell>{v.type}</TableCell>
+                      <TableCell>{v.model}</TableCell>
+                      <TableCell>{v.capacity}</TableCell>
+                      <TableCell>{v.fuelType}</TableCell>
+                      <TableCell>
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${v.status === "Active" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}`}>
+                          {v.status}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex space-x-2">
+                          <button onClick={() => handleEditVehicle(v)} className="text-brand-600 hover:text-brand-900 text-xs">Edit</button>
+                          <button onClick={() => handleVehicleStatusChange(v.id, v.status === "Active" ? "Inactive" : "Active")} className="text-gray-600 hover:text-gray-900 text-xs">
+                            Set {v.status === "Active" ? "Inactive" : "Active"}
+                          </button>
+                          <button onClick={() => handleDeleteVehicle(v.id)} className="text-red-600 hover:text-red-900 text-xs">Delete</button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+            {/* Vehicle Modal (for add/edit) - implement modal form as per your design system */}
+            <Modal isOpen={showVehicleModal} onClose={() => setShowVehicleModal(false)}>
+              {/* Vehicle form fields go here, prefill if editingVehicle, call handleSaveVehicle on save */}
+              <div />
+            </Modal>
           </div>
+          )}
         </div>
 
         {/* Sidebar */}
