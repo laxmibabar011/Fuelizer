@@ -12,7 +12,7 @@ import ClientService from "../../services/clientService";
 
 interface Client {
   id: number;
-  client_id: string;
+  bunk_id: string;
   client_name: string;
   client_email: string;
   client_status?: string;
@@ -93,7 +93,7 @@ export default function ClientList() {
                   {clients.map((client) => (
                     <TableRow key={client.id}>
                       <TableCell className="px-5 py-4 sm:px-6 text-start">
-                        {client.client_id}
+                        {client.bunk_id}
                       </TableCell>
                       <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                         {client.client_name}

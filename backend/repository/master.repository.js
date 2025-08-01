@@ -32,8 +32,8 @@ export class MasterRepository {
     );
   }
 
-  async findClientById(clientId) {
-    return await this.Client.findOne({ where: { client_id: clientId } });
+  async findClientById(bunkId) {
+    return await this.Client.findOne({ where: { bunk_id: bunkId } });
   }
 
   async findAllClients() {
@@ -48,19 +48,19 @@ export class MasterRepository {
     return await this.Client.create(clientData);
   }
 
-  async setClientActive(clientId, isActive) {
-    return await this.Client.update({ is_active: isActive }, { where: { client_id: clientId } });
+  async setClientActive(bunkId, isActive) {
+    return await this.Client.update({ is_active: isActive }, { where: { bunk_id: bunkId } });
   }
 
-  async createPasswordReset({ user_id, client_id, otp, expires_at }) {
-    return await this.PasswordReset.create({ user_id, client_id, otp, expires_at });
+  async createPasswordReset({ user_id, bunk_id, otp, expires_at }) {
+    return await this.PasswordReset.create({ user_id, bunk_id, otp, expires_at });
   }
 
-  async findValidPasswordReset({ user_id, client_id, otp }) {
+  async findValidPasswordReset({ user_id, bunk_id, otp }) {
     return await this.PasswordReset.findOne({
       where: {
         user_id,
-        client_id,
+        bunk_id,
         otp,
         used: false,
         expires_at: { [this.sequelize.Op.gt]: new Date() }

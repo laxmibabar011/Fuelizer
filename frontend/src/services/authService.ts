@@ -6,9 +6,9 @@ class AuthService {
     return apiClient.post("api/auth/super-admin/login", { email, password });
   }
 
-  // Tenant user login (3 parameters: email, password, clientId)
-  async tenantLogin(email: string, password: string, clientId: string) {
-    return apiClient.post("api/auth/login", { email, password, clientId });
+  // Tenant user login (3 parameters: email, password, bunkId)
+  async tenantLogin(email: string, password: string, bunkId: string) {
+    return apiClient.post("api/auth/login", { email, password, bunkId });
   }
 
   async logout() {
@@ -23,10 +23,10 @@ class AuthService {
     return apiClient.get("api/auth/me");
   }
 
-  async forgotPassword(email: string, clientId?: string) {
-    const payload: { email: string; clientId?: string } = { email };
-    if (clientId) {
-      payload.clientId = clientId;
+  async forgotPassword(email: string, bunkId?: string) {
+    const payload: { email: string; bunkId?: string } = { email };
+    if (bunkId) {
+      payload.bunkId = bunkId;
     }
     return apiClient.post("api/auth/forgot-password", payload);
   }
@@ -36,18 +36,18 @@ class AuthService {
     otp: string,
     newPassword: string,
     confirmPassword: string,
-    clientId?: string
+    bunkId?: string
   ) {
     const payload: {
       email: string;
       otp: string;
       newPassword: string;
       confirmPassword: string;
-      clientId?: string;
+      bunkId?: string;
     } = { email, otp, newPassword, confirmPassword };
 
-    if (clientId) {
-      payload.clientId = clientId;
+    if (bunkId) {
+      payload.bunkId = bunkId;
     }
 
     return apiClient.post("api/auth/reset-password", payload);

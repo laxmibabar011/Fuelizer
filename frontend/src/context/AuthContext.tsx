@@ -13,7 +13,7 @@ export interface AuthUser {
   id: number;
   email: string;
   role: string;
-  client_id?: number | null;
+  bunk_id?: number | null;
 }
 
 interface AuthContextType {

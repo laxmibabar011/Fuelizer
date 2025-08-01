@@ -11,7 +11,7 @@ import AuthService from "../../services/authService";
 export default function SignInForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [clientId, setClientId] = useState("");
+  const [bunkId, setClientId] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   // const [isChecked, setIsChecked] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -25,14 +25,14 @@ export default function SignInForm() {
     setLoading(true);
 
     try {
-      // Tenant login - email, password, and clientId
-      if (!clientId.trim()) {
+      // Tenant login - email, password, and bunkId
+      if (!bunkId.trim()) {
         setError("Bunk ID is required for login");
         setLoading(false);
         return;
       }
       
-      const response = await AuthService.tenantLogin(email, password, clientId);
+      const response = await AuthService.tenantLogin(email, password, bunkId);
 
       const data = response.data;
       if (
@@ -114,7 +114,7 @@ export default function SignInForm() {
                   <Input
                     type="text"
                     placeholder="Enter your organization's Bunk ID"
-                    value={clientId}
+                    value={bunkId}
                     onChange={(e) => setClientId(e.target.value)}
                   />
                   <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">

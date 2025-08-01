@@ -16,7 +16,7 @@ export const authenticate = (req, res, next) => {
       email: user.email,
       role: user.role || null,
       roleId: user.roleId || null,
-      clientId: user.clientId || null,
+      bunkId: user.bunkId || null,
       tenantDbName: user.tenantDbName || null
     };
     

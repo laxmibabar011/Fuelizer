@@ -9,7 +9,7 @@ import AuthService from "../../services/authService";
 export default function ResetPassword() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [email, setEmail] = useState("");
-  const [clientId, setClientId] = useState("");
+  const [bunkId, setClientId] = useState("");
   const [otp, setOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -26,8 +26,8 @@ export default function ResetPassword() {
     setSuccess("");
     setLoading(true);
     try {
-      // Validate clientId for tenant users
-      if (!isSuperAdmin && !clientId.trim()) {
+      // Validate bunkId for tenant users
+      if (!isSuperAdmin && !bunkId.trim()) {
         setError("Client ID is required for tenant users");
         setLoading(false);
         return;
@@ -35,7 +35,7 @@ export default function ResetPassword() {
 
       const res = await AuthService.forgotPassword(
         email,
-        isSuperAdmin ? undefined : clientId
+        isSuperAdmin ? undefined : bunkId
       );
       if (res.data.success) {
         setSuccess("OTP sent to your email.");
@@ -86,7 +86,7 @@ export default function ResetPassword() {
         otp,
         newPassword,
         confirmPassword,
-        isSuperAdmin ? undefined : clientId
+        isSuperAdmin ? undefined : bunkId
       );
       if (res.data.success) {
         setSuccess("Password reset successful! Redirecting to sign in...");
@@ -154,7 +154,7 @@ export default function ResetPassword() {
                 <Input
                   type="text"
                   placeholder="Enter your organization's client ID"
-                  value={clientId}
+                  value={bunkId}
                   onChange={(e) => setClientId(e.target.value)}
                 />
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
@@ -189,7 +189,7 @@ export default function ResetPassword() {
             <Button
               type="submit"
               className="w-full"
-              disabled={loading || !email || (!isSuperAdmin && !clientId)}
+              disabled={loading || !email || (!isSuperAdmin && !bunkId)}
             >
               {loading ? "Sending..." : "Send OTP"}
             </Button>
