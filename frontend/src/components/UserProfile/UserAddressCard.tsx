@@ -9,7 +9,7 @@ interface UserAddressCardProps {
 }
 
 export default function UserAddressCard({ user }: UserAddressCardProps) {
-  const { isOpen, openModal, closeModal } = useModal();
+  const { isOpen, closeModal } = useModal();
   const handleSave = () => {
     // Handle save logic here
     console.log("Saving changes...");

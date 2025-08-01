@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { ChevronLeftIcon, EyeCloseIcon, EyeIcon } from "../../icons";
 import Label from "../form/Label";
 import Input from "../form/input/InputField";
-import Checkbox from "../form/input/Checkbox";
+// import Checkbox from "../form/input/Checkbox";
 import Button from "../ui/button/Button";
 import { useAuth } from "../../context/AuthContext";
 import AuthService from "../../services/authService";
@@ -13,7 +13,7 @@ export default function SignInForm() {
   const [password, setPassword] = useState("");
   const [clientId, setClientId] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [isChecked, setIsChecked] = useState(false);
+  // const [isChecked, setIsChecked] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
