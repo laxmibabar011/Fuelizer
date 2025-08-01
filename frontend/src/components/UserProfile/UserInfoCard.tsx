@@ -9,7 +9,7 @@ interface UserInfoCardProps {
 }
 
 export default function UserInfoCard({ user }: UserInfoCardProps) {
-  const { isOpen, openModal, closeModal } = useModal();
+  const { isOpen, closeModal } = useModal();
   const handleSave = () => {
     // Handle save logic here
     console.log("Saving changes...");

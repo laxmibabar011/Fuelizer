@@ -1,5 +1,5 @@
 import authService from "./authService";
-import creditService from "./creditService";
+// import creditService from "./creditService";
 import { AuthUser } from "../context/AuthContext";
 
 export async function fetchUserProfile(authUser: AuthUser) {

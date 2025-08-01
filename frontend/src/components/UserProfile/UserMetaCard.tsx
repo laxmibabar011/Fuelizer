@@ -9,7 +9,7 @@ interface UserMetaCardProps {
 }
 
 export default function UserMetaCard({ user }: UserMetaCardProps) {
-  const { isOpen, openModal, closeModal } = useModal();
+  const { isOpen, closeModal } = useModal();
   const handleSave = () => {
     // Handle save logic here
     console.log("Saving changes...");
