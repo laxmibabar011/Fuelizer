@@ -42,10 +42,21 @@ const CreditOnboarding: React.FC = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+
+    // Special handling for credit limit to prevent decimals
+    if (name === "creditLimit") {
+      // Only allow digits
+      const numericValue = value.replace(/[^0-9]/g, "");
+      setFormData((prev) => ({
+        ...prev,
+        [name]: numericValue,
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
   };
 
   const validateForm = (): boolean => {
@@ -68,11 +79,17 @@ const CreditOnboarding: React.FC = () => {
       return false;
     }
 
+    // Check if credit limit contains decimal point
+    if (formData.creditLimit.includes(".")) {
+      setError("Credit limit must be a whole number (no decimals allowed)");
+      return false;
+    }
+
     if (
       isNaN(Number(formData.creditLimit)) ||
       Number(formData.creditLimit) <= 0
     ) {
-      setError("Please enter a valid credit limit");
+      setError("Please enter a valid positive number for credit limit");
       return false;
     }
 
@@ -83,19 +100,17 @@ const CreditOnboarding: React.FC = () => {
     e.preventDefault();
     setError("");
     setSuccess("");
-  
+
     if (!validateForm()) return;
-  
+
     setLoading(true);
-  
+
     try {
-      const response = await creditService.onboardPartner(
-        {
-          ...formData,
-          creditLimit: Number(formData.creditLimit),
-        }
-      );
-  
+      const response = await creditService.onboardPartner({
+        ...formData,
+        creditLimit: Math.floor(Number(formData.creditLimit)),
+      });
+
       setSuccess("Credit customer onboarded successfully!");
       // Use the correct path to the new partner's ID
       const newId =
@@ -115,7 +130,7 @@ const CreditOnboarding: React.FC = () => {
         userEmail: "",
         userPassword: "",
       });
-  
+
       // DO NOT navigate away here!
       // The UI will now show the VehicleOnboardingStep as intended.
     } catch (err: any) {
@@ -199,15 +214,16 @@ const CreditOnboarding: React.FC = () => {
                 <div>
                   <Label htmlFor="creditLimit">Credit Limit *</Label>
                   <Input
-                    type="number"
+                    type="text"
                     id="creditLimit"
                     name="creditLimit"
-                    placeholder="Enter credit limit"
+                    placeholder="Enter credit limit (whole numbers only)"
                     value={formData.creditLimit}
                     onChange={handleInputChange}
-                    min="0"
-                    step={0.01}
                   />
+                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    Only whole numbers allowed (e.g., 100000)
+                  </p>
                 </div>
               </div>
             </div>
@@ -291,7 +307,15 @@ const CreditOnboarding: React.FC = () => {
         )}
 
         {step === 2 && newPartnerId && (
-          <VehicleOnboardingStep partnerId={newPartnerId} onComplete={() => navigate(`/fuel-admin/credit-partners/${newPartnerId}`)} onSkip={() => navigate(`/fuel-admin/credit-partners/${newPartnerId}`)} />
+          <VehicleOnboardingStep
+            partnerId={newPartnerId}
+            onComplete={() =>
+              navigate(`/fuel-admin/credit-partners/${newPartnerId}`)
+            }
+            onSkip={() =>
+              navigate(`/fuel-admin/credit-partners/${newPartnerId}`)
+            }
+          />
         )}
       </div>
     </div>

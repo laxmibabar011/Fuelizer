@@ -27,6 +27,7 @@ import CreditOnboarding from "./pages/FuelAdmin/CreditOnboarding";
 import CreditDashboard from "./pages/FuelAdmin/CreditDashboard";
 import CreditPartners from "./pages/FuelAdmin/CreditPartners";
 import PartnerDetails from "./pages/FuelAdmin/PartnerDetails";
+import VehicleOnboardingStep from "./pages/FuelAdmin/VehicleOnboardingStep";
 import ResetPassword from "./pages/AuthPages/ResetPassword";
 import PartnerDashboard from "./pages/Dashboard/PartnerDashboard";
 
@@ -95,9 +96,11 @@ export default function App() {
               path="/fuel-admin/credit-onboarding"
               element={<CreditOnboarding />}
             />
-            <Route 
-            path="/fuel-admin/profile" 
-            element={<UserProfiles />} />
+            <Route
+              path="/fuel-admin/vehicle-onboarding/:partnerId"
+              element={<VehicleOnboardingStep />}
+            />
+            <Route path="/fuel-admin/profile" element={<UserProfiles />} />
             <Route path="/fuel-admin/calendar" element={<Calendar />} />
           </Route>
 
@@ -110,8 +113,7 @@ export default function App() {
             }
           >
             <Route path="/partner-dashboard" element={<PartnerDashboard />} />
-              <Route path="/partner/profile" element={<UserProfiles />} />
-
+            <Route path="/partner/profile" element={<UserProfiles />} />
           </Route>
 
           {/* Forms */}

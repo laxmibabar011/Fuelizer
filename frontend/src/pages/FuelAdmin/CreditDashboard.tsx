@@ -272,8 +272,8 @@ const CreditDashboard: React.FC = () => {
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-          <div className="flex items-center">
-            <div className="p-3 rounded-full bg-yellow-100 dark:bg-yellow-900">
+          <div className="flex items-center overflow-hidden">
+            <div className="p-3 rounded-full bg-yellow-100 dark:bg-yellow-900 flex-shrink-0">
               <svg
                 className="w-6 h-6 text-yellow-600 dark:text-yellow-400"
                 fill="none"
@@ -288,20 +288,20 @@ const CreditDashboard: React.FC = () => {
                 />
               </svg>
             </div>
-            <div className="ml-4">
+            <div className="ml-4 flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
                 Total Credit Limit (₹)
               </p>
-              <p className="text-2xl font-semibold text-gray-900 dark:text-white">
-                ₹{creditStats.totalCreditLimit.toLocaleString()}
+              <p className="text-2xl font-semibold text-gray-900 dark:text-white break-words">
+                ₹{Number(creditStats.totalCreditLimit).toLocaleString("en-IN")}
               </p>
             </div>
           </div>
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-          <div className="flex items-center">
-            <div className="p-3 rounded-full bg-red-100 dark:bg-red-900">
+          <div className="flex items-center overflow-hidden">
+            <div className="p-3 rounded-full bg-red-100 dark:bg-red-900 flex-shrink-0">
               <svg
                 className="w-6 h-6 text-red-600 dark:text-red-400"
                 fill="none"
@@ -316,12 +316,12 @@ const CreditDashboard: React.FC = () => {
                 />
               </svg>
             </div>
-            <div className="ml-4">
+            <div className="ml-4 flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
                 Total Outstanding (₹)
               </p>
-              <p className="text-2xl font-semibold text-gray-900 dark:text-white">
-                ₹{creditStats.totalOutstanding.toLocaleString()}
+              <p className="text-2xl font-semibold text-gray-900 dark:text-white break-words">
+                ₹{Number(creditStats.totalOutstanding).toLocaleString("en-IN")}
               </p>
             </div>
           </div>
@@ -378,7 +378,7 @@ const CreditDashboard: React.FC = () => {
                       {partner.contactEmail}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                      ₹{partner.creditLimit.toLocaleString()}
+                      ₹{Number(partner.creditLimit).toLocaleString("en-IN")}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span

@@ -236,7 +236,7 @@ const CreditPartners: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                      ₹{partner.creditLimit.toLocaleString()}
+                      ₹{Number(partner.creditLimit).toLocaleString('en-IN')}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                       ₹{partner.currentBalance?.toLocaleString() ?? "-"}
