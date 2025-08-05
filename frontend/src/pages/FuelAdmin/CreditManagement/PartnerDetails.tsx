@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
+import VehicleOnboardingStep from "./VehicleOnboardingStep";
 import creditService from "../../../services/creditService";
 // import { useAuth } from "../../context/AuthContext";
 
@@ -39,6 +40,10 @@ const PartnerDetails: React.FC = () => {
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [vehicleLoading, setVehicleLoading] = useState(false);
   const [vehicleError, setVehicleError] = useState("");
+
+  // Edit vehicle modal state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingVehicle, setEditingVehicle] = useState<any>(null);
 
   useEffect(() => {
     const fetchPartner = async () => {
@@ -189,10 +194,39 @@ const PartnerDetails: React.FC = () => {
     await creditService.deleteVehicle(vehicleId);
     setVehicles((vs) => vs.filter((v) => v.id !== vehicleId));
   };
-  // Vehicle edit handler (navigate to edit page)
+  // Vehicle edit handler - open modal with pre-filled data
   const handleEditVehicle = (vehicle: any) => {
-    // TODO: Implement vehicle edit functionality
-    console.log("Edit vehicle:", vehicle);
+    setEditingVehicle({
+      id: vehicle.id,
+      vehicleNumber: vehicle.vehicleNumber,
+      type: vehicle.type,
+      model: vehicle.model,
+      capacity: vehicle.capacity,
+      fuelType: vehicle.fuelType,
+      status: vehicle.status,
+    });
+    setShowEditModal(true);
+  };
+
+  // Handle save vehicle
+  const handleSaveVehicle = async (vehicle: any) => {
+    try {
+      await creditService.updateVehicle(editingVehicle.id, vehicle);
+      // Update the vehicle in the local state
+      setVehicles((vs) =>
+        vs.map((v) => (v.id === editingVehicle.id ? { ...v, ...vehicle } : v))
+      );
+      setShowEditModal(false);
+      setEditingVehicle(null);
+    } catch (err: any) {
+      console.error("Failed to update vehicle:", err);
+    }
+  };
+
+  // Close edit modal
+  const handleCloseEditModal = () => {
+    setShowEditModal(false);
+    setEditingVehicle(null);
   };
 
   if (loading) {
@@ -1107,6 +1141,39 @@ const PartnerDetails: React.FC = () => {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Edit Vehicle Modal */}
+      {showEditModal && editingVehicle && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Edit Vehicle
+                </h3>
+                <button
+                  onClick={handleCloseEditModal}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6">
+              <VehicleOnboardingStep
+                partnerId={partner?.id?.toString()}
+                isEditMode={true}
+                editingVehicle={editingVehicle}
+                onSave={handleSaveVehicle}
+                onCancel={handleCloseEditModal}
+              />
+            </div>
+          </div>
         </div>
       )}
     </div>

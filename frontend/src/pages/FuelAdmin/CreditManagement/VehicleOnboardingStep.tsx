@@ -32,6 +32,11 @@ interface VehicleOnboardingStepProps {
   partnerId?: string;
   onComplete?: () => void;
   onSkip?: () => void;
+  // Edit mode props
+  isEditMode?: boolean;
+  editingVehicle?: Vehicle;
+  onSave?: (vehicle: Vehicle) => void;
+  onCancel?: () => void;
 }
 
 const VEHICLE_TYPES = ["Truck", "Car", "Bus", "Van", "Other"];
@@ -41,6 +46,10 @@ const VehicleOnboardingStep: React.FC<VehicleOnboardingStepProps> = ({
   partnerId: propPartnerId,
   onComplete,
   onSkip,
+  isEditMode = false,
+  editingVehicle,
+  onSave,
+  onCancel,
 }) => {
   const { partnerId: urlPartnerId } = useParams<{ partnerId: string }>();
   const navigate = useNavigate();
@@ -50,14 +59,18 @@ const VehicleOnboardingStep: React.FC<VehicleOnboardingStepProps> = ({
   const isEmbedded = !!propPartnerId;
 
   const [partner, setPartner] = useState<Partner | null>(null);
-  const [vehicle, setVehicle] = useState<Vehicle>({
-    vehicleNumber: "",
-    type: "Truck",
-    model: "",
-    capacity: "",
-    fuelType: "Diesel",
-    status: "Active",
-  });
+  const [vehicle, setVehicle] = useState<Vehicle>(
+    isEditMode && editingVehicle
+      ? editingVehicle
+      : {
+          vehicleNumber: "",
+          type: "Truck",
+          model: "",
+          capacity: "",
+          fuelType: "Diesel",
+          status: "Active",
+        }
+  );
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -80,6 +93,13 @@ const VehicleOnboardingStep: React.FC<VehicleOnboardingStepProps> = ({
 
     fetchPartner();
   }, [partnerId]);
+
+  // Update vehicle state when editingVehicle prop changes
+  useEffect(() => {
+    if (isEditMode && editingVehicle) {
+      setVehicle(editingVehicle);
+    }
+  }, [isEditMode, editingVehicle]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -108,15 +128,22 @@ const VehicleOnboardingStep: React.FC<VehicleOnboardingStepProps> = ({
     e.preventDefault();
     setError("");
     if (!validateVehicle()) return;
-    setVehicles((prev) => [...prev, vehicle]);
-    setVehicle({
-      vehicleNumber: "",
-      type: "Truck",
-      model: "",
-      capacity: "",
-      fuelType: "Diesel",
-      status: "Active",
-    });
+    
+    if (isEditMode && onSave) {
+      // Edit mode - call onSave with current vehicle data
+      onSave(vehicle);
+    } else {
+      // Add mode - add to vehicles list
+      setVehicles((prev) => [...prev, vehicle]);
+      setVehicle({
+        vehicleNumber: "",
+        type: "Truck",
+        model: "",
+        capacity: "",
+        fuelType: "Diesel",
+        status: "Active",
+      });
+    }
   };
 
   const handleRemoveVehicle = (idx: number) => {
@@ -154,9 +181,9 @@ const VehicleOnboardingStep: React.FC<VehicleOnboardingStepProps> = ({
   };
 
   return (
-    <div className={isEmbedded ? "" : "mx-auto max-w-7xl p-6"}>
-      {/* Header - Only show in standalone mode */}
-      {!isEmbedded && (
+    <div className={isEmbedded || isEditMode ? "" : "mx-auto max-w-7xl p-6"}>
+      {/* Header - Only show in standalone mode and not in edit mode */}
+      {!isEmbedded && !isEditMode && (
         <div className="mb-8">
           <div className="flex justify-between items-start">
             <div>
@@ -183,11 +210,13 @@ const VehicleOnboardingStep: React.FC<VehicleOnboardingStepProps> = ({
                 </button>
                 <div>
                   <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                    Onboard Vehicles
+                    {isEditMode ? "Edit Vehicle" : "Onboard Vehicles"}
                   </h1>
                   <p className="mt-2 text-gray-600 dark:text-gray-400">
                     {partner
-                      ? `Adding vehicles for ${partner.companyName}`
+                      ? isEditMode
+                        ? `Editing vehicle for ${partner.companyName}`
+                        : `Adding vehicles for ${partner.companyName}`
                       : "Loading partner details..."}
                   </p>
                 </div>
@@ -197,15 +226,16 @@ const VehicleOnboardingStep: React.FC<VehicleOnboardingStepProps> = ({
         </div>
       )}
 
-      <div className={isEmbedded ? "" : "space-y-8"}>
-        {!isEmbedded && (
+      <div className={isEmbedded || isEditMode ? "" : "space-y-8"}>
+        {!isEmbedded && !isEditMode && (
           <div>
             <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-              Add Vehicles
+              {isEditMode ? "Edit Vehicle Details" : "Add Vehicles"}
             </h2>
             <p className="text-gray-600 dark:text-gray-400 mb-4">
-              Add vehicles for this partner. You can add multiple vehicles now
-              or go back to partner details.
+              {isEditMode
+                ? "Update the vehicle information below."
+                : "Add vehicles for this partner. You can add multiple vehicles now or go back to partner details."}
             </p>
           </div>
         )}
@@ -294,15 +324,17 @@ const VehicleOnboardingStep: React.FC<VehicleOnboardingStepProps> = ({
               <option value="Inactive">Inactive</option>
             </select>
           </div>
-          <div className="md:col-span-3 flex justify-end">
-            <button
-              type="submit"
-              className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2"
-              disabled={loading}
-            >
-              Add Vehicle
-            </button>
-          </div>
+          {!isEditMode && (
+            <div className="md:col-span-3 flex justify-end">
+              <button
+                type="submit"
+                className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2"
+                disabled={loading}
+              >
+                Add Vehicle
+              </button>
+            </div>
+          )}
         </Form>
 
         {error && (
@@ -318,7 +350,7 @@ const VehicleOnboardingStep: React.FC<VehicleOnboardingStepProps> = ({
         )}
 
         {/* Vehicles Table */}
-        {vehicles.length > 0 && (
+        {!isEditMode && vehicles.length > 0 && (
           <div>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
               Vehicles to be onboarded
@@ -367,30 +399,53 @@ const VehicleOnboardingStep: React.FC<VehicleOnboardingStepProps> = ({
         )}
 
         {/* Action Buttons */}
-        <div className="flex justify-end space-x-4 mt-6">
-          <button
-            type="button"
-            onClick={() => {
-              if (isEmbedded && onSkip) {
-                onSkip();
-              } else {
-                navigate(`/fuel-admin/credit-partners/${partnerId}`);
-              }
-            }}
-            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
-            disabled={loading}
-          >
-            {isEmbedded ? "Skip for now" : "Back to Partner"}
-          </button>
-          <button
-            type="button"
-            onClick={handleOnboardVehicles}
-            className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:opacity-50"
-            disabled={loading || vehicles.length === 0}
-          >
-            {loading ? "Onboarding..." : "Onboard Vehicles"}
-          </button>
-        </div>
+        {isEditMode ? (
+          // Edit mode buttons
+          <div className="flex justify-end space-x-4 mt-6">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+              disabled={loading}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => onSave && onSave(vehicle)}
+              className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:opacity-50"
+              disabled={loading}
+            >
+              {loading ? "Saving..." : "Save Changes"}
+            </button>
+          </div>
+        ) : (
+          // Normal mode buttons
+          <div className="flex justify-end space-x-4 mt-6">
+            <button
+              type="button"
+              onClick={() => {
+                if (isEmbedded && onSkip) {
+                  onSkip();
+                } else {
+                  navigate(`/fuel-admin/credit-partners/${partnerId}`);
+                }
+              }}
+              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+              disabled={loading}
+            >
+              {isEmbedded ? "Skip for now" : "Back to Partner"}
+            </button>
+            <button
+              type="button"
+              onClick={handleOnboardVehicles}
+              className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:opacity-50"
+              disabled={loading || vehicles.length === 0}
+            >
+              {loading ? "Onboarding..." : "Onboard Vehicles"}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
