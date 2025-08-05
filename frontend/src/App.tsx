@@ -23,11 +23,11 @@ import SuperAdminDashboard from "./pages/Dashboard/SuperAdminDashboard";
 import CreateClient from "./pages/SuperAdmin/CreateClient";
 import ClientList from "./pages/SuperAdmin/ClientList";
 import FuelAdminDashboard from "./pages/Dashboard/FuelAdminDashboard";
-import CreditOnboarding from "./pages/FuelAdmin/CreditOnboarding";
-import CreditDashboard from "./pages/FuelAdmin/CreditDashboard";
-import CreditPartners from "./pages/FuelAdmin/CreditPartners";
-import PartnerDetails from "./pages/FuelAdmin/PartnerDetails";
-import VehicleOnboardingStep from "./pages/FuelAdmin/VehicleOnboardingStep";
+import CreditOnboarding from "./pages/FuelAdmin/CreditManagement/CreditOnboarding";
+import CreditDashboard from "./pages/FuelAdmin/CreditManagement/CreditDashboard";
+import CreditPartners from "./pages/FuelAdmin/CreditManagement/CreditPartners";
+import PartnerDetails from "./pages/FuelAdmin/CreditManagement/PartnerDetails";
+import VehicleOnboardingStep from "./pages/FuelAdmin/CreditManagement/VehicleOnboardingStep";
 import ResetPassword from "./pages/AuthPages/ResetPassword";
 import PartnerDashboard from "./pages/Dashboard/PartnerDashboard";
 
@@ -84,6 +84,7 @@ export default function App() {
               element={<FuelAdminDashboard />}
             />
             <Route path="/fuel-admin/credit" element={<CreditDashboard />} />
+
             <Route
               path="/fuel-admin/credit-partners"
               element={<CreditPartners />}

@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
-import creditService from "../../services/creditService";
+import creditService from "../../../services/creditService";
 // import { useAuth } from "../../context/AuthContext";
-
 
 interface PartnerUser {
   id: number;
@@ -238,6 +237,74 @@ const PartnerDetails: React.FC = () => {
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4 sm:py-6 overflow-x-hidden">
       {/* Header */}
       <div className="mb-6 sm:mb-8">
+        {/* Breadcrumb Navigation */}
+        <div className="mb-4">
+          <nav className="flex" aria-label="Breadcrumb">
+            <ol className="inline-flex items-center space-x-1 md:space-x-3">
+              <li className="inline-flex items-center">
+                <button
+                  onClick={() => navigate("/fuel-admin/credit")}
+                  className="inline-flex items-center text-sm font-medium text-gray-700 hover:text-brand-600 dark:text-gray-400 dark:hover:text-brand-400"
+                >
+                  <svg
+                    className="w-4 h-4 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                    />
+                  </svg>
+                  Credit Management
+                </button>
+              </li>
+              <li>
+                <div className="flex items-center">
+                  <svg
+                    className="w-6 h-6 text-gray-400"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  <button
+                    onClick={() => navigate("/fuel-admin/credit-partners")}
+                    className="ml-1 text-sm font-medium text-gray-700 hover:text-brand-600 md:ml-2 dark:text-gray-400 dark:hover:text-brand-400"
+                  >
+                    Credit Customers
+                  </button>
+                </div>
+              </li>
+              <li>
+                <div className="flex items-center">
+                  <svg
+                    className="w-6 h-6 text-gray-400"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  <span className="ml-1 text-sm font-medium text-gray-500 md:ml-2 dark:text-gray-400">
+                    {partner.companyName}
+                  </span>
+                </div>
+              </li>
+            </ol>
+          </nav>
+        </div>
+
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start space-y-4 sm:space-y-0">
           <div>
             <div className="flex items-center space-x-2 sm:space-x-4">
@@ -544,8 +611,6 @@ const PartnerDetails: React.FC = () => {
                   </svg>
                 </div>
               </button>
-
-             
             </div>
           </div>
 

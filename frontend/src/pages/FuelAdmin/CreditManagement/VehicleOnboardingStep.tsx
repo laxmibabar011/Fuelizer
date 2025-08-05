@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
-import Form from "../../components/form/Form";
-import Input from "../../components/form/input/InputField";
-import Label from "../../components/form/Label";
+import Form from "../../../components/form/Form";
+import Input from "../../../components/form/input/InputField";
+import Label from "../../../components/form/Label";
 import {
   Table,
   TableHeader,
   TableBody,
   TableRow,
   TableCell,
-} from "../../components/ui/table";
-import creditService from "../../services/creditService";
+} from "../../../components/ui/table";
+import creditService from "../../../services/creditService";
 
 interface Vehicle {
   vehicleNumber: string;
