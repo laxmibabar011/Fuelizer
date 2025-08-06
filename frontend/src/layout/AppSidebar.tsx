@@ -137,9 +137,24 @@ const AppSidebar: React.FC = () => {
       path: "/fuel-admin-dashboard",
     },
     {
+      icon: <ListIcon />,
+      name: "Product Master",
+      path: "/fuel-admin/product-master",
+    },
+    {
+      icon: <GridIcon />,
+      name: "Dispense & Stock",
+      path: "/fuel-admin/dispense-stock",
+    },
+    {
       icon: <UserCircleIcon />,
       name: "Credit Management",
       path: "/fuel-admin/credit",
+    },
+    {
+      icon: <UserCircleIcon />,
+      name: "Shift & Staff",
+      path: "/fuel-admin/shift-staff",
     },
     {
       icon: <UserCircleIcon />,
