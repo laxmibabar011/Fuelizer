@@ -31,8 +31,10 @@ import VehicleOnboardingStep from "./pages/FuelAdmin/CreditManagement/VehicleOnb
 import ShiftStaffDashboard from "./pages/FuelAdmin/Shift&Staff/ShiftStaffDashboard";
 import DispenseStockDashboard from "./pages/FuelAdmin/Dispense&Stock/DispenseStockDashboard";
 import ResetPassword from "./pages/AuthPages/ResetPassword";
-import PartnerDashboard from "./pages/Dashboard/PartnerDashboard";
+import PartnerDashboard from "./pages/Dashboard/CreditCustomerDashboard";
 import ProductMasterDashboard from "./pages/FuelAdmin/ProductMaster/ProductMasterDashboard";
+import FuelRequest from "./pages/CreditCustomer/FuelRequest";
+import RequestHistory from "./pages/CreditCustomer/RequestHistory";
 
 export default function App() {
   return (
@@ -129,6 +131,8 @@ export default function App() {
             }
           >
             <Route path="/partner-dashboard" element={<PartnerDashboard />} />
+            <Route path="/partner/fuel-request" element={<FuelRequest />} />
+            <Route path="/partner/request-history" element={<RequestHistory />} />
             <Route path="/partner/profile" element={<UserProfiles />} />
           </Route>
 
