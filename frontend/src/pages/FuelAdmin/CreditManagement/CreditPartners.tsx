@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
-import Input from "../../components/form/input/InputField";
-import Label from "../../components/form/Label";
-import creditService from "../../services/creditService";
-import { useAuth } from "../../context/AuthContext";
+import Input from "../../../components/form/input/InputField";
+import Label from "../../../components/form/Label";
+import creditService from "../../../services/creditService";
+import { useAuth } from "../../../context/AuthContext";
 
 interface Partner {
   id: number;
@@ -83,6 +83,53 @@ const CreditPartners: React.FC = () => {
     <div className="mx-auto max-w-7xl p-6">
       {/* Header */}
       <div className="mb-8">
+        {/* Breadcrumb Navigation */}
+        <div className="mb-4">
+          <nav className="flex" aria-label="Breadcrumb">
+            <ol className="inline-flex items-center space-x-1 md:space-x-3">
+              <li className="inline-flex items-center">
+                <button
+                  onClick={() => navigate("/fuel-admin/credit")}
+                  className="inline-flex items-center text-sm font-medium text-gray-700 hover:text-brand-600 dark:text-gray-400 dark:hover:text-brand-400"
+                >
+                  <svg
+                    className="w-4 h-4 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                    />
+                  </svg>
+                  Credit Management
+                </button>
+              </li>
+              <li>
+                <div className="flex items-center">
+                  <svg
+                    className="w-6 h-6 text-gray-400"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  <span className="ml-1 text-sm font-medium text-gray-500 md:ml-2 dark:text-gray-400">
+                    Credit Customers
+                  </span>
+                </div>
+              </li>
+            </ol>
+          </nav>
+        </div>
+
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
@@ -236,7 +283,7 @@ const CreditPartners: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                      ₹{partner.creditLimit.toLocaleString()}
+                      ₹{Number(partner.creditLimit).toLocaleString("en-IN")}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                       ₹{partner.currentBalance?.toLocaleString() ?? "-"}

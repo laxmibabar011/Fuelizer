@@ -4,6 +4,7 @@ import { Link, useLocation } from "react-router";
 // Assume these icons are imported from an icon library
 import {
   // BoxCubeIcon,
+  BoltIcon,
   CalenderIcon,
   GridIcon,
   HorizontaLDots,
@@ -158,6 +159,16 @@ const AppSidebar: React.FC = () => {
       icon: <GridIcon />,
       name: "Dashboard",
       path: "/partner-dashboard",
+    },
+    {
+      icon: <BoltIcon />,
+      name: "Fuel Request",
+      path: "/partner/fuel-request",
+    },
+    {
+      icon: <ListIcon />,
+      name: "Request History",
+      path: "/partner/request-history",
     },
     {
       icon: <UserCircleIcon />,
