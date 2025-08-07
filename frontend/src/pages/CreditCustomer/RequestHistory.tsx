@@ -14,7 +14,7 @@ interface FuelRequest {
 }
 
 const RequestHistory: React.FC = () => {
-  const [requests, setRequests] = useState<FuelRequest[]>([
+  const [requests] = useState<FuelRequest[]>([
     {
       id: "REQ001",
       vehicleNumber: "KA-01-AB-1234",
