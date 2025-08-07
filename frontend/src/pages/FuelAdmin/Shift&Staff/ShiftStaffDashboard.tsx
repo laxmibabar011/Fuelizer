@@ -7,7 +7,9 @@ import {
 } from "../../../components/ui/tabs/Tabs";
 import { Users, UserPlus, Clock, Settings } from "lucide-react";
 import OperatorOnboarding from "./OperatorOnboarding";
-import OperatorList from "./OperatorList";
+import OperatorManagement from "./OperatorManagement";
+import ShiftManagement from "./ShiftManagement";
+import StaffSettings from "./StaffSettings";
 
 const ShiftStaffDashboard: React.FC = () => {
   return (
@@ -45,15 +47,7 @@ const ShiftStaffDashboard: React.FC = () => {
 
         {/* Operators Tab */}
         <TabsContent value="operators" className="space-y-6">
-          <div className="mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-              Fuel Operators
-            </h2>
-            <p className="text-gray-600 dark:text-gray-400">
-              View and manage all fuel operators in your station
-            </p>
-          </div>
-          <OperatorList />
+          <OperatorManagement />
         </TabsContent>
 
         {/* Onboarding Tab */}
@@ -71,36 +65,12 @@ const ShiftStaffDashboard: React.FC = () => {
 
         {/* Shifts Tab */}
         <TabsContent value="shifts" className="space-y-6">
-          <div className="mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-              Shift Management
-            </h2>
-            <p className="text-gray-600 dark:text-gray-400">
-              Manage shifts and operator assignments
-            </p>
-          </div>
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-            <p className="text-gray-600 dark:text-gray-400">
-              Shift management functionality coming soon...
-            </p>
-          </div>
+          <ShiftManagement />
         </TabsContent>
 
         {/* Settings Tab */}
         <TabsContent value="settings" className="space-y-6">
-          <div className="mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-              Staff Settings
-            </h2>
-            <p className="text-gray-600 dark:text-gray-400">
-              Configure staff management settings
-            </p>
-          </div>
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-            <p className="text-gray-600 dark:text-gray-400">
-              Settings functionality coming soon...
-            </p>
-          </div>
+          <StaffSettings />
         </TabsContent>
       </Tabs>
     </div>
