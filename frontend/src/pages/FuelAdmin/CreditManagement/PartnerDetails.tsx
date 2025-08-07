@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
-import creditService from "../../services/creditService";
+import VehicleOnboardingStep from "./VehicleOnboardingStep";
+import creditService from "../../../services/creditService";
 // import { useAuth } from "../../context/AuthContext";
-
 
 interface PartnerUser {
   id: number;
@@ -40,6 +40,10 @@ const PartnerDetails: React.FC = () => {
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [vehicleLoading, setVehicleLoading] = useState(false);
   const [vehicleError, setVehicleError] = useState("");
+
+  // Edit vehicle modal state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingVehicle, setEditingVehicle] = useState<any>(null);
 
   useEffect(() => {
     const fetchPartner = async () => {
@@ -190,10 +194,39 @@ const PartnerDetails: React.FC = () => {
     await creditService.deleteVehicle(vehicleId);
     setVehicles((vs) => vs.filter((v) => v.id !== vehicleId));
   };
-  // Vehicle edit handler (navigate to edit page)
+  // Vehicle edit handler - open modal with pre-filled data
   const handleEditVehicle = (vehicle: any) => {
-    // TODO: Implement vehicle edit functionality
-    console.log("Edit vehicle:", vehicle);
+    setEditingVehicle({
+      id: vehicle.id,
+      vehicleNumber: vehicle.vehicleNumber,
+      type: vehicle.type,
+      model: vehicle.model,
+      capacity: vehicle.capacity,
+      fuelType: vehicle.fuelType,
+      status: vehicle.status,
+    });
+    setShowEditModal(true);
+  };
+
+  // Handle save vehicle
+  const handleSaveVehicle = async (vehicle: any) => {
+    try {
+      await creditService.updateVehicle(editingVehicle.id, vehicle);
+      // Update the vehicle in the local state
+      setVehicles((vs) =>
+        vs.map((v) => (v.id === editingVehicle.id ? { ...v, ...vehicle } : v))
+      );
+      setShowEditModal(false);
+      setEditingVehicle(null);
+    } catch (err: any) {
+      console.error("Failed to update vehicle:", err);
+    }
+  };
+
+  // Close edit modal
+  const handleCloseEditModal = () => {
+    setShowEditModal(false);
+    setEditingVehicle(null);
   };
 
   if (loading) {
@@ -238,6 +271,74 @@ const PartnerDetails: React.FC = () => {
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4 sm:py-6 overflow-x-hidden">
       {/* Header */}
       <div className="mb-6 sm:mb-8">
+        {/* Breadcrumb Navigation */}
+        <div className="mb-4">
+          <nav className="flex" aria-label="Breadcrumb">
+            <ol className="inline-flex items-center space-x-1 md:space-x-3">
+              <li className="inline-flex items-center">
+                <button
+                  onClick={() => navigate("/fuel-admin/credit")}
+                  className="inline-flex items-center text-sm font-medium text-gray-700 hover:text-brand-600 dark:text-gray-400 dark:hover:text-brand-400"
+                >
+                  <svg
+                    className="w-4 h-4 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                    />
+                  </svg>
+                  Credit Management
+                </button>
+              </li>
+              <li>
+                <div className="flex items-center">
+                  <svg
+                    className="w-6 h-6 text-gray-400"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  <button
+                    onClick={() => navigate("/fuel-admin/credit-partners")}
+                    className="ml-1 text-sm font-medium text-gray-700 hover:text-brand-600 md:ml-2 dark:text-gray-400 dark:hover:text-brand-400"
+                  >
+                    Credit Customers
+                  </button>
+                </div>
+              </li>
+              <li>
+                <div className="flex items-center">
+                  <svg
+                    className="w-6 h-6 text-gray-400"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  <span className="ml-1 text-sm font-medium text-gray-500 md:ml-2 dark:text-gray-400">
+                    {partner.companyName}
+                  </span>
+                </div>
+              </li>
+            </ol>
+          </nav>
+        </div>
+
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start space-y-4 sm:space-y-0">
           <div>
             <div className="flex items-center space-x-2 sm:space-x-4">
@@ -544,8 +645,6 @@ const PartnerDetails: React.FC = () => {
                   </svg>
                 </div>
               </button>
-
-             
             </div>
           </div>
 
@@ -1042,6 +1141,39 @@ const PartnerDetails: React.FC = () => {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Edit Vehicle Modal */}
+      {showEditModal && editingVehicle && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Edit Vehicle
+                </h3>
+                <button
+                  onClick={handleCloseEditModal}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6">
+              <VehicleOnboardingStep
+                partnerId={partner?.id?.toString()}
+                isEditMode={true}
+                editingVehicle={editingVehicle}
+                onSave={handleSaveVehicle}
+                onCancel={handleCloseEditModal}
+              />
+            </div>
+          </div>
         </div>
       )}
     </div>

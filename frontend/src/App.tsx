@@ -23,13 +23,18 @@ import SuperAdminDashboard from "./pages/Dashboard/SuperAdminDashboard";
 import CreateClient from "./pages/SuperAdmin/CreateClient";
 import ClientList from "./pages/SuperAdmin/ClientList";
 import FuelAdminDashboard from "./pages/Dashboard/FuelAdminDashboard";
-import CreditOnboarding from "./pages/FuelAdmin/CreditOnboarding";
-import CreditDashboard from "./pages/FuelAdmin/CreditDashboard";
-import CreditPartners from "./pages/FuelAdmin/CreditPartners";
-import PartnerDetails from "./pages/FuelAdmin/PartnerDetails";
-import VehicleOnboardingStep from "./pages/FuelAdmin/VehicleOnboardingStep";
+import CreditOnboarding from "./pages/FuelAdmin/CreditManagement/CreditOnboarding";
+import CreditDashboard from "./pages/FuelAdmin/CreditManagement/CreditDashboard";
+import CreditPartners from "./pages/FuelAdmin/CreditManagement/CreditPartners";
+import PartnerDetails from "./pages/FuelAdmin/CreditManagement/PartnerDetails";
+import VehicleOnboardingStep from "./pages/FuelAdmin/CreditManagement/VehicleOnboardingStep";
+import ShiftStaffDashboard from "./pages/FuelAdmin/Shift&Staff/ShiftStaffDashboard";
+import DispenseStockDashboard from "./pages/FuelAdmin/Dispense&Stock/DispenseStockDashboard";
 import ResetPassword from "./pages/AuthPages/ResetPassword";
-import PartnerDashboard from "./pages/Dashboard/PartnerDashboard";
+import PartnerDashboard from "./pages/Dashboard/CreditCustomerDashboard";
+import ProductMasterDashboard from "./pages/FuelAdmin/ProductMaster/ProductMasterDashboard";
+import FuelRequest from "./pages/CreditCustomer/FuelRequest";
+import RequestHistory from "./pages/CreditCustomer/RequestHistory";
 
 export default function App() {
   return (
@@ -85,6 +90,11 @@ export default function App() {
             />
             <Route path="/fuel-admin/credit" element={<CreditDashboard />} />
             <Route
+              path="/fuel-admin/shift-staff"
+              element={<ShiftStaffDashboard />}
+            />
+
+            <Route
               path="/fuel-admin/credit-partners"
               element={<CreditPartners />}
             />
@@ -102,6 +112,14 @@ export default function App() {
             />
             <Route path="/fuel-admin/profile" element={<UserProfiles />} />
             <Route path="/fuel-admin/calendar" element={<Calendar />} />
+            <Route
+              path="/fuel-admin/product-master"
+              element={<ProductMasterDashboard />}
+            />
+            <Route
+              path="/fuel-admin/dispense-stock"
+              element={<DispenseStockDashboard />}
+            />
           </Route>
 
           {/* Partner Protected Routes */}
@@ -113,6 +131,8 @@ export default function App() {
             }
           >
             <Route path="/partner-dashboard" element={<PartnerDashboard />} />
+            <Route path="/partner/fuel-request" element={<FuelRequest />} />
+            <Route path="/partner/request-history" element={<RequestHistory />} />
             <Route path="/partner/profile" element={<UserProfiles />} />
           </Route>
 
