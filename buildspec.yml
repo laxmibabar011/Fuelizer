@@ -1,0 +1,45 @@
+version: 0.2
+
+env:
+  parameter-store:
+    # Frontend application URL retrieved from AWS Parameter Store
+    APP_URL: /fuelizer/frontend/env
+phases:
+  install:
+    commands:
+      - apt-get update || exit 1
+      - echo "Installing frontend and backend dependencies in parallel..." && (cd frontend && npm install) & (cd backend && npm install) & wait || exit 1
+      - echo Dependencies installation completed...
+
+  pre_build:
+    commands:
+      - echo Pre-build phase started...
+      - echo "Creating environment configuration file..."
+      - echo "$APP_URL" > frontend/.env
+      - echo Environment file created successfully...
+      - echo Pre-build phase completed...
+      
+  build:
+    commands:
+      - echo Build phase started...
+      - echo "Building frontend application..."
+      - ls
+      - cd frontend && npm run build && cd .. || exit 1
+      - echo Frontend build completed successfully...
+      - echo Build phase completed...
+
+  post_build:
+    commands:
+      - echo Post-build phase started...
+      - echo Moving built frontend to Fuelizer-Build...
+      - echo "Creating build directory..." && mkdir -p fuelizer-build && echo "Build directory created"
+      - echo "Copying frontend build files..." && cp -r frontend/dist/ fuelizer-build/ && echo "Frontend files copied successfully"
+      - echo "Copying backend files..." && cp -r backend/ fuelizer-build/ && echo "Backend files copied successfully"
+      - echo "Copying deployment files..." && cp appspec.yml fuelizer-build/ && cp -r scripts/ fuelizer-build/ && echo "Deployment files copied successfully"
+      - echo "Listing fuelizer-build structure:" && ls -la fuelizer-build/
+      - echo Post-build phase completed...
+
+artifacts:
+  files:
+    - '**/*'
+  base-directory: fuelizer-build
