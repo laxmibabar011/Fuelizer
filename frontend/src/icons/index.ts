@@ -27,6 +27,7 @@ import { ReactComponent as CheckLineIcon } from "./check-line.svg?react";
 import { ReactComponent as CloseLineIcon } from "./close-line.svg?react";
 import { ReactComponent as ChevronDownIcon } from "./chevron-down.svg?react";
 import { ReactComponent as ChevronUpIcon } from "./chevron-up.svg?react";
+import { ReactComponent as ChevronRightIcon } from "./chevron-right.svg?react";
 import { ReactComponent as PaperPlaneIcon } from "./paper-plane.svg?react";
 import { ReactComponent as LockIcon } from "./lock.svg?react";
 import { ReactComponent as EnvelopeIcon } from "./envelope.svg?react";
@@ -52,6 +53,15 @@ import { ReactComponent as ChatIcon } from "./chat.svg?react";
 import { ReactComponent as MoreDotIcon } from "./moredot.svg?react";
 import { ReactComponent as AlertHexaIcon } from "./alert-hexa.svg?react";
 import { ReactComponent as ErrorHexaIcon } from "./info-hexa.svg?react";
+import { ReactComponent as SettingsIcon } from "./settings.svg?react";
+import { ReactComponent as ChartIcon } from "./chart.svg?react";
+import { ReactComponent as CreditCardIcon } from "./credit-card.svg?react";
+import { ReactComponent as UsersIcon } from "./users.svg?react";
+import { ReactComponent as BuildingIcon } from "./building.svg?react";
+import { ReactComponent as FuelIcon } from "./fuel.svg?react";
+import { ReactComponent as ClockIcon } from "./clock.svg?react";
+import { ReactComponent as ReportIcon } from "./report.svg?react";
+import { ReactComponent as CogIcon } from "./cog.svg?react";
 
 export {
   ErrorHexaIcon,
@@ -85,6 +95,7 @@ export {
   CheckLineIcon,
   CloseLineIcon,
   ChevronDownIcon,
+  ChevronRightIcon,
   PaperPlaneIcon,
   EnvelopeIcon,
   LockIcon,
@@ -108,4 +119,13 @@ export {
   HorizontaLDots,
   ChevronUpIcon,
   ChatIcon,
+  SettingsIcon,
+  ChartIcon,
+  CreditCardIcon,
+  UsersIcon,
+  BuildingIcon,
+  FuelIcon,
+  ClockIcon,
+  ReportIcon,
+  CogIcon,
 };
