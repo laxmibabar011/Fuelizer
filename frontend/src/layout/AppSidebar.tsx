@@ -1,102 +1,46 @@
 // import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
-
-// Assume these icons are imported from an icon library
 import {
-  // BoxCubeIcon,
   BoltIcon,
   CalenderIcon,
   GridIcon,
   HorizontaLDots,
   ListIcon,
-  // PageIcon,
-  // PieChartIcon,
   PlugInIcon,
-  // TableIcon,
   UserCircleIcon,
+  SettingsIcon,
+  ChartIcon,
+  CreditCardIcon,
+  UsersIcon,
+  BuildingIcon,
+  FuelIcon,
+  ClockIcon,
+  ReportIcon,
+  CogIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
 } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
 import SidebarWidget from "./SidebarWidget";
 import { useAuth } from "../context/AuthContext";
+import { useState } from "react";
 
-// type NavItem = {
-//   name: string;
-//   icon: React.ReactNode;
-//   path?: string;
-//   subItems?: { name: string; path: string; pro?: boolean; new?: boolean }[];
-// };
-
-// const navItems: NavItem[] = [
-//   {
-//     icon: <GridIcon />,
-//     name: "Dashboard",
-//     subItems: [{ name: "Ecommerce", path: "/", pro: false }],
-//   },
-//   {
-//     icon: <CalenderIcon />,
-//     name: "Calendar",
-//     path: "/calendar",
-//   },
-//   {
-//     icon: <UserCircleIcon />,
-//     name: "User Profile",
-//     path: "/profile",
-//   },
-//   {
-//     name: "Forms",
-//     icon: <ListIcon />,
-//     subItems: [{ name: "Form Elements", path: "/form-elements", pro: false }],
-//   },
-//   {
-//     name: "Tables",
-//     icon: <TableIcon />,
-//     subItems: [{ name: "Basic Tables", path: "/basic-tables", pro: false }],
-//   },
-//   {
-//     name: "Pages",
-//     icon: <PageIcon />,
-//     subItems: [
-//       { name: "Blank Page", path: "/blank", pro: false },
-//       { name: "404 Error", path: "/error-404", pro: false },
-//     ],
-//   },
-// ];
-
-// const othersItems: NavItem[] = [
-//   {
-//     icon: <PieChartIcon />,
-//     name: "Charts",
-//     subItems: [
-//       { name: "Line Chart", path: "/line-chart", pro: false },
-//       { name: "Bar Chart", path: "/bar-chart", pro: false },
-//     ],
-//   },
-//   {
-//     icon: <BoxCubeIcon />,
-//     name: "UI Elements",
-//     subItems: [
-//       { name: "Alerts", path: "/alerts", pro: false },
-//       { name: "Avatar", path: "/avatars", pro: false },
-//       { name: "Badge", path: "/badge", pro: false },
-//       { name: "Buttons", path: "/buttons", pro: false },
-//       { name: "Images", path: "/images", pro: false },
-//       { name: "Videos", path: "/videos", pro: false },
-//     ],
-//   },
-//   {
-//     icon: <PlugInIcon />,
-//     name: "Authentication",
-//     subItems: [{ name: "Sign In", path: "/login", pro: false }],
-//   },
-// ];
+interface NavItem {
+  name: string;
+  icon: React.ReactNode;
+  path?: string;
+  onClick?: () => void;
+  subItems?: { name: string; path: string; icon?: React.ReactNode }[];
+}
 
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const location = useLocation();
   const { authUser, logout } = useAuth();
+  const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
   // Role-based menu for super admin
-  const superAdminMenu = [
+  const superAdminMenu: NavItem[] = [
     {
       icon: <GridIcon />,
       name: "Dashboard",
@@ -110,7 +54,7 @@ const AppSidebar: React.FC = () => {
     {
       icon: <ListIcon />,
       name: "Client List",
-      path: "/super-admin/clients", // Placeholder, implement route later
+      path: "/super-admin/clients",
     },
     {
       icon: <UserCircleIcon />,
@@ -129,32 +73,64 @@ const AppSidebar: React.FC = () => {
     },
   ];
 
-  // Role-based menu for fuel-admin
-  const fuelAdminMenu = [
+  // Role-based menu for fuel-admin with new IA structure
+  const fuelAdminMenu: NavItem[] = [
     {
       icon: <GridIcon />,
       name: "Dashboard",
       path: "/fuel-admin-dashboard",
     },
     {
-      icon: <ListIcon />,
-      name: "Product Master",
-      path: "/fuel-admin/product-master",
+      icon: <CogIcon />,
+      name: "Configuration Hub",
+      subItems: [
+        {
+          name: "Station Setup",
+          path: "/fuel-admin/configuration/station-setup",
+          icon: <BuildingIcon />,
+        },
+        {
+          name: "Product Master",
+          path: "/fuel-admin/configuration/product-master",
+          icon: <FuelIcon />,
+        },
+        {
+          name: "Staff & Shifts",
+          path: "/fuel-admin/configuration/staff-shifts",
+          icon: <UsersIcon />,
+        },
+      ],
     },
     {
-      icon: <GridIcon />,
-      name: "Dispense & Stock",
-      path: "/fuel-admin/dispense-stock",
+      icon: <ClockIcon />,
+      name: "Daily Operations",
+      subItems: [
+        {
+          name: "Today's Setup",
+          path: "/fuel-admin/operations/today-setup",
+          icon: <GridIcon />,
+        },
+        {
+          name: "Live Monitoring",
+          path: "/fuel-admin/operations/live-monitoring",
+          icon: <BoltIcon />,
+        },
+        {
+          name: "End of Day",
+          path: "/fuel-admin/operations/end-of-day",
+          icon: <CalenderIcon />,
+        },
+      ],
     },
     {
-      icon: <UserCircleIcon />,
+      icon: <ReportIcon />,
+      name: "Reports & Analytics",
+      path: "/fuel-admin/reports",
+    },
+    {
+      icon: <CreditCardIcon />,
       name: "Credit Management",
       path: "/fuel-admin/credit",
-    },
-    {
-      icon: <UserCircleIcon />,
-      name: "Shift & Staff",
-      path: "/fuel-admin/shift-staff",
     },
     {
       icon: <UserCircleIcon />,
@@ -169,7 +145,7 @@ const AppSidebar: React.FC = () => {
   ];
 
   // Role-based menu for partner
-  const partnerMenu = [
+  const partnerMenu: NavItem[] = [
     {
       icon: <GridIcon />,
       name: "Dashboard",
@@ -207,6 +183,106 @@ const AppSidebar: React.FC = () => {
           : [];
 
   const isActive = (path: string) => location.pathname === path;
+  const isSubItemActive = (subItems?: NavItem["subItems"]) => {
+    if (!subItems) return false;
+    return subItems.some((item) => isActive(item.path));
+  };
+
+  const toggleExpanded = (itemName: string) => {
+    setExpandedItems((prev) =>
+      prev.includes(itemName)
+        ? prev.filter((name) => name !== itemName)
+        : [...prev, itemName]
+    );
+  };
+
+  const isItemExpanded = (itemName: string) => {
+    return (
+      expandedItems.includes(itemName) ||
+      isSubItemActive(
+        menuToShow.find((item) => item.name === itemName)?.subItems
+      )
+    );
+  };
+
+  const renderMenuItem = (item: NavItem) => {
+    const hasSubItems = item.subItems && item.subItems.length > 0;
+    const isSubActive = isSubItemActive(item.subItems);
+    const showSubItems =
+      (isExpanded || isHovered || isMobileOpen) && isItemExpanded(item.name);
+
+    return (
+      <li key={item.name}>
+        {hasSubItems ? (
+          <button
+            className={`menu-item group w-full text-left ${
+              isSubActive ? "menu-item-active" : "menu-item-inactive"
+            }`}
+            onClick={() => toggleExpanded(item.name)}
+          >
+            <span className="menu-item-icon-size">{item.icon}</span>
+            {(isExpanded || isHovered || isMobileOpen) && (
+              <>
+                <span className="menu-item-text">{item.name}</span>
+                <span className="ml-auto">
+                  {isItemExpanded(item.name) ? (
+                    <ChevronDownIcon className="h-4 w-4" />
+                  ) : (
+                    <ChevronRightIcon className="h-4 w-4" />
+                  )}
+                </span>
+              </>
+            )}
+          </button>
+        ) : item.path ? (
+          <Link
+            to={item.path}
+            className={`menu-item group ${
+              isActive(item.path) ? "menu-item-active" : "menu-item-inactive"
+            }`}
+          >
+            <span className="menu-item-icon-size">{item.icon}</span>
+            {(isExpanded || isHovered || isMobileOpen) && (
+              <span className="menu-item-text">{item.name}</span>
+            )}
+          </Link>
+        ) : (
+          <button
+            className="menu-item group menu-item-inactive w-full text-left"
+            onClick={item.onClick}
+          >
+            <span className="menu-item-icon-size">{item.icon}</span>
+            {(isExpanded || isHovered || isMobileOpen) && (
+              <span className="menu-item-text">{item.name}</span>
+            )}
+          </button>
+        )}
+
+        {/* Render sub-items */}
+        {hasSubItems && showSubItems && (
+          <ul className="ml-6 mt-2 space-y-1">
+            {item.subItems!.map((subItem) => (
+              <li key={subItem.name}>
+                <Link
+                  to={subItem.path}
+                  className={`menu-item group text-sm ${
+                    isActive(subItem.path)
+                      ? "menu-item-active"
+                      : "menu-item-inactive"
+                  }`}
+                >
+                  <span className="menu-item-icon-size">
+                    {subItem.icon || <ListIcon />}
+                  </span>
+                  <span className="menu-item-text">{subItem.name}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </li>
+    );
+  };
 
   return (
     <aside
@@ -284,35 +360,7 @@ const AppSidebar: React.FC = () => {
                 )}
               </h2>
               <ul className="flex flex-col gap-4">
-                {menuToShow.map((item) => (
-                  <li key={item.name}>
-                    {item.path ? (
-                      <Link
-                        to={item.path}
-                        className={`menu-item group ${
-                          isActive(item.path)
-                            ? "menu-item-active"
-                            : "menu-item-inactive"
-                        }`}
-                      >
-                        <span className="menu-item-icon-size">{item.icon}</span>
-                        {(isExpanded || isHovered || isMobileOpen) && (
-                          <span className="menu-item-text">{item.name}</span>
-                        )}
-                      </Link>
-                    ) : (
-                      <button
-                        className="menu-item group menu-item-inactive w-full text-left"
-                        onClick={item.onClick}
-                      >
-                        <span className="menu-item-icon-size">{item.icon}</span>
-                        {(isExpanded || isHovered || isMobileOpen) && (
-                          <span className="menu-item-text">{item.name}</span>
-                        )}
-                      </button>
-                    )}
-                  </li>
-                ))}
+                {menuToShow.map(renderMenuItem)}
               </ul>
             </div>
           </div>

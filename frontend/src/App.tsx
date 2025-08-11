@@ -28,13 +28,24 @@ import CreditDashboard from "./pages/FuelAdmin/CreditManagement/CreditDashboard"
 import CreditPartners from "./pages/FuelAdmin/CreditManagement/CreditPartners";
 import PartnerDetails from "./pages/FuelAdmin/CreditManagement/PartnerDetails";
 import VehicleOnboardingStep from "./pages/FuelAdmin/CreditManagement/VehicleOnboardingStep";
-import ShiftStaffDashboard from "./pages/FuelAdmin/Shift&Staff/ShiftStaffDashboard";
 import DispenseStockDashboard from "./pages/FuelAdmin/Dispense&Stock/DispenseStockDashboard";
 import ResetPassword from "./pages/AuthPages/ResetPassword";
 import PartnerDashboard from "./pages/Dashboard/CreditCustomerDashboard";
 import ProductMasterDashboard from "./pages/FuelAdmin/ProductMaster/ProductMasterDashboard";
 import FuelRequest from "./pages/CreditCustomer/FuelRequest";
 import RequestHistory from "./pages/CreditCustomer/RequestHistory";
+
+// New Configuration Hub pages
+import StationSetup from "./pages/FuelAdmin/StationSetup/StationSetup";
+import ShiftStaffDashboard from "./pages/FuelAdmin/StaffShifts/ShiftStaffDashboard";
+
+// New Daily Operations pages
+import TodaySetup from "./pages/FuelAdmin/BODEOD/TodaySetup";
+import LiveMonitoring from "./pages/FuelAdmin/LiveMonitoring/LiveMonitoring";
+import EndOfDay from "./pages/FuelAdmin/BODEOD/EndOfDay";
+
+// New Reports page
+import ReportsDashboard from "./pages/FuelAdmin/Reports/ReportsDashboard";
 
 export default function App() {
   return (
@@ -89,10 +100,37 @@ export default function App() {
               element={<FuelAdminDashboard />}
             />
             <Route path="/fuel-admin/credit" element={<CreditDashboard />} />
+
+            {/* Configuration Hub Routes */}
             <Route
-              path="/fuel-admin/shift-staff"
+              path="/fuel-admin/configuration/station-setup"
+              element={<StationSetup />}
+            />
+            <Route
+              path="/fuel-admin/configuration/product-master"
+              element={<ProductMasterDashboard />}
+            />
+            <Route
+              path="/fuel-admin/configuration/staff-shifts"
               element={<ShiftStaffDashboard />}
             />
+
+            {/* Daily Operations Routes */}
+            <Route
+              path="/fuel-admin/operations/today-setup"
+              element={<TodaySetup />}
+            />
+            <Route
+              path="/fuel-admin/operations/live-monitoring"
+              element={<LiveMonitoring />}
+            />
+            <Route
+              path="/fuel-admin/operations/end-of-day"
+              element={<EndOfDay />}
+            />
+
+            {/* Reports Route */}
+            <Route path="/fuel-admin/reports" element={<ReportsDashboard />} />
 
             <Route
               path="/fuel-admin/credit-partners"
@@ -132,7 +170,10 @@ export default function App() {
           >
             <Route path="/partner-dashboard" element={<PartnerDashboard />} />
             <Route path="/partner/fuel-request" element={<FuelRequest />} />
-            <Route path="/partner/request-history" element={<RequestHistory />} />
+            <Route
+              path="/partner/request-history"
+              element={<RequestHistory />}
+            />
             <Route path="/partner/profile" element={<UserProfiles />} />
           </Route>
 
