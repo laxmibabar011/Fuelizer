@@ -5,6 +5,7 @@
 import { getTenantSequelize, tenantConnections } from '../../config/db.config.js';
 import { initTenantModels } from '../../models/user.model.js';
 import { initCreditModels } from '../../models/credit.model.js';
+import { initStationModels } from '../../models/station.model.js';
 
 // Helper for connecting to a tenant database and initializing models
 export async function getTenantDbModels(dbName) {
@@ -24,6 +25,7 @@ export async function getTenantDbModels(dbName) {
     
     const { User, Role, UserDetails, RefreshToken } = initTenantModels(tenantSequelize);
     const { CreditAccount, Vehicle } = initCreditModels(tenantSequelize);
+    const { Booth, Nozzle, Product } = initStationModels(tenantSequelize);
     
     // Sync with alter true for development - auto-updates schema
     try {
@@ -34,7 +36,7 @@ export async function getTenantDbModels(dbName) {
 
     //return the models
     
-    return { tenantSequelize, User, Role, UserDetails, RefreshToken, CreditAccount, Vehicle };
+    return { tenantSequelize, User, Role, UserDetails, RefreshToken, CreditAccount, Vehicle, Booth, Nozzle, Product };
     
   } catch (error) {
     console.error(`[tenantDb.helper]: Failed to initialize models for ${dbName}:`, error);

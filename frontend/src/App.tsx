@@ -32,6 +32,7 @@ import DispenseStockDashboard from "./pages/FuelAdmin/Dispense&Stock/DispenseSto
 import ResetPassword from "./pages/AuthPages/ResetPassword";
 import PartnerDashboard from "./pages/Dashboard/CreditCustomerDashboard";
 import ProductMasterDashboard from "./pages/FuelAdmin/ProductMaster/ProductMasterDashboard";
+import ManageNozzles from "./pages/FuelAdmin/StationSetup/ManageNozzles";
 import FuelRequest from "./pages/CreditCustomer/FuelRequest";
 import RequestHistory from "./pages/CreditCustomer/RequestHistory";
 
@@ -105,6 +106,10 @@ export default function App() {
             <Route
               path="/fuel-admin/configuration/station-setup"
               element={<StationSetup />}
+            />
+            <Route
+              path="/fuel-admin/configuration/station-setup/:boothId/nozzles"
+              element={<ManageNozzles />}
             />
             <Route
               path="/fuel-admin/configuration/product-master"
