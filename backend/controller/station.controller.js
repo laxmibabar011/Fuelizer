@@ -5,7 +5,10 @@ export default class StationController {
   static async listBooths(req, res) {
     try {
       const repo = new StationRepository(req.tenantSequelize);
-      await repo.ensureFuelProducts(); // seed minimal fuels
+      // Ensure mapping list populated from Product Master fuels
+      await repo.ensureFuelProductsFromMaster({
+        ProductMasterProduct: req.ProductMasterProduct || req.tenantSequelize.models.ProductMasterProduct,
+      });
       const booths = await repo.listBooths();
       return sendResponse(res, { data: booths, message: 'Booths fetched' });
     } catch (err) {

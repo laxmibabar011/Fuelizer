@@ -4,6 +4,7 @@ import masterRoutes from './master.route.js';
 import creditTenantRoutes from './creditTenant.route.js';
 import superadminRoutes from './superadmin.route.js';
 import stationRoutes from './station.route.js';
+import productMasterRoutes from './productMaster.route.js';
 
 const router = Router();
 
@@ -12,5 +13,6 @@ router.use('/master', masterRoutes);
 router.use('/tenant', creditTenantRoutes);
 router.use('/superadmin', superadminRoutes);
 router.use('/tenant', stationRoutes);
+router.use('/tenant', productMasterRoutes);
 
 export default router;

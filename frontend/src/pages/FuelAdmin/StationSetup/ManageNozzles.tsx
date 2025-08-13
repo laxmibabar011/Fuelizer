@@ -12,6 +12,7 @@ import {
 import { Badge } from "../../../components/ui/badge";
 import { Modal } from "../../../components/ui/modal";
 import Select from "../../../components/form/Select";
+import ProductMasterService from "../../../services/productMasterService";
 import Switch from "../../../components/form/switch/Switch";
 import { PencilIcon, TrashBinIcon, PlusIcon } from "../../../icons";
 
@@ -29,11 +30,8 @@ const sampleRows: NozzleRow[] = [
   { id: "3", code: "PP3", fuel: "Power Petrol", status: "active", updatedAt: "2025-01-05 18:35" },
 ];
 
-const fuelOptions = [
-  { value: "petrol", label: "Petrol" },
-  { value: "diesel", label: "Diesel" },
-  { value: "power-petrol", label: "Power Petrol" },
-];
+// Dynamic fuel options loaded from backend Product Master
+const staticFuelOptions: { value: string; label: string }[] = [];
 
 const ManageNozzles: React.FC = () => {
   // Read booth info from router
@@ -42,6 +40,14 @@ const ManageNozzles: React.FC = () => {
   const boothName = (location.state as any)?.boothName || `Booth ${boothId}`;
 
   const [rows, setRows] = useState<NozzleRow[]>(sampleRows);
+  const [fuelOptions, setFuelOptions] = useState<{ value: string; label: string }[]>(staticFuelOptions);
+  React.useEffect(() => {
+    ProductMasterService.listProducts({ category_type: "Fuel" }).then((res) => {
+      const list = (res.data?.data || []) as any[];
+      setFuelOptions(list.map((p) => ({ value: String(p.id), label: p.name })));
+    });
+  }, []);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
   const [form, setForm] = useState<{ code: string; fuel: string; active: boolean }>({

@@ -10,12 +10,12 @@ export const initStationModels = (sequelize) => {
     active: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
   });
 
-  // A minimal Product model placeholder for fuel mapping dependency
-  // If/when Product Master is fully implemented, this can be replaced/linked
+  // For backward compatibility we keep a minimal Product reference used by Nozzle
+  // But this will be populated from Product Master (Fuel category only)
   const Product = sequelize.define('Product', {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
     name: { type: DataTypes.STRING, allowNull: false },
-    category: { type: DataTypes.STRING, allowNull: true },
+    category: { type: DataTypes.STRING, allowNull: true }, // 'Fuel'
   });
 
   const Nozzle = sequelize.define('Nozzle', {

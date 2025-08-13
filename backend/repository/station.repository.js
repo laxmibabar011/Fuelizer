@@ -45,12 +45,15 @@ export class StationRepository {
   }
 
   // Products (minimal for mapping)
-  async ensureFuelProducts(seed = ['Petrol', 'Diesel', 'Power Petrol']) {
-    for (const name of seed) {
+  async ensureFuelProductsFromMaster(pmModels) {
+    // Populate station.Product from ProductMasterProduct where category_type = 'Fuel'
+    const fuelProducts = await pmModels.ProductMasterProduct.findAll({ where: { category_type: 'Fuel' }, order: [['name', 'ASC']] })
+    for (const fp of fuelProducts) {
+      // Create if not exists in station.Product by name
       // @ts-ignore
-      const [p] = await this.models.Product.findOrCreate({ where: { name }, defaults: { name, category: 'Fuel' } });
+      await this.models.Product.findOrCreate({ where: { name: fp.name }, defaults: { name: fp.name, category: 'Fuel' } })
     }
-    return this.models.Product.findAll({ where: { category: 'Fuel' }, order: [['name', 'ASC']] });
+    return this.models.Product.findAll({ where: { category: 'Fuel' }, order: [['name', 'ASC']] })
   }
 }
 

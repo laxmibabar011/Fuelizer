@@ -3,6 +3,8 @@ import dotenv from 'dotenv';
 import router from './route/index.routes.js';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { getMasterSequelize } from './config/db.config.js';
 import { initMasterModels } from './models/master.model.js';
 
@@ -20,6 +22,11 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
+// Serve static files for uploaded assets at /public/**
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+app.use('/public', express.static(path.join(__dirname, 'public')));
 
 app.use('/api', router);
 
