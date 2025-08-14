@@ -19,6 +19,7 @@ import Label from "../../../components/form/Label";
 import TextArea from "../../../components/form/input/TextArea";
 import Select from "../../../components/form/Select";
 import { Modal } from "../../../components/ui/modal";
+import Switch from "../../../components/form/switch/Switch";
 import ProductMasterService from "../../../services/productMasterService";
 import {
   Edit,
@@ -117,6 +118,8 @@ const ProductMasterDashboard: React.FC = () => {
   const [isEditProductOpen, setIsEditProductOpen] = useState<boolean>(false);
   const [isEditCategoryOpen, setIsEditCategoryOpen] = useState<boolean>(false);
   const [isAddCategoryOpen, setIsAddCategoryOpen] = useState<boolean>(false);
+  const [showArchivedCategories, setShowArchivedCategories] = useState<boolean>(false);
+  const [showArchivedProducts, setShowArchivedProducts] = useState<boolean>(false);
 
   const totalProducts = products.length;
   const activeProducts = useMemo(
@@ -404,7 +407,10 @@ const ProductMasterDashboard: React.FC = () => {
   }
 
   function refreshCategories() {
-    ProductMasterService.listCategories()
+    const params: any = {}
+    // if archived toggle ON, fetch inactive (is_active=false), else active (true)
+    params.is_active = showArchivedCategories ? false : true
+    ProductMasterService.listCategories(params)
       .then((res) => {
         const list = (res.data?.data || []) as any[];
         setCategories(list.map(mapApiCategory));
@@ -413,7 +419,9 @@ const ProductMasterDashboard: React.FC = () => {
   }
 
   function refreshProducts() {
-    ProductMasterService.listProducts()
+    const params: any = {}
+    params.status = showArchivedProducts ? 'inactive' : 'active'
+    ProductMasterService.listProducts(params)
       .then((res) => {
         const list = (res.data?.data || []) as any[];
         setProducts(list.map(mapApiProduct));
@@ -422,6 +430,15 @@ const ProductMasterDashboard: React.FC = () => {
   }
 
   React.useEffect(() => {
+    refreshCategories();
+  }, [showArchivedCategories]);
+
+  React.useEffect(() => {
+    refreshProducts();
+  }, [showArchivedProducts]);
+
+  React.useEffect(() => {
+    // initial load
     refreshCategories();
     refreshProducts();
   }, []);
@@ -1285,6 +1302,13 @@ const ProductMasterDashboard: React.FC = () => {
                   <Badge variant="secondary" className="text-xs">
                     {products.filter(p => p.categoryType === 'Fuel').length} products
                   </Badge>
+                  <div className="ml-auto">
+                    <Switch
+                      label="Show archived"
+                      defaultChecked={false}
+                      onChange={(checked) => setShowArchivedProducts(checked)}
+                    />
+                  </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
                   {products.filter(p => p.categoryType === 'Fuel').map((product) => (
@@ -1310,6 +1334,13 @@ const ProductMasterDashboard: React.FC = () => {
                         <Badge variant="secondary" className="text-xs">
                           {categoryProducts.length} products
                         </Badge>
+                        <div className="ml-auto">
+                          <Switch
+                            label="Show archived"
+                            defaultChecked={false}
+                            onChange={(checked) => setShowArchivedProducts(checked)}
+                          />
+                        </div>
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
                         {categoryProducts.map((product) => (
@@ -1347,14 +1378,21 @@ const ProductMasterDashboard: React.FC = () => {
                 {categories.length} categories
               </Badge>
             </div>
-            <Button
+            <div className="flex items-center gap-4">
+              <Switch
+                label="Show archived"
+                defaultChecked={false}
+                onChange={(checked) => setShowArchivedCategories(checked)}
+              />
+              <Button
               size="sm"
               variant="primary"
               onClick={() => setIsAddCategoryOpen(true)}
               startIcon={<PlusCircle className="h-4 w-4" />}
             >
               Create
-            </Button>
+              </Button>
+            </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             {categories.map((category) => (

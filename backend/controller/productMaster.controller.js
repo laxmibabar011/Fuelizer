@@ -19,8 +19,14 @@ export default class ProductMasterController {
   static async listCategories(req, res) {
     try {
       const repo = new ProductMasterRepository(req.tenantSequelize)
-      const { category_type } = req.query
-      const list = await repo.listCategories(category_type ? { category_type } : {})
+      const { category_type, is_active } = req.query
+      const filter = {}
+      if (category_type) filter.category_type = category_type
+      if (typeof is_active !== 'undefined') {
+        // normalize boolean from query string
+        filter.is_active = (is_active === 'true' || is_active === true)
+      }
+      const list = await repo.listCategories(filter)
       return sendResponse(res, { data: list })
     } catch (err) {
       return sendResponse(res, { success: false, error: err.message, message: 'Failed to fetch categories', status: 500 })
@@ -45,7 +51,7 @@ export default class ProductMasterController {
       const { id } = req.params
       const deleted = await repo.deleteCategory(id)
       if (!deleted) return sendResponse(res, { success: false, error: 'Not found', status: 404 })
-      return sendResponse(res, { data: {}, message: 'Category deleted' })
+      return sendResponse(res, { data: {}, message: 'Category archived' })
     } catch (err) {
       return sendResponse(res, { success: false, error: err.message, message: 'Failed to delete category', status: 500 })
     }
@@ -110,7 +116,7 @@ export default class ProductMasterController {
       const repo = new ProductMasterRepository(req.tenantSequelize)
       const deleted = await repo.deleteProduct(req.params.id)
       if (!deleted) return sendResponse(res, { success: false, error: 'Not found', status: 404 })
-      return sendResponse(res, { data: {}, message: 'Product deleted' })
+      return sendResponse(res, { data: {}, message: 'Product archived' })
     } catch (err) {
       return sendResponse(res, { success: false, error: err.message, message: 'Failed to delete product', status: 500 })
     }

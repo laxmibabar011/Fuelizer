@@ -35,7 +35,7 @@ export type ProductMasterProductDTO = {
 
 const ProductMasterService = {
   // Categories
-  listCategories(params?: { category_type?: CategoryType }) {
+  listCategories(params?: { category_type?: CategoryType; is_active?: boolean | 'true' | 'false' }) {
     return api.get('/api/tenant/product-master/categories', { params })
   },
   createCategory(payload: ProductMasterCategoryDTO) {
@@ -49,7 +49,7 @@ const ProductMasterService = {
   },
 
   // Products
-  listProducts(params?: { category_type?: CategoryType; category_id?: string }) {
+  listProducts(params?: { category_type?: CategoryType; category_id?: string; status?: 'active' | 'inactive' }) {
     return api.get('/api/tenant/product-master/products', { params })
   },
   getProduct(id: string) {

@@ -11,7 +11,11 @@ export class ProductMasterRepository {
   }
 
   async listCategories(filter = {}) {
-    return this.models.ProductMasterCategory.findAll({ where: filter, order: [['id', 'ASC']] })
+    const where = { ...filter }
+    if (typeof where.is_active === 'undefined') {
+      where.is_active = true
+    }
+    return this.models.ProductMasterCategory.findAll({ where, order: [['id', 'ASC']] })
   }
 
   async getCategoryById(id) {
@@ -26,7 +30,10 @@ export class ProductMasterRepository {
   }
 
   async deleteCategory(id) {
-    return this.models.ProductMasterCategory.destroy({ where: { id } })
+    const c = await this.getCategoryById(id)
+    if (!c) return 0
+    await c.update({ is_active: false })
+    return 1
   }
 
   // Products
@@ -35,10 +42,15 @@ export class ProductMasterRepository {
   }
 
   async listProducts(query = {}) {
-    const { category_type, category_id } = query
+    const { category_type, category_id, status } = query
     const where = {}
     if (category_type) where.category_type = category_type
     if (category_id) where.category_id = category_id
+    if (typeof status === 'undefined') {
+      where.status = 'active'
+    } else {
+      where.status = status
+    }
     return this.models.ProductMasterProduct.findAll({ where, order: [['id', 'ASC']] })
   }
 
@@ -54,7 +66,10 @@ export class ProductMasterRepository {
   }
 
   async deleteProduct(id) {
-    return this.models.ProductMasterProduct.destroy({ where: { id } })
+    const p = await this.getProductById(id)
+    if (!p) return 0
+    await p.update({ status: 'inactive' })
+    return 1
   }
 }
 
