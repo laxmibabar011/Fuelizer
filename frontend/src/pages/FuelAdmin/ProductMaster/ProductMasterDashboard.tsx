@@ -41,7 +41,7 @@ type ProductStatus = "active" | "inactive";
 type Product = {
   id: string;
   categoryId?: string; // Optional for Fuel products
-  categoryType: 'Fuel' | 'Other Product';
+  categoryType: "Fuel" | "Other Product";
   name: string;
   description: string;
   supplier: string;
@@ -66,7 +66,7 @@ type Category = {
   id: string;
   name: string;
   description?: string;
-  categoryType: 'Fuel' | 'Other Product';
+  categoryType: "Fuel" | "Other Product";
   color?: string; // tailwind background classes for category badge
 };
 
@@ -108,18 +108,22 @@ const ProductMasterDashboard: React.FC = () => {
   };
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [newProduct, setNewProduct] = useState<Product>({ ...emptyProduct });
-  const [newCategory, setNewCategory] = useState<Category>({ ...emptyCategory });
+  const [, setNewProduct] = useState<Product>({ ...emptyProduct });
+  const [newCategory, setNewCategory] = useState<Category>({
+    ...emptyCategory,
+  });
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [imagePreview, setImagePreview] = useState<string>("");
+  const [, setImagePreview] = useState<string>("");
   const [editImagePreview, setEditImagePreview] = useState<string>("");
   const [editImageFile, setEditImageFile] = useState<File | null>(null);
   const [isEditProductOpen, setIsEditProductOpen] = useState<boolean>(false);
   const [isEditCategoryOpen, setIsEditCategoryOpen] = useState<boolean>(false);
   const [isAddCategoryOpen, setIsAddCategoryOpen] = useState<boolean>(false);
-  const [showArchivedCategories, setShowArchivedCategories] = useState<boolean>(false);
-  const [showArchivedProducts, setShowArchivedProducts] = useState<boolean>(false);
+  const [showArchivedCategories, setShowArchivedCategories] =
+    useState<boolean>(false);
+  const [showArchivedProducts, setShowArchivedProducts] =
+    useState<boolean>(false);
 
   const totalProducts = products.length;
   const activeProducts = useMemo(
@@ -127,7 +131,8 @@ const ProductMasterDashboard: React.FC = () => {
     [products]
   );
   const lowStockProducts = useMemo(
-    () => products.filter((p) => (p.stock || 0) <= (p.reorderLevel || 0)).length,
+    () =>
+      products.filter((p) => (p.stock || 0) <= (p.reorderLevel || 0)).length,
     [products]
   );
 
@@ -152,47 +157,6 @@ const ProductMasterDashboard: React.FC = () => {
     reader.readAsDataURL(file);
   }
 
-  function handleAddProduct() {
-    if (!newProduct.name || !newProduct.categoryType || (newProduct.categoryType === 'Other Product' && !newProduct.categoryId)) {
-      window.alert("Please fill in all required fields");
-      return;
-    }
-
-    const payload: any = {
-      category_type: newProduct.categoryType,
-      category_id: newProduct.categoryType === 'Other Product' ? newProduct.categoryId : undefined,
-      name: newProduct.name,
-      supplier: newProduct.supplier,
-      uom: newProduct.uom,
-      hsn: newProduct.hsn,
-      description: newProduct.description,
-      image_url: newProduct.image || imagePreview || undefined,
-      mrp: newProduct.categoryType === 'Other Product' ? Number(newProduct.mrp || 0) : undefined,
-      sale_price: newProduct.categoryType === 'Other Product' ? Number(newProduct.salePrice || 0) : undefined,
-      stock: newProduct.categoryType === 'Other Product' ? Number(newProduct.stock || 0) : undefined,
-      reorder_level: newProduct.categoryType === 'Other Product' ? Number(newProduct.reorderLevel || 0) : undefined,
-      discount: newProduct.categoryType === 'Other Product' ? Number(newProduct.discount || 0) : undefined,
-      cgst: Number(newProduct.cgst || 0),
-      sgst: Number(newProduct.sgst || 0),
-      igst: Number(newProduct.igst || 0),
-      vat: Number(newProduct.vat || 0),
-      sac: newProduct.sac,
-      status: newProduct.status,
-    };
-
-    ProductMasterService.createProduct(payload)
-      .then(() => {
-        refreshProducts();
-        setNewProduct({ ...emptyProduct });
-        setImagePreview("");
-        window.alert("Product added successfully");
-      })
-      .catch((err) => {
-        console.error(err);
-        window.alert("Failed to add product");
-      });
-  }
-
   function handleEditProduct(product: Product) {
     setEditingProduct({ ...product });
     setEditImagePreview(product.image);
@@ -201,7 +165,12 @@ const ProductMasterDashboard: React.FC = () => {
 
   function handleUpdateProduct() {
     if (!editingProduct) return;
-    if (!editingProduct.name || !editingProduct.categoryType || (editingProduct.categoryType === 'Other Product' && !editingProduct.categoryId)) {
+    if (
+      !editingProduct.name ||
+      !editingProduct.categoryType ||
+      (editingProduct.categoryType === "Other Product" &&
+        !editingProduct.categoryId)
+    ) {
       window.alert("Please fill in all required fields");
       return;
     }
@@ -209,29 +178,38 @@ const ProductMasterDashboard: React.FC = () => {
     // If a new image file was chosen, send multipart; else JSON
     if (editImageFile) {
       const form = new FormData();
-      form.append('category_type', editingProduct.categoryType);
-      if (editingProduct.categoryType === 'Other Product' && editingProduct.categoryId) {
-        form.append('category_id', editingProduct.categoryId);
+      form.append("category_type", editingProduct.categoryType);
+      if (
+        editingProduct.categoryType === "Other Product" &&
+        editingProduct.categoryId
+      ) {
+        form.append("category_id", editingProduct.categoryId);
       }
-      form.append('name', editingProduct.name);
-      form.append('supplier', editingProduct.supplier || '');
-      form.append('uom', editingProduct.uom || '');
-      form.append('hsn', editingProduct.hsn || '');
-      form.append('description', editingProduct.description || '');
-      if (editingProduct.categoryType === 'Other Product') {
-        form.append('mrp', String(Number(editingProduct.mrp || 0)));
-        form.append('sale_price', String(Number(editingProduct.salePrice || 0)));
-        form.append('stock', String(Number(editingProduct.stock || 0)));
-        form.append('reorder_level', String(Number(editingProduct.reorderLevel || 0)));
-        form.append('discount', String(Number(editingProduct.discount || 0)));
+      form.append("name", editingProduct.name);
+      form.append("supplier", editingProduct.supplier || "");
+      form.append("uom", editingProduct.uom || "");
+      form.append("hsn", editingProduct.hsn || "");
+      form.append("description", editingProduct.description || "");
+      if (editingProduct.categoryType === "Other Product") {
+        form.append("mrp", String(Number(editingProduct.mrp || 0)));
+        form.append(
+          "sale_price",
+          String(Number(editingProduct.salePrice || 0))
+        );
+        form.append("stock", String(Number(editingProduct.stock || 0)));
+        form.append(
+          "reorder_level",
+          String(Number(editingProduct.reorderLevel || 0))
+        );
+        form.append("discount", String(Number(editingProduct.discount || 0)));
       }
-      form.append('cgst', String(Number(editingProduct.cgst || 0)));
-      form.append('sgst', String(Number(editingProduct.sgst || 0)));
-      form.append('igst', String(Number(editingProduct.igst || 0)));
-      form.append('vat', String(Number(editingProduct.vat || 0)));
-      form.append('sac', editingProduct.sac || '');
-      form.append('status', editingProduct.status || 'active');
-      form.append('image', editImageFile);
+      form.append("cgst", String(Number(editingProduct.cgst || 0)));
+      form.append("sgst", String(Number(editingProduct.sgst || 0)));
+      form.append("igst", String(Number(editingProduct.igst || 0)));
+      form.append("vat", String(Number(editingProduct.vat || 0)));
+      form.append("sac", editingProduct.sac || "");
+      form.append("status", editingProduct.status || "active");
+      form.append("image", editImageFile);
 
       ProductMasterService.updateProductMultipart(editingProduct.id, form)
         .then(() => {
@@ -251,17 +229,35 @@ const ProductMasterDashboard: React.FC = () => {
 
     const payload: any = {
       category_type: editingProduct.categoryType,
-      category_id: editingProduct.categoryType === 'Other Product' ? editingProduct.categoryId : undefined,
+      category_id:
+        editingProduct.categoryType === "Other Product"
+          ? editingProduct.categoryId
+          : undefined,
       name: editingProduct.name,
       supplier: editingProduct.supplier,
       uom: editingProduct.uom,
       hsn: editingProduct.hsn,
       description: editingProduct.description,
-      mrp: editingProduct.categoryType === 'Other Product' ? Number(editingProduct.mrp || 0) : undefined,
-      sale_price: editingProduct.categoryType === 'Other Product' ? Number(editingProduct.salePrice || 0) : undefined,
-      stock: editingProduct.categoryType === 'Other Product' ? Number(editingProduct.stock || 0) : undefined,
-      reorder_level: editingProduct.categoryType === 'Other Product' ? Number(editingProduct.reorderLevel || 0) : undefined,
-      discount: editingProduct.categoryType === 'Other Product' ? Number(editingProduct.discount || 0) : undefined,
+      mrp:
+        editingProduct.categoryType === "Other Product"
+          ? Number(editingProduct.mrp || 0)
+          : undefined,
+      sale_price:
+        editingProduct.categoryType === "Other Product"
+          ? Number(editingProduct.salePrice || 0)
+          : undefined,
+      stock:
+        editingProduct.categoryType === "Other Product"
+          ? Number(editingProduct.stock || 0)
+          : undefined,
+      reorder_level:
+        editingProduct.categoryType === "Other Product"
+          ? Number(editingProduct.reorderLevel || 0)
+          : undefined,
+      discount:
+        editingProduct.categoryType === "Other Product"
+          ? Number(editingProduct.discount || 0)
+          : undefined,
       cgst: Number(editingProduct.cgst || 0),
       sgst: Number(editingProduct.sgst || 0),
       igst: Number(editingProduct.igst || 0),
@@ -286,7 +282,8 @@ const ProductMasterDashboard: React.FC = () => {
   }
 
   function handleDeleteProduct(productId: string) {
-    if (!window.confirm("Are you sure you want to delete this product?")) return;
+    if (!window.confirm("Are you sure you want to delete this product?"))
+      return;
     ProductMasterService.deleteProduct(productId)
       .then(() => {
         refreshProducts();
@@ -305,13 +302,20 @@ const ProductMasterDashboard: React.FC = () => {
 
   function handleUpdateCategory() {
     if (!editingCategory) return;
-    if (!editingCategory.categoryType || (editingCategory.categoryType === 'Other Product' && !editingCategory.name)) {
+    if (
+      !editingCategory.categoryType ||
+      (editingCategory.categoryType === "Other Product" &&
+        !editingCategory.name)
+    ) {
       window.alert("Please fill in all required fields");
       return;
     }
     const payload: any = {
       category_type: editingCategory.categoryType,
-      name: editingCategory.categoryType === 'Fuel' ? undefined : editingCategory.name,
+      name:
+        editingCategory.categoryType === "Fuel"
+          ? undefined
+          : editingCategory.name,
       description: editingCategory.description,
       is_active: true,
     };
@@ -334,7 +338,8 @@ const ProductMasterDashboard: React.FC = () => {
       window.alert("Cannot delete category with products.");
       return;
     }
-    if (!window.confirm("Are you sure you want to delete this category?")) return;
+    if (!window.confirm("Are you sure you want to delete this category?"))
+      return;
     ProductMasterService.deleteCategory(categoryId)
       .then(() => {
         refreshCategories();
@@ -347,13 +352,16 @@ const ProductMasterDashboard: React.FC = () => {
   }
 
   function handleAddCategory() {
-    if (!newCategory.categoryType || (newCategory.categoryType === 'Other Product' && !newCategory.name)) {
+    if (
+      !newCategory.categoryType ||
+      (newCategory.categoryType === "Other Product" && !newCategory.name)
+    ) {
       window.alert("Please fill in all required fields");
       return;
     }
     const payload: any = {
       category_type: newCategory.categoryType,
-      name: newCategory.categoryType === 'Fuel' ? undefined : newCategory.name,
+      name: newCategory.categoryType === "Fuel" ? undefined : newCategory.name,
       description: newCategory.description,
       is_active: true,
     };
@@ -374,8 +382,8 @@ const ProductMasterDashboard: React.FC = () => {
   function mapApiCategory(c: any): Category {
     return {
       id: String(c.id),
-      name: c.category_type === 'Fuel' ? 'Fuels' : (c.name || ''),
-      description: c.description || '',
+      name: c.category_type === "Fuel" ? "Fuels" : c.name || "",
+      description: c.description || "",
       categoryType: c.category_type,
     };
   }
@@ -386,30 +394,30 @@ const ProductMasterDashboard: React.FC = () => {
       categoryId: p.category_id ? String(p.category_id) : undefined,
       categoryType: p.category_type,
       name: p.name,
-      description: p.description || '',
-      supplier: p.supplier || '',
-      image: resolveImageUrl(p.image_url || ''),
+      description: p.description || "",
+      supplier: p.supplier || "",
+      image: resolveImageUrl(p.image_url || ""),
       mrp: p.mrp ?? undefined,
       salePrice: p.sale_price ?? undefined,
       stock: p.stock ?? undefined,
       reorderLevel: p.reorder_level ?? undefined,
-      uom: p.uom || '',
+      uom: p.uom || "",
       pricePerUom: undefined,
-      hsn: p.hsn || '',
-      sac: p.sac || '',
+      hsn: p.hsn || "",
+      sac: p.sac || "",
       cgst: p.cgst ?? 0,
       sgst: p.sgst ?? 0,
       igst: p.igst ?? 0,
       vat: p.vat ?? 0,
       discount: p.discount ?? undefined,
-      status: p.status || 'active',
+      status: p.status || "active",
     };
   }
 
   function refreshCategories() {
-    const params: any = {}
+    const params: any = {};
     // if archived toggle ON, fetch inactive (is_active=false), else active (true)
-    params.is_active = showArchivedCategories ? false : true
+    params.is_active = showArchivedCategories ? false : true;
     ProductMasterService.listCategories(params)
       .then((res) => {
         const list = (res.data?.data || []) as any[];
@@ -419,8 +427,8 @@ const ProductMasterDashboard: React.FC = () => {
   }
 
   function refreshProducts() {
-    const params: any = {}
-    params.status = showArchivedProducts ? 'inactive' : 'active'
+    const params: any = {};
+    params.status = showArchivedProducts ? "inactive" : "active";
     ProductMasterService.listProducts(params)
       .then((res) => {
         const list = (res.data?.data || []) as any[];
@@ -489,7 +497,9 @@ const ProductMasterDashboard: React.FC = () => {
 
           <div className="space-y-2">
             <div>
-              <p className="text-xs text-gray-500 font-medium">ID: {product.id}</p>
+              <p className="text-xs text-gray-500 font-medium">
+                ID: {product.id}
+              </p>
               <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">
                 {product.name}
               </h3>
@@ -497,21 +507,31 @@ const ProductMasterDashboard: React.FC = () => {
 
             <div>
               <Badge variant="outline" className="text-xs px-2 py-0.5">
-                {product.categoryType === 'Fuel' ? 'Fuel' : (category?.name || "No Category")}
+                {product.categoryType === "Fuel"
+                  ? "Fuel"
+                  : category?.name || "No Category"}
               </Badge>
             </div>
 
-            {product.categoryType === 'Other Product' ? (
+            {product.categoryType === "Other Product" ? (
               <>
                 <div className="bg-green-50 dark:bg-green-900/20 p-2 rounded-lg">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-xs text-gray-600 dark:text-gray-300">Sale Price</p>
-                      <p className="font-bold text-green-700 dark:text-green-400">₹{product.salePrice}</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-300">
+                        Sale Price
+                      </p>
+                      <p className="font-bold text-green-700 dark:text-green-400">
+                        ₹{product.salePrice}
+                      </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs text-gray-500 line-through">₹{product.mrp}</p>
-                      <p className="text-xs text-gray-600 dark:text-gray-300">per {product.uom}</p>
+                      <p className="text-xs text-gray-500 line-through">
+                        ₹{product.mrp}
+                      </p>
+                      <p className="text-xs text-gray-600 dark:text-gray-300">
+                        per {product.uom}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -520,14 +540,19 @@ const ProductMasterDashboard: React.FC = () => {
                   <div>
                     <p className="text-gray-600 dark:text-gray-300">
                       Stock:{" "}
-                      <span className={`font-semibold ${isLowStock ? "text-red-600" : "text-green-600"}`}>
+                      <span
+                        className={`font-semibold ${isLowStock ? "text-red-600" : "text-green-600"}`}
+                      >
                         {product.stock}
                       </span>
                     </p>
                   </div>
                   <div>
                     <p className="text-gray-600 dark:text-gray-300">
-                      Reorder: <span className="font-semibold">{product.reorderLevel}</span>
+                      Reorder:{" "}
+                      <span className="font-semibold">
+                        {product.reorderLevel}
+                      </span>
                     </p>
                   </div>
                 </div>
@@ -535,13 +560,17 @@ const ProductMasterDashboard: React.FC = () => {
             ) : (
               <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded-lg">
                 <div className="text-center">
-                  <p className="text-xs text-gray-600 dark:text-gray-300">Fuel Product</p>
-                  <p className="font-bold text-blue-700 dark:text-blue-400">per {product.uom}</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-300">
+                    Fuel Product
+                  </p>
+                  <p className="font-bold text-blue-700 dark:text-blue-400">
+                    per {product.uom}
+                  </p>
                 </div>
               </div>
             )}
 
-            {isLowStock && product.categoryType === 'Other Product' && (
+            {isLowStock && product.categoryType === "Other Product" && (
               <div className="flex items-center gap-1 text-red-600 bg-red-50 dark:bg-red-900/20 p-1 rounded text-xs">
                 <AlertTriangle className="h-3 w-3" />
                 <span>Low Stock Alert</span>
@@ -554,7 +583,9 @@ const ProductMasterDashboard: React.FC = () => {
   }
 
   function CategoryCard({ category }: { category: Category }) {
-    const productCount = products.filter((p) => p.categoryId === category.id).length;
+    const productCount = products.filter(
+      (p) => p.categoryId === category.id
+    ).length;
     const hasProducts = productCount > 0;
 
     return (
@@ -625,7 +656,9 @@ const ProductMasterDashboard: React.FC = () => {
     return (
       <div className="space-y-6 max-w-full overflow-hidden">
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold border-b pb-2">Basic Information</h3>
+          <h3 className="text-lg font-semibold border-b pb-2">
+            Basic Information
+          </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="productId" className="text-sm font-medium">
@@ -646,27 +679,34 @@ const ProductMasterDashboard: React.FC = () => {
               </Label>
               <Select
                 defaultValue={product.categoryType}
-                onChange={(value) => setProduct({ 
-                  ...product, 
-                  categoryType: value as 'Fuel' | 'Other Product',
-                  categoryId: value === 'Fuel' ? undefined : product.categoryId
-                })}
+                onChange={(value) =>
+                  setProduct({
+                    ...product,
+                    categoryType: value as "Fuel" | "Other Product",
+                    categoryId:
+                      value === "Fuel" ? undefined : product.categoryId,
+                  })
+                }
                 options={[
                   { value: "Fuel", label: "Fuel" },
-                  { value: "Other Product", label: "Other Product" }
+                  { value: "Other Product", label: "Other Product" },
                 ]}
                 placeholder="Select Category Type"
               />
             </div>
-            {product.categoryType === 'Other Product' && (
+            {product.categoryType === "Other Product" && (
               <div className="space-y-2">
                 <Label htmlFor="categoryId" className="text-sm font-medium">
                   Category Name *
                 </Label>
                 <Select
-                  defaultValue={product.categoryId || ''}
-                  onChange={(value) => setProduct({ ...product, categoryId: value })}
-                  options={categories.filter(c => c.categoryType === 'Other Product').map((c) => ({ value: c.id, label: c.name }))}
+                  defaultValue={product.categoryId || ""}
+                  onChange={(value) =>
+                    setProduct({ ...product, categoryId: value })
+                  }
+                  options={categories
+                    .filter((c) => c.categoryType === "Other Product")
+                    .map((c) => ({ value: c.id, label: c.name }))}
                   placeholder="Select Category"
                 />
               </div>
@@ -677,9 +717,15 @@ const ProductMasterDashboard: React.FC = () => {
               </Label>
               <Input
                 id="productName"
-                placeholder={product.categoryType === 'Fuel' ? "Petrol Regular, Diesel, etc." : "Engine Oil 5W-30"}
+                placeholder={
+                  product.categoryType === "Fuel"
+                    ? "Petrol Regular, Diesel, etc."
+                    : "Engine Oil 5W-30"
+                }
                 value={product.name}
-                onChange={(e) => setProduct({ ...product, name: e.target.value })}
+                onChange={(e) =>
+                  setProduct({ ...product, name: e.target.value })
+                }
                 className="h-11"
               />
             </div>
@@ -689,9 +735,15 @@ const ProductMasterDashboard: React.FC = () => {
               </Label>
               <Input
                 id="supplier"
-                placeholder={product.categoryType === 'Fuel' ? "IOCL, BPCL, HPCL" : "Castrol, Mobil, Shell"}
+                placeholder={
+                  product.categoryType === "Fuel"
+                    ? "IOCL, BPCL, HPCL"
+                    : "Castrol, Mobil, Shell"
+                }
                 value={product.supplier}
-                onChange={(e) => setProduct({ ...product, supplier: e.target.value })}
+                onChange={(e) =>
+                  setProduct({ ...product, supplier: e.target.value })
+                }
                 className="h-11"
               />
             </div>
@@ -717,9 +769,13 @@ const ProductMasterDashboard: React.FC = () => {
               </Label>
               <Input
                 id="hsn"
-                placeholder={product.categoryType === 'Fuel' ? "27101221" : "27101981"}
+                placeholder={
+                  product.categoryType === "Fuel" ? "27101221" : "27101981"
+                }
                 value={product.hsn}
-                onChange={(e) => setProduct({ ...product, hsn: e.target.value })}
+                onChange={(e) =>
+                  setProduct({ ...product, hsn: e.target.value })
+                }
                 className="h-11"
               />
             </div>
@@ -729,10 +785,16 @@ const ProductMasterDashboard: React.FC = () => {
               Description *
             </Label>
             <TextArea
-              placeholder={product.categoryType === 'Fuel' ? "Regular unleaded petrol" : "Engine Oil for Petrol Car"}
+              placeholder={
+                product.categoryType === "Fuel"
+                  ? "Regular unleaded petrol"
+                  : "Engine Oil for Petrol Car"
+              }
               rows={3}
               value={product.description}
-              onChange={(value) => setProduct({ ...product, description: value })}
+              onChange={(value) =>
+                setProduct({ ...product, description: value })
+              }
               className="min-h-[80px] resize-none"
             />
           </div>
@@ -754,9 +816,12 @@ const ProductMasterDashboard: React.FC = () => {
                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
                       <Upload className="w-8 h-8 mb-2 text-gray-500" />
                       <p className="mb-2 text-sm text-gray-500">
-                        <span className="font-semibold">Click to upload</span> or drag and drop
+                        <span className="font-semibold">Click to upload</span>{" "}
+                        or drag and drop
                       </p>
-                      <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+                      <p className="text-xs text-gray-500">
+                        PNG, JPG, GIF up to 10MB
+                      </p>
                     </div>
                     <input
                       id={isEdit ? "editProductImage" : "productImage"}
@@ -795,96 +860,117 @@ const ProductMasterDashboard: React.FC = () => {
           </div>
         </div>
 
-        {product.categoryType === 'Other Product' && (
+        {product.categoryType === "Other Product" && (
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold border-b pb-2">Pricing & Inventory</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="mrp" className="text-sm font-medium">
-                MRP (₹) *
-              </Label>
-              <Input
-                id="mrp"
-                type="number"
-                placeholder="100"
-                value={product.mrp ?? ""}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setProduct({ ...product, mrp: val === "" ? undefined : Number.parseFloat(val) });
-                }}
-                className="h-11"
-              />
+            <h3 className="text-lg font-semibold border-b pb-2">
+              Pricing & Inventory
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="mrp" className="text-sm font-medium">
+                  MRP (₹) *
+                </Label>
+                <Input
+                  id="mrp"
+                  type="number"
+                  placeholder="100"
+                  value={product.mrp ?? ""}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setProduct({
+                      ...product,
+                      mrp: val === "" ? undefined : Number.parseFloat(val),
+                    });
+                  }}
+                  className="h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="salePrice" className="text-sm font-medium">
+                  Sale Price (₹) *
+                </Label>
+                <Input
+                  id="salePrice"
+                  type="number"
+                  placeholder="95"
+                  value={product.salePrice ?? ""}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setProduct({
+                      ...product,
+                      salePrice:
+                        val === "" ? undefined : Number.parseFloat(val),
+                    });
+                  }}
+                  className="h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="stock" className="text-sm font-medium">
+                  Stock Quantity *
+                </Label>
+                <Input
+                  id="stock"
+                  type="number"
+                  placeholder="50"
+                  value={product.stock ?? ""}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setProduct({
+                      ...product,
+                      stock: val === "" ? undefined : Number.parseInt(val),
+                    });
+                  }}
+                  className="h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="reorderLevel" className="text-sm font-medium">
+                  Reorder Level *
+                </Label>
+                <Input
+                  id="reorderLevel"
+                  type="number"
+                  placeholder="10"
+                  value={product.reorderLevel ?? ""}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setProduct({
+                      ...product,
+                      reorderLevel:
+                        val === "" ? undefined : Number.parseInt(val),
+                    });
+                  }}
+                  className="h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="discount" className="text-sm font-medium">
+                  Discount (%)
+                </Label>
+                <Input
+                  id="discount"
+                  type="number"
+                  placeholder="5"
+                  value={product.discount ?? ""}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setProduct({
+                      ...product,
+                      discount: val === "" ? undefined : Number.parseFloat(val),
+                    });
+                  }}
+                  className="h-11"
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="salePrice" className="text-sm font-medium">
-                Sale Price (₹) *
-              </Label>
-              <Input
-                id="salePrice"
-                type="number"
-                placeholder="95"
-                value={product.salePrice ?? ""}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setProduct({ ...product, salePrice: val === "" ? undefined : Number.parseFloat(val) });
-                }}
-                className="h-11"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="stock" className="text-sm font-medium">
-                Stock Quantity *
-              </Label>
-              <Input
-                id="stock"
-                type="number"
-                placeholder="50"
-                value={product.stock ?? ""}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setProduct({ ...product, stock: val === "" ? undefined : Number.parseInt(val) });
-                }}
-                className="h-11"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="reorderLevel" className="text-sm font-medium">
-                Reorder Level *
-              </Label>
-              <Input
-                id="reorderLevel"
-                type="number"
-                placeholder="10"
-                value={product.reorderLevel ?? ""}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setProduct({ ...product, reorderLevel: val === "" ? undefined : Number.parseInt(val) });
-                }}
-                className="h-11"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="discount" className="text-sm font-medium">
-                Discount (%)
-              </Label>
-              <Input
-                id="discount"
-                type="number"
-                placeholder="5"
-                value={product.discount ?? ""}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setProduct({ ...product, discount: val === "" ? undefined : Number.parseFloat(val) });
-                }}
-                className="h-11"
-              />
-            </div>
-          </div>
           </div>
         )}
 
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold border-b pb-2">Tax Information</h3>
+          <h3 className="text-lg font-semibold border-b pb-2">
+            Tax Information
+          </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <div className="space-y-2">
               <Label htmlFor="cgst" className="text-sm font-medium">
@@ -893,11 +979,14 @@ const ProductMasterDashboard: React.FC = () => {
               <Input
                 id="cgst"
                 type="number"
-                placeholder={product.categoryType === 'Fuel' ? "0" : "9"}
+                placeholder={product.categoryType === "Fuel" ? "0" : "9"}
                 value={product.cgst}
                 onChange={(e) => {
                   const val = e.target.value;
-                  setProduct({ ...product, cgst: val === "" ? 0 : Number.parseFloat(val) });
+                  setProduct({
+                    ...product,
+                    cgst: val === "" ? 0 : Number.parseFloat(val),
+                  });
                 }}
                 className="h-11"
               />
@@ -909,11 +998,14 @@ const ProductMasterDashboard: React.FC = () => {
               <Input
                 id="sgst"
                 type="number"
-                placeholder={product.categoryType === 'Fuel' ? "0" : "9"}
+                placeholder={product.categoryType === "Fuel" ? "0" : "9"}
                 value={product.sgst}
                 onChange={(e) => {
                   const val = e.target.value;
-                  setProduct({ ...product, sgst: val === "" ? 0 : Number.parseFloat(val) });
+                  setProduct({
+                    ...product,
+                    sgst: val === "" ? 0 : Number.parseFloat(val),
+                  });
                 }}
                 className="h-11"
               />
@@ -925,11 +1017,14 @@ const ProductMasterDashboard: React.FC = () => {
               <Input
                 id="igst"
                 type="number"
-                placeholder={product.categoryType === 'Fuel' ? "0" : "18"}
+                placeholder={product.categoryType === "Fuel" ? "0" : "18"}
                 value={product.igst}
                 onChange={(e) => {
                   const val = e.target.value;
-                  setProduct({ ...product, igst: val === "" ? 0 : Number.parseFloat(val) });
+                  setProduct({
+                    ...product,
+                    igst: val === "" ? 0 : Number.parseFloat(val),
+                  });
                 }}
                 className="h-11"
               />
@@ -941,11 +1036,14 @@ const ProductMasterDashboard: React.FC = () => {
               <Input
                 id="vat"
                 type="number"
-                placeholder={product.categoryType === 'Fuel' ? "25" : "0"}
+                placeholder={product.categoryType === "Fuel" ? "25" : "0"}
                 value={product.vat}
                 onChange={(e) => {
                   const val = e.target.value;
-                  setProduct({ ...product, vat: val === "" ? 0 : Number.parseFloat(val) });
+                  setProduct({
+                    ...product,
+                    vat: val === "" ? 0 : Number.parseFloat(val),
+                  });
                 }}
                 className="h-11"
               />
@@ -956,9 +1054,13 @@ const ProductMasterDashboard: React.FC = () => {
               </Label>
               <Input
                 id="sac"
-                placeholder={product.categoryType === 'Fuel' ? "SAC002" : "SAC001"}
+                placeholder={
+                  product.categoryType === "Fuel" ? "SAC002" : "SAC001"
+                }
                 value={product.sac}
-                onChange={(e) => setProduct({ ...product, sac: e.target.value })}
+                onChange={(e) =>
+                  setProduct({ ...product, sac: e.target.value })
+                }
                 className="h-11"
               />
             </div>
@@ -977,7 +1079,9 @@ const ProductMasterDashboard: React.FC = () => {
     onSubmitted: () => void;
   }) {
     const [productId, setProductId] = useState<string>("");
-    const [categoryType, setCategoryType] = useState<'Fuel' | 'Other Product'>('Other Product');
+    const [categoryType, setCategoryType] = useState<"Fuel" | "Other Product">(
+      "Other Product"
+    );
     const [categoryId, setCategoryId] = useState<string>("");
     const [name, setName] = useState<string>("");
     const [supplier, setSupplier] = useState<string>("");
@@ -997,66 +1101,72 @@ const ProductMasterDashboard: React.FC = () => {
     const [reorderLevel, setReorderLevel] = useState<string>("");
     const [discount, setDiscount] = useState<string>("");
 
-    const canSubmit = name.trim().length > 0 && (!!uom) && (categoryType === 'Fuel' || !!categoryId);
+    const canSubmit =
+      name.trim().length > 0 &&
+      !!uom &&
+      (categoryType === "Fuel" || !!categoryId);
 
     const handleSubmit = () => {
       if (!canSubmit) {
-        window.alert('Please fill in required fields');
+        window.alert("Please fill in required fields");
         return;
       }
       const form = new FormData();
-      form.append('category_type', categoryType);
-      if (categoryType === 'Other Product') form.append('category_id', categoryId);
-      form.append('name', name);
-      form.append('supplier', supplier);
-      form.append('uom', uom);
-      form.append('hsn', hsn);
-      form.append('description', description);
-      if (categoryType === 'Other Product') {
-        if (mrp !== '') form.append('mrp', String(Number(mrp)));
-        if (salePrice !== '') form.append('sale_price', String(Number(salePrice)));
-        if (stock !== '') form.append('stock', String(Number(stock)));
-        if (reorderLevel !== '') form.append('reorder_level', String(Number(reorderLevel)));
-        if (discount !== '') form.append('discount', String(Number(discount)));
+      form.append("category_type", categoryType);
+      if (categoryType === "Other Product")
+        form.append("category_id", categoryId);
+      form.append("name", name);
+      form.append("supplier", supplier);
+      form.append("uom", uom);
+      form.append("hsn", hsn);
+      form.append("description", description);
+      if (categoryType === "Other Product") {
+        if (mrp !== "") form.append("mrp", String(Number(mrp)));
+        if (salePrice !== "")
+          form.append("sale_price", String(Number(salePrice)));
+        if (stock !== "") form.append("stock", String(Number(stock)));
+        if (reorderLevel !== "")
+          form.append("reorder_level", String(Number(reorderLevel)));
+        if (discount !== "") form.append("discount", String(Number(discount)));
       }
-      form.append('cgst', String(Number(cgst || '0')));
-      form.append('igst', String(Number(igst || '0')));
-      form.append('sgst', String(Number(sgst || '0')));
-      form.append('vat', String(Number(vat || '0')));
-      form.append('sac', sac);
-      form.append('status', 'active');
-      if (imageFile) form.append('image', imageFile);
+      form.append("cgst", String(Number(cgst || "0")));
+      form.append("igst", String(Number(igst || "0")));
+      form.append("sgst", String(Number(sgst || "0")));
+      form.append("vat", String(Number(vat || "0")));
+      form.append("sac", sac);
+      form.append("status", "active");
+      if (imageFile) form.append("image", imageFile);
 
       ProductMasterService.createProductMultipart(form)
         .then(() => {
           refreshProducts();
           onSubmitted();
           // reset
-          setProductId('');
-          setCategoryType('Other Product');
-          setCategoryId('');
-          setName('');
-          setSupplier('');
-          setUom('');
-          setHsn('');
-          setDescription('');
-          setImage('');
+          setProductId("");
+          setCategoryType("Other Product");
+          setCategoryId("");
+          setName("");
+          setSupplier("");
+          setUom("");
+          setHsn("");
+          setDescription("");
+          setImage("");
           setImageFile(null);
-          setSac('');
-          setCgst('0');
-          setIgst('0');
-          setSgst('0');
-          setVat('0');
-          setMrp('');
-          setSalePrice('');
-          setStock('');
-          setReorderLevel('');
-          setDiscount('');
-          window.alert('Product added successfully');
+          setSac("");
+          setCgst("0");
+          setIgst("0");
+          setSgst("0");
+          setVat("0");
+          setMrp("");
+          setSalePrice("");
+          setStock("");
+          setReorderLevel("");
+          setDiscount("");
+          window.alert("Product added successfully");
         })
         .catch((e) => {
           console.error(e);
-          window.alert('Failed to add product');
+          window.alert("Failed to add product");
         });
     };
 
@@ -1065,31 +1175,37 @@ const ProductMasterDashboard: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label className="text-sm font-medium">Product ID *</Label>
-            <Input value={productId} onChange={(e) => setProductId(e.target.value)} placeholder="PRD001" />
+            <Input
+              value={productId}
+              onChange={(e) => setProductId(e.target.value)}
+              placeholder="PRD001"
+            />
           </div>
           <div className="space-y-2">
             <Label className="text-sm font-medium">Category Type *</Label>
             <Select
               defaultValue={categoryType}
               onChange={(value) => {
-                const next = value as 'Fuel' | 'Other Product';
+                const next = value as "Fuel" | "Other Product";
                 setCategoryType(next);
-                if (next === 'Fuel') setCategoryId('');
+                if (next === "Fuel") setCategoryId("");
               }}
               options={[
-                { value: 'Fuel', label: 'Fuel' },
-                { value: 'Other Product', label: 'Other Product' },
+                { value: "Fuel", label: "Fuel" },
+                { value: "Other Product", label: "Other Product" },
               ]}
             />
           </div>
 
-          {categoryType === 'Other Product' && (
+          {categoryType === "Other Product" && (
             <div className="space-y-2">
               <Label className="text-sm font-medium">Category Name *</Label>
               <Select
                 defaultValue={categoryId}
                 onChange={(value) => setCategoryId(value)}
-                options={categories.filter(c => c.categoryType === 'Other Product').map(c => ({ value: c.id, label: c.name }))}
+                options={categories
+                  .filter((c) => c.categoryType === "Other Product")
+                  .map((c) => ({ value: c.id, label: c.name }))}
                 placeholder="Select Category"
               />
             </div>
@@ -1097,12 +1213,20 @@ const ProductMasterDashboard: React.FC = () => {
 
           <div className="space-y-2">
             <Label className="text-sm font-medium">Product Name *</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., Petrol Regular" />
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g., Petrol Regular"
+            />
           </div>
 
           <div className="space-y-2">
             <Label className="text-sm font-medium">Supplier *</Label>
-            <Input value={supplier} onChange={(e) => setSupplier(e.target.value)} placeholder="e.g., IOCL" />
+            <Input
+              value={supplier}
+              onChange={(e) => setSupplier(e.target.value)}
+              placeholder="e.g., IOCL"
+            />
           </div>
 
           <div className="space-y-2">
@@ -1110,20 +1234,34 @@ const ProductMasterDashboard: React.FC = () => {
             <Select
               defaultValue={uom}
               onChange={(value) => setUom(value)}
-              options={[{ value: 'Liter', label: 'Liter' }, { value: 'Kg', label: 'Kg' }, { value: 'Piece', label: 'Piece' }, { value: 'Gallon', label: 'Gallon' }]}
+              options={[
+                { value: "Liter", label: "Liter" },
+                { value: "Kg", label: "Kg" },
+                { value: "Piece", label: "Piece" },
+                { value: "Gallon", label: "Gallon" },
+              ]}
               placeholder="Select UoM"
             />
           </div>
 
           <div className="space-y-2">
             <Label className="text-sm font-medium">HSN Code *</Label>
-            <Input value={hsn} onChange={(e) => setHsn(e.target.value)} placeholder="27101221" />
+            <Input
+              value={hsn}
+              onChange={(e) => setHsn(e.target.value)}
+              placeholder="27101221"
+            />
           </div>
         </div>
 
         <div className="space-y-2">
           <Label className="text-sm font-medium">Description *</Label>
-          <TextArea value={description} onChange={setDescription} rows={3} placeholder="Short description" />
+          <TextArea
+            value={description}
+            onChange={setDescription}
+            rows={3}
+            placeholder="Short description"
+          />
         </div>
 
         {/* Product Image */}
@@ -1135,72 +1273,154 @@ const ProductMasterDashboard: React.FC = () => {
               accept="image/*"
               onChange={(e) => {
                 const file = e.target.files?.[0];
-                if (!file) { setImage(''); setImageFile(null); return; }
+                if (!file) {
+                  setImage("");
+                  setImageFile(null);
+                  return;
+                }
                 const reader = new FileReader();
                 reader.onloadend = () => setImage(String(reader.result || ""));
                 reader.readAsDataURL(file);
                 setImageFile(file);
               }}
             />
-            {image && <img src={image} alt="preview" className="h-16 w-16 object-cover rounded border" />}
+            {image && (
+              <img
+                src={image}
+                alt="preview"
+                className="h-16 w-16 object-cover rounded border"
+              />
+            )}
           </div>
         </div>
 
-        {categoryType === 'Other Product' && (
+        {categoryType === "Other Product" && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="space-y-2">
               <Label className="text-sm font-medium">MRP (₹) *</Label>
-              <Input type="number" value={mrp} onChange={(e) => setMrp(e.target.value)} placeholder="100" />
+              <Input
+                type="number"
+                value={mrp}
+                onChange={(e) => setMrp(e.target.value)}
+                placeholder="100"
+              />
             </div>
             <div className="space-y-2">
               <Label className="text-sm font-medium">Sale Price (₹) *</Label>
-              <Input type="number" value={salePrice} onChange={(e) => setSalePrice(e.target.value)} placeholder="95" />
+              <Input
+                type="number"
+                value={salePrice}
+                onChange={(e) => setSalePrice(e.target.value)}
+                placeholder="95"
+              />
             </div>
             <div className="space-y-2">
               <Label className="text-sm font-medium">Stock Quantity *</Label>
-              <Input type="number" value={stock} onChange={(e) => setStock(e.target.value)} placeholder="50" />
+              <Input
+                type="number"
+                value={stock}
+                onChange={(e) => setStock(e.target.value)}
+                placeholder="50"
+              />
             </div>
             <div className="space-y-2">
               <Label className="text-sm font-medium">Reorder Level *</Label>
-              <Input type="number" value={reorderLevel} onChange={(e) => setReorderLevel(e.target.value)} placeholder="10" />
+              <Input
+                type="number"
+                value={reorderLevel}
+                onChange={(e) => setReorderLevel(e.target.value)}
+                placeholder="10"
+              />
             </div>
             <div className="space-y-2">
               <Label className="text-sm font-medium">Discount (%)</Label>
-              <Input type="number" value={discount} onChange={(e) => setDiscount(e.target.value)} placeholder="5" />
+              <Input
+                type="number"
+                value={discount}
+                onChange={(e) => setDiscount(e.target.value)}
+                placeholder="5"
+              />
             </div>
           </div>
         )}
 
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold border-b pb-2">Tax Information</h3>
+          <h3 className="text-lg font-semibold border-b pb-2">
+            Tax Information
+          </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <div className="space-y-2">
               <Label className="text-sm font-medium">CGST (%) *</Label>
-              <Input type="number" value={cgst} onChange={(e) => setCgst(e.target.value)} placeholder={categoryType === 'Fuel' ? '0' : '9'} />
+              <Input
+                type="number"
+                value={cgst}
+                onChange={(e) => setCgst(e.target.value)}
+                placeholder={categoryType === "Fuel" ? "0" : "9"}
+              />
             </div>
             <div className="space-y-2">
               <Label className="text-sm font-medium">IGST (%) *</Label>
-              <Input type="number" value={igst} onChange={(e) => setIgst(e.target.value)} placeholder={categoryType === 'Fuel' ? '0' : '18'} />
+              <Input
+                type="number"
+                value={igst}
+                onChange={(e) => setIgst(e.target.value)}
+                placeholder={categoryType === "Fuel" ? "0" : "18"}
+              />
             </div>
             <div className="space-y-2">
               <Label className="text-sm font-medium">SGST (%) *</Label>
-              <Input type="number" value={sgst} onChange={(e) => setSgst(e.target.value)} placeholder={categoryType === 'Fuel' ? '0' : '9'} />
+              <Input
+                type="number"
+                value={sgst}
+                onChange={(e) => setSgst(e.target.value)}
+                placeholder={categoryType === "Fuel" ? "0" : "9"}
+              />
             </div>
             <div className="space-y-2">
               <Label className="text-sm font-medium">VAT (%) *</Label>
-              <Input type="number" value={vat} onChange={(e) => setVat(e.target.value)} placeholder={categoryType === 'Fuel' ? '25' : '0'} />
+              <Input
+                type="number"
+                value={vat}
+                onChange={(e) => setVat(e.target.value)}
+                placeholder={categoryType === "Fuel" ? "25" : "0"}
+              />
             </div>
             <div className="space-y-2">
               <Label className="text-sm font-medium">VAT SAC Code *</Label>
-              <Input value={sac} onChange={(e) => setSac(e.target.value)} placeholder={categoryType === 'Fuel' ? 'SAC002' : 'SAC001'} />
+              <Input
+                value={sac}
+                onChange={(e) => setSac(e.target.value)}
+                placeholder={categoryType === "Fuel" ? "SAC002" : "SAC001"}
+              />
             </div>
           </div>
         </div>
 
         <div className="flex justify-center gap-4 pt-6 border-t mt-6">
-          <Button variant="outline" onClick={() => {
-            setCategoryType('Other Product'); setCategoryId(''); setName(''); setSupplier(''); setUom(''); setHsn(''); setDescription(''); setSac(''); setCgst('0'); setSgst('0'); setIgst('0'); setVat('0'); setMrp(''); setSalePrice(''); setStock(''); setReorderLevel(''); setDiscount('');
-          }}>Clear Form</Button>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setCategoryType("Other Product");
+              setCategoryId("");
+              setName("");
+              setSupplier("");
+              setUom("");
+              setHsn("");
+              setDescription("");
+              setSac("");
+              setCgst("0");
+              setSgst("0");
+              setIgst("0");
+              setVat("0");
+              setMrp("");
+              setSalePrice("");
+              setStock("");
+              setReorderLevel("");
+              setDiscount("");
+            }}
+          >
+            Clear Form
+          </Button>
           <Button className="px-8" onClick={handleSubmit} disabled={!canSubmit}>
             <Check className="h-4 w-4 mr-2" />
             Add Product
@@ -1213,8 +1433,12 @@ const ProductMasterDashboard: React.FC = () => {
   return (
     <div className="mx-auto max-w-7xl p-6">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Product Master Dashboard</h1>
-        <p className="text-gray-600 dark:text-gray-400">Manage your fuel station products and categories</p>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+          Product Master Dashboard
+        </h1>
+        <p className="text-gray-600 dark:text-gray-400">
+          Manage your fuel station products and categories
+        </p>
       </div>
 
       <Tabs defaultValue="products" className="space-y-6">
@@ -1240,7 +1464,9 @@ const ProductMasterDashboard: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <Package className="h-5 w-5 text-blue-600" />
                   <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Total Categories</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Total Categories
+                    </p>
                     <p className="text-2xl font-bold">{categories.length}</p>
                   </div>
                 </div>
@@ -1251,7 +1477,9 @@ const ProductMasterDashboard: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <ShoppingCart className="h-5 w-5 text-green-600" />
                   <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Total Products</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Total Products
+                    </p>
                     <p className="text-2xl font-bold">{totalProducts}</p>
                   </div>
                 </div>
@@ -1262,7 +1490,9 @@ const ProductMasterDashboard: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <TrendingUp className="h-5 w-5 text-purple-600" />
                   <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Active Products</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Active Products
+                    </p>
                     <p className="text-2xl font-bold">{activeProducts}</p>
                   </div>
                 </div>
@@ -1273,7 +1503,9 @@ const ProductMasterDashboard: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <AlertTriangle className="h-5 w-5 text-red-600" />
                   <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Low Stock</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Low Stock
+                    </p>
                     <p className="text-2xl font-bold">{lowStockProducts}</p>
                   </div>
                 </div>
@@ -1287,7 +1519,10 @@ const ProductMasterDashboard: React.FC = () => {
                 <Package className="h-4 w-4" />
                 <span>Fuel Products</span>
               </TabsTrigger>
-              <TabsTrigger value="other-products" className="flex items-center gap-2">
+              <TabsTrigger
+                value="other-products"
+                className="flex items-center gap-2"
+              >
                 <ShoppingCart className="h-4 w-4" />
                 <span>Other Products</span>
               </TabsTrigger>
@@ -1300,7 +1535,8 @@ const ProductMasterDashboard: React.FC = () => {
                     Fuel Products
                   </h2>
                   <Badge variant="secondary" className="text-xs">
-                    {products.filter(p => p.categoryType === 'Fuel').length} products
+                    {products.filter((p) => p.categoryType === "Fuel").length}{" "}
+                    products
                   </Badge>
                   <div className="ml-auto">
                     <Switch
@@ -1311,46 +1547,52 @@ const ProductMasterDashboard: React.FC = () => {
                   </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
-                  {products.filter(p => p.categoryType === 'Fuel').map((product) => (
-                    <ProductCard key={product.id} product={product} />
-                  ))}
+                  {products
+                    .filter((p) => p.categoryType === "Fuel")
+                    .map((product) => (
+                      <ProductCard key={product.id} product={product} />
+                    ))}
                 </div>
-          </div>
-        </TabsContent>
+              </div>
+            </TabsContent>
 
             <TabsContent value="other-products" className="space-y-6">
               <div className="space-y-6">
-                {categories.filter(c => c.categoryType === 'Other Product').map((category) => {
-                  const categoryProducts = products.filter(
-                    (product) => product.categoryId === category.id
-                  );
-                  if (categoryProducts.length === 0) return null;
-                  return (
-                    <div key={category.id} className="space-y-4">
-                      <div className="flex items-center gap-2">
-                        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                          {category.name}
-            </h2>
-                        <Badge variant="secondary" className="text-xs">
-                          {categoryProducts.length} products
-                        </Badge>
-                        <div className="ml-auto">
-                          <Switch
-                            label="Show archived"
-                            defaultChecked={false}
-                            onChange={(checked) => setShowArchivedProducts(checked)}
-                          />
+                {categories
+                  .filter((c) => c.categoryType === "Other Product")
+                  .map((category) => {
+                    const categoryProducts = products.filter(
+                      (product) => product.categoryId === category.id
+                    );
+                    if (categoryProducts.length === 0) return null;
+                    return (
+                      <div key={category.id} className="space-y-4">
+                        <div className="flex items-center gap-2">
+                          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                            {category.name}
+                          </h2>
+                          <Badge variant="secondary" className="text-xs">
+                            {categoryProducts.length} products
+                          </Badge>
+                          <div className="ml-auto">
+                            <Switch
+                              label="Show archived"
+                              defaultChecked={false}
+                              onChange={(checked) =>
+                                setShowArchivedProducts(checked)
+                              }
+                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
+                          {categoryProducts.map((product) => (
+                            <ProductCard key={product.id} product={product} />
+                          ))}
                         </div>
                       </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
-                        {categoryProducts.map((product) => (
-                          <ProductCard key={product.id} product={product} />
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-          </div>
+                    );
+                  })}
+              </div>
             </TabsContent>
           </Tabs>
         </TabsContent>
@@ -1360,12 +1602,17 @@ const ProductMasterDashboard: React.FC = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Add New Product</CardTitle>
-                <CardDescription>Enter product details to add to your inventory</CardDescription>
+                <CardDescription>
+                  Enter product details to add to your inventory
+                </CardDescription>
               </CardHeader>
-            <CardContent>
-              {/* Use robust AddProductForm to prevent scroll/typing glitches */}
-              <AddProductForm categories={categories} onSubmitted={() => {}} />
-            </CardContent>
+              <CardContent>
+                {/* Use robust AddProductForm to prevent scroll/typing glitches */}
+                <AddProductForm
+                  categories={categories}
+                  onSubmitted={() => {}}
+                />
+              </CardContent>
             </Card>
           </div>
         </TabsContent>
@@ -1373,7 +1620,9 @@ const ProductMasterDashboard: React.FC = () => {
         <TabsContent value="categories" className="space-y-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Categories</h2>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                Categories
+              </h2>
               <Badge variant="outline" className="text-sm">
                 {categories.length} categories
               </Badge>
@@ -1385,12 +1634,12 @@ const ProductMasterDashboard: React.FC = () => {
                 onChange={(checked) => setShowArchivedCategories(checked)}
               />
               <Button
-              size="sm"
-              variant="primary"
-              onClick={() => setIsAddCategoryOpen(true)}
-              startIcon={<PlusCircle className="h-4 w-4" />}
-            >
-              Create
+                size="sm"
+                variant="primary"
+                onClick={() => setIsAddCategoryOpen(true)}
+                startIcon={<PlusCircle className="h-4 w-4" />}
+              >
+                Create
               </Button>
             </div>
           </div>
@@ -1400,16 +1649,22 @@ const ProductMasterDashboard: React.FC = () => {
             ))}
           </div>
         </TabsContent>
-
-
       </Tabs>
 
       {/* Edit Product Modal */}
-      <Modal isOpen={isEditProductOpen} onClose={() => setIsEditProductOpen(false)} className="max-w-4xl w-full">
+      <Modal
+        isOpen={isEditProductOpen}
+        onClose={() => setIsEditProductOpen(false)}
+        className="max-w-4xl w-full"
+      >
         <div className="max-h-[85vh] overflow-y-auto p-6 space-y-4">
           <div className="pb-2">
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Edit Product</h3>
-            <p className="text-gray-600 dark:text-gray-400">Update the product information below.</p>
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+              Edit Product
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400">
+              Update the product information below.
+            </p>
           </div>
           <CompactProductForm
             product={editingProduct || emptyProduct}
@@ -1420,8 +1675,21 @@ const ProductMasterDashboard: React.FC = () => {
             isEdit
           />
           <div className="flex justify-end gap-3 pt-4 border-t">
-            <Button variant="outline" onClick={() => setIsEditProductOpen(false)}>Cancel</Button>
-            <Button onClick={handleUpdateProduct} disabled={!editingProduct?.name || !editingProduct?.categoryType || (editingProduct?.categoryType === 'Other Product' && !editingProduct?.categoryId)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsEditProductOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleUpdateProduct}
+              disabled={
+                !editingProduct?.name ||
+                !editingProduct?.categoryType ||
+                (editingProduct?.categoryType === "Other Product" &&
+                  !editingProduct?.categoryId)
+              }
+            >
               <Check className="h-4 w-4 mr-2" />
               Update Product
             </Button>
@@ -1430,50 +1698,65 @@ const ProductMasterDashboard: React.FC = () => {
       </Modal>
 
       {/* Add Category Modal */}
-      <Modal isOpen={isAddCategoryOpen} onClose={() => setIsAddCategoryOpen(false)} className="max-w-xl p-6">
+      <Modal
+        isOpen={isAddCategoryOpen}
+        onClose={() => setIsAddCategoryOpen(false)}
+        className="max-w-xl p-6"
+      >
         <div className="space-y-4">
           <div>
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Add New Category</h3>
-            <p className="text-gray-600 dark:text-gray-400">Create a new product category</p>
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+              Add New Category
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400">
+              Create a new product category
+            </p>
           </div>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="categoryType">Category Type *</Label>
               <Select
                 defaultValue={newCategory.categoryType}
-                onChange={(value) => setNewCategory({ 
-                  ...newCategory, 
-                  categoryType: value as 'Fuel' | 'Other Product',
-                  name: value === 'Fuel' ? 'Fuels' : ''
-                })}
+                onChange={(value) =>
+                  setNewCategory({
+                    ...newCategory,
+                    categoryType: value as "Fuel" | "Other Product",
+                    name: value === "Fuel" ? "Fuels" : "",
+                  })
+                }
                 options={[
                   { value: "Fuel", label: "Fuel" },
-                  { value: "Other Product", label: "Other Product" }
+                  { value: "Other Product", label: "Other Product" },
                 ]}
                 placeholder="Select Category Type"
               />
             </div>
-            {newCategory.categoryType === 'Other Product' && (
+            {newCategory.categoryType === "Other Product" && (
               <div className="space-y-2">
                 <Label htmlFor="categoryName">Category Name *</Label>
                 <Input
                   id="categoryName"
                   placeholder="Engine Oils, Lubricants, etc."
                   value={newCategory.name}
-                  onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
+                  onChange={(e) =>
+                    setNewCategory({ ...newCategory, name: e.target.value })
+                  }
                 />
               </div>
             )}
             <div className="space-y-2">
               <Label htmlFor="categoryDescription">Description</Label>
               <TextArea
-                placeholder={newCategory.categoryType === 'Fuel' ? 
-                  "Petrol, Diesel and Special variants" : 
-                  "Describe the category products"
+                placeholder={
+                  newCategory.categoryType === "Fuel"
+                    ? "Petrol, Diesel and Special variants"
+                    : "Describe the category products"
                 }
                 rows={3}
                 value={newCategory.description || ""}
-                onChange={(value) => setNewCategory({ ...newCategory, description: value })}
+                onChange={(value) =>
+                  setNewCategory({ ...newCategory, description: value })
+                }
               />
             </div>
             <div className="flex justify-end gap-4 pt-4">
@@ -1486,7 +1769,15 @@ const ProductMasterDashboard: React.FC = () => {
               >
                 Cancel
               </Button>
-              <Button size="sm" disabled={!newCategory.categoryType || (newCategory.categoryType === 'Other Product' && !newCategory.name)} onClick={handleAddCategory}>
+              <Button
+                size="sm"
+                disabled={
+                  !newCategory.categoryType ||
+                  (newCategory.categoryType === "Other Product" &&
+                    !newCategory.name)
+                }
+                onClick={handleAddCategory}
+              >
                 <Check className="h-4 w-4 mr-2" />
                 Add Category
               </Button>
@@ -1496,55 +1787,80 @@ const ProductMasterDashboard: React.FC = () => {
       </Modal>
 
       {/* Edit Category Modal */}
-      <Modal isOpen={isEditCategoryOpen} onClose={() => setIsEditCategoryOpen(false)} className="max-w-xl p-6">
+      <Modal
+        isOpen={isEditCategoryOpen}
+        onClose={() => setIsEditCategoryOpen(false)}
+        className="max-w-xl p-6"
+      >
         <div className="space-y-4">
           <div>
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Edit Category</h3>
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+              Edit Category
+            </h3>
             <p className="text-gray-600 dark:text-gray-400">
-              {editingCategory?.name ? `Update category information for ${editingCategory.name}` : "Update category information"}
+              {editingCategory?.name
+                ? `Update category information for ${editingCategory.name}`
+                : "Update category information"}
             </p>
           </div>
           {editingCategory && (
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="editCategoryId">Category ID</Label>
-                <Input id="editCategoryId" value={editingCategory.id} disabled />
+                <Input
+                  id="editCategoryId"
+                  value={editingCategory.id}
+                  disabled
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="editCategoryType">Category Type *</Label>
                 <Select
                   defaultValue={editingCategory.categoryType}
-                  onChange={(value) => setEditingCategory({ 
-                    ...editingCategory, 
-                    categoryType: value as 'Fuel' | 'Other Product',
-                    name: value === 'Fuel' ? 'Fuels' : editingCategory.name
-                  })}
+                  onChange={(value) =>
+                    setEditingCategory({
+                      ...editingCategory,
+                      categoryType: value as "Fuel" | "Other Product",
+                      name: value === "Fuel" ? "Fuels" : editingCategory.name,
+                    })
+                  }
                   options={[
                     { value: "Fuel", label: "Fuel" },
-                    { value: "Other Product", label: "Other Product" }
+                    { value: "Other Product", label: "Other Product" },
                   ]}
                 />
               </div>
-              {editingCategory.categoryType === 'Other Product' && (
+              {editingCategory.categoryType === "Other Product" && (
                 <div className="space-y-2">
                   <Label htmlFor="editCategoryName">Category Name *</Label>
                   <Input
                     id="editCategoryName"
                     value={editingCategory.name}
-                    onChange={(e) => setEditingCategory({ ...editingCategory, name: e.target.value })}
+                    onChange={(e) =>
+                      setEditingCategory({
+                        ...editingCategory,
+                        name: e.target.value,
+                      })
+                    }
                   />
                 </div>
               )}
               <div className="space-y-2">
                 <Label htmlFor="editCategoryDescription">Description</Label>
                 <TextArea
-                  placeholder={editingCategory.categoryType === 'Fuel' ? 
-                    "Petrol, Diesel and Special variants" : 
-                    "Describe the category products"
+                  placeholder={
+                    editingCategory.categoryType === "Fuel"
+                      ? "Petrol, Diesel and Special variants"
+                      : "Describe the category products"
                   }
                   rows={3}
                   value={editingCategory.description || ""}
-                  onChange={(value) => setEditingCategory({ ...editingCategory, description: value })}
+                  onChange={(value) =>
+                    setEditingCategory({
+                      ...editingCategory,
+                      description: value,
+                    })
+                  }
                 />
               </div>
               <div className="flex justify-end gap-4 pt-4">
@@ -1557,7 +1873,14 @@ const ProductMasterDashboard: React.FC = () => {
                 >
                   Cancel
                 </Button>
-                <Button disabled={!editingCategory.categoryType || (editingCategory.categoryType === 'Other Product' && !editingCategory.name)} onClick={handleUpdateCategory}>
+                <Button
+                  disabled={
+                    !editingCategory.categoryType ||
+                    (editingCategory.categoryType === "Other Product" &&
+                      !editingCategory.name)
+                  }
+                  onClick={handleUpdateCategory}
+                >
                   <Check className="h-4 w-4 mr-2" />
                   Update Category
                 </Button>

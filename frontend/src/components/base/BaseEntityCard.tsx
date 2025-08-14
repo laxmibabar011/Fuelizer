@@ -42,7 +42,6 @@ export abstract class BaseEntityCard<
       title,
       subtitle,
       status,
-      statusType = "generic",
       darkMode = false,
     } = this.props;
 
@@ -115,7 +114,7 @@ export abstract class BaseEntityCard<
  */
 export class OperatorCard extends BaseEntityCard<any> {
   protected renderEntityContent(): React.ReactNode {
-    const { entity, darkMode = false } = this.props;
+    const { entity = false } = this.props;
 
     return (
       <>
@@ -179,7 +178,6 @@ export class OperatorCard extends BaseEntityCard<any> {
       title,
       subtitle,
       status,
-      statusType = "generic",
       darkMode = false,
     } = this.props;
 

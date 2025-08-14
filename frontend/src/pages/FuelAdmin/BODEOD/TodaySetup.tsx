@@ -7,7 +7,6 @@ import {
   ClockIcon,
   FuelIcon,
   DollarLineIcon,
-  UsersIcon,
 } from "../../../icons";
 import {
   Tabs,

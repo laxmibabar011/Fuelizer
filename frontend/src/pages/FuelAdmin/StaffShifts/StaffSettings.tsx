@@ -96,7 +96,7 @@ const permissions: Permission[] = [
 ];
 
 const StaffSettings: React.FC = () => {
-  const [shifts, setShifts] = useState<ShiftConfig[]>(defaultShifts);
+  const [shifts] = useState<ShiftConfig[]>(defaultShifts);
   const [permissionSettings, setPermissionSettings] =
     useState<Permission[]>(permissions);
   const [notifications, setNotifications] = useState({

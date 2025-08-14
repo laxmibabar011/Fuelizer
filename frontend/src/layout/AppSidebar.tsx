@@ -8,8 +8,6 @@ import {
   ListIcon,
   PlugInIcon,
   UserCircleIcon,
-  SettingsIcon,
-  ChartIcon,
   CreditCardIcon,
   UsersIcon,
   BuildingIcon,

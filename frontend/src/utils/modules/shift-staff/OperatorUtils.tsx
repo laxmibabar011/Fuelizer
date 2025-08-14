@@ -1,5 +1,5 @@
 import React from "react";
-import { CheckCircle, MapPin, Clock, XCircle } from "lucide-react";
+// import { CheckCircle, MapPin, Clock, XCircle } from "lucide-react";
 import { Operator, OperatorStatus } from "../../../types/common";
 import { StatusUtils } from "../../common/StatusUtils";
 import { DataUtils } from "../../common/DataUtils";

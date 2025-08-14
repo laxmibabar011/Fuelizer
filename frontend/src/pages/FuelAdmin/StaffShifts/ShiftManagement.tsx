@@ -33,7 +33,7 @@ interface UiShift {
 }
 
 const ShiftManagement: React.FC = () => {
-  const [selectedShift, setSelectedShift] = useState<UiShift | null>(null);
+  // const [ setSelectedShift] = useState<UiShift | null>(null);
   const [shifts, setShifts] = useState<UiShift[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -152,7 +152,7 @@ const ShiftManagement: React.FC = () => {
 
   // Open edit modal with selected shift values
   const openEdit = (s: UiShift) => {
-    setSelectedShift(s);
+    // setSelectedShift(s);
     setEditForm({
       id: s.id,
       name: s.name,

@@ -2,8 +2,6 @@ import React, { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
 } from "../../../components/ui/card";
 import { Button } from "../../../components/ui/button";
 import { Badge } from "../../../components/ui/badge";
@@ -16,7 +14,6 @@ import {
   MapPin,
   Clock,
   Plus,
-  Users,
   Calendar,
   Award,
   Edit,
@@ -26,11 +23,8 @@ import {
 import {
   Operator,
   OperatorStatus,
-  AssignmentType,
-  Booth,
-  Nozzle,
+  // Booth,
 } from "../../../types/common";
-import { StatusUtils } from "../../../utils/common/StatusUtils";
 import { DataUtils } from "../../../utils/common/DataUtils";
 import staffshiftService from "../../../services/staffshiftService";
 import { OperatorUtils } from "../../../utils/modules/shift-staff/OperatorUtils";
@@ -47,10 +41,7 @@ const OperatorManagement: React.FC = () => {
   const [selectedOperator, setSelectedOperator] = useState<Operator | null>(
     null
   );
-  const [draggedOperator, setDraggedOperator] = useState<string | null>(null);
-  const [showBoothAssignmentModal, setShowBoothAssignmentModal] =
-    useState(false);
-  const [selectedBooth, setSelectedBooth] = useState<Booth | null>(null);
+  // const [, setSelectedBooth] = useState<Booth | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showShiftBoothModal, setShowShiftBoothModal] = useState(false);
   // NEW: deletion state
@@ -63,6 +54,7 @@ const OperatorManagement: React.FC = () => {
 
   // NEW: operators state loaded from API
   const [operators, setOperators] = useState<Operator[]>([]);
+  // const [setDraggedOperator] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState<boolean>(false);
@@ -113,8 +105,7 @@ const OperatorManagement: React.FC = () => {
     }
   }, [showShiftBoothModal, selectedOperator]);
 
-  // Placeholder booths until real API wired
-  const booths: Booth[] = [];
+  // Placeholder for booth selection until real API wired
 
   // Use utility methods instead of repeated calculations
   const availableOperators = OperatorUtils.getAvailableOperatorsCount(
@@ -127,45 +118,7 @@ const OperatorManagement: React.FC = () => {
     operators as any
   );
 
-  /**
-   * Handle operator assignment to booth/nozzle
-   * Demonstrates encapsulation
-   */
-  const handleOperatorAssignment = (
-    operatorId: string,
-    boothName: string,
-    nozzleId?: string
-  ) => {
-    console.log(
-      `Assigned operator ${operatorId} to ${boothName}${nozzleId ? ` - Nozzle ${nozzleId}` : ""}`
-    );
-    setShowBoothAssignmentModal(false);
-    setSelectedBooth(null);
-  };
-
-  /**
-   * Handle booth click for assignment
-   */
-  const handleBoothClick = (booth: Booth) => {
-    if (booth.status === "online") {
-      setSelectedBooth(booth);
-      setShowBoothAssignmentModal(true);
-    }
-  };
-
-  /**
-   * Handle edit operator details
-   */
-  const handleEditOperatorDetails = () => {
-    setShowEditModal(true);
-  };
-
-  /**
-   * Handle edit shift and booth assignment
-   */
-  const handleEditShiftBooth = () => {
-    setShowShiftBoothModal(true);
-  };
+  // Handlers like assignment/booth click can be wired when backend is ready
 
   // Handlers
   const handleDeleteOperator = async () => {
@@ -246,8 +199,8 @@ const OperatorManagement: React.FC = () => {
       <div
         key={operator.id}
         draggable
-        onDragStart={() => setDraggedOperator(operator.id)}
-        onDragEnd={() => setDraggedOperator(null)}
+        // onDragStart={() => setDraggedOperator(operator.id)}
+        // onDragEnd={() => setDraggedOperator(null)}
         className="relative"
       >
         {EntityCardFactory.createCard("operator", cardProps)}

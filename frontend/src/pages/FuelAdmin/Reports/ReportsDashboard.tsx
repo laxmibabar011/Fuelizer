@@ -4,7 +4,6 @@ import { Button } from "../../../components/ui/button";
 import {
   ReportIcon,
   ChartIcon,
-  DollarLineIcon,
   FuelIcon,
   UsersIcon,
 } from "../../../icons";

@@ -1,12 +1,5 @@
 import React from "react";
-import {
-  CheckCircle,
-  AlertCircle,
-  XCircle,
-  MapPin,
-  Clock,
-  CheckCircle2,
-} from "lucide-react";
+import { CheckCircle, AlertCircle, XCircle, MapPin, Clock } from "lucide-react";
 
 /**
  * Common utility class for handling generic status-related operations

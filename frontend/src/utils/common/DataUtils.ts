@@ -187,7 +187,7 @@ export class DataUtils {
    * Calculate total from array of numbers
    */
   static calculateTotal(values: (number | null)[]): number {
-    return values.reduce((total, value) => total + (value || 0), 0);
+    return values.reduce<number>((total, value) => total + (value ?? 0), 0);
   }
 
   /**
