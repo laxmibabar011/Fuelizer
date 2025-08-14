@@ -7,7 +7,13 @@ export class StationRepository {
 
   // Booths
   async listBooths() {
-    return this.models.Booth.findAll({ order: [['id', 'ASC']], include: [{ model: this.models.Nozzle }] });
+    return this.models.Booth.findAll({ 
+      order: [['id', 'ASC']], 
+      include: [{ 
+        model: this.models.Nozzle,
+        include: [{ model: this.models.Product }]
+      }] 
+    });
   }
 
   async createBooth(data) {
@@ -25,19 +31,35 @@ export class StationRepository {
     return this.models.Booth.destroy({ where: { id } });
   }
 
-  // Nozzles
-  async listNozzles(boothId) {
-    return this.models.Nozzle.findAll({ where: { boothId }, include: [{ model: this.models.Product }] });
+  // Nozzles (simple CRUD)
+  async listNozzles() {
+    return this.models.Nozzle.findAll({
+      include: [
+        { model: this.models.Booth, attributes: ['name', 'code'] },
+        { model: this.models.Product, attributes: ['name'] }
+      ],
+      order: [['id', 'ASC']]
+    });
   }
 
-  async upsertNozzle(boothId, nozzle) {
-    if (nozzle.id) {
-      const existing = await this.models.Nozzle.findByPk(nozzle.id);
-      if (!existing) return null;
-      await existing.update({ code: nozzle.code, productId: nozzle.productId, status: nozzle.status, updatedAt: new Date() });
-      return existing;
-    }
-    return this.models.Nozzle.create({ boothId, code: nozzle.code, productId: nozzle.productId || null, status: nozzle.status || 'active' });
+  async createNozzle(data) {
+    return this.models.Nozzle.create({
+      boothId: data.boothId,
+      code: data.code,
+      productId: data.productId || null,
+      status: 'active'
+    });
+  }
+
+  async updateNozzle(id, data) {
+    const nozzle = await this.models.Nozzle.findByPk(id);
+    if (!nozzle) return null;
+    await nozzle.update({
+      code: data.code,
+      productId: data.productId,
+      updatedAt: new Date()
+    });
+    return nozzle;
   }
 
   async deleteNozzle(id) {
@@ -45,15 +67,12 @@ export class StationRepository {
   }
 
   // Products (minimal for mapping)
-  async ensureFuelProductsFromMaster(pmModels) {
-    // Populate station.Product from ProductMasterProduct where category_type = 'Fuel'
-    const fuelProducts = await pmModels.ProductMasterProduct.findAll({ where: { category_type: 'Fuel' }, order: [['name', 'ASC']] })
-    for (const fp of fuelProducts) {
-      // Create if not exists in station.Product by name
+  async ensureFuelProducts(seed = ['Petrol', 'Diesel', 'Power Petrol']) {
+    for (const name of seed) {
       // @ts-ignore
-      await this.models.Product.findOrCreate({ where: { name: fp.name }, defaults: { name: fp.name, category: 'Fuel' } })
+      const [p] = await this.models.Product.findOrCreate({ where: { name }, defaults: { name, category: 'Fuel' } });
     }
-    return this.models.Product.findAll({ where: { category: 'Fuel' }, order: [['name', 'ASC']] })
+    return this.models.Product.findAll({ where: { category: 'Fuel' }, order: [['name', 'ASC']] });
   }
 }
 

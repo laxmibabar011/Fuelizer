@@ -5,13 +5,15 @@ export default class StationController {
   static async listBooths(req, res) {
     try {
       const repo = new StationRepository(req.tenantSequelize);
-      // Ensure mapping list populated from Product Master fuels
-      await repo.ensureFuelProductsFromMaster({
-        ProductMasterProduct: req.ProductMasterProduct || req.tenantSequelize.models.ProductMasterProduct,
-      });
+      await repo.ensureFuelProducts(); // seed minimal fuels
       const booths = await repo.listBooths();
+      
+      // Debug: Log the raw data before sending
+      console.log('Raw booths data:', JSON.stringify(booths, null, 2));
+      
       return sendResponse(res, { data: booths, message: 'Booths fetched' });
     } catch (err) {
+      console.error('Error in listBooths:', err);
       return sendResponse(res, { success: false, error: err.message, message: 'Failed to fetch booths', status: 500 });
     }
   }
@@ -60,27 +62,68 @@ export default class StationController {
 
   static async listNozzles(req, res) {
     try {
-      const { boothId } = req.params;
       const repo = new StationRepository(req.tenantSequelize);
-      const nozzles = await repo.listNozzles(boothId);
+      const nozzles = await repo.listNozzles();
       return sendResponse(res, { data: nozzles, message: 'Nozzles fetched' });
     } catch (err) {
       return sendResponse(res, { success: false, error: err.message, message: 'Failed to fetch nozzles', status: 500 });
     }
   }
 
-  static async upsertNozzle(req, res) {
+  static async createNozzle(req, res) {
     try {
-      const { boothId } = req.params;
-      const nozzle = req.body;
+      const { boothId, code, productId } = req.body;
+      
+      if (!boothId || !code) {
+        return sendResponse(res, { success: false, error: 'boothId and code required', message: 'Validation error', status: 400 });
+      }
+      
+      console.log('Creating nozzle:', { boothId, code, productId });
+      
       const repo = new StationRepository(req.tenantSequelize);
-      const saved = await repo.upsertNozzle(boothId, nozzle);
-      if (!saved) {
+      const nozzle = await repo.createNozzle({ boothId, code, productId });
+      
+      console.log('Nozzle created successfully:', {
+        id: nozzle.id,
+        code: nozzle.code,
+        codeLength: nozzle.code?.length,
+        boothId: nozzle.boothId,
+        productId: nozzle.productId
+      });
+      
+      return sendResponse(res, { data: nozzle, message: 'Nozzle created', status: 201 });
+    } catch (err) {
+      console.error('Error creating nozzle:', err);
+      return sendResponse(res, { success: false, error: err.message, message: 'Failed to create nozzle', status: 500 });
+    }
+  }
+
+  static async updateNozzle(req, res) {
+    try {
+      const { id } = req.params;
+      const { code, productId } = req.body;
+      
+      console.log('Updating nozzle:', { id, code, productId });
+      
+      const repo = new StationRepository(req.tenantSequelize);
+      const updated = await repo.updateNozzle(id, { code, productId });
+      
+      if (!updated) {
         return sendResponse(res, { success: false, error: 'Not found', message: 'Nozzle not found', status: 404 });
       }
-      return sendResponse(res, { data: saved, message: 'Nozzle saved' });
+      
+      console.log('Nozzle updated successfully:', {
+        id: updated.id,
+        code: updated.code,
+        codeLength: updated.code?.length,
+        boothId: updated.boothId,
+        productId: updated.productId
+      });
+      
+      return sendResponse(res, { data: updated, message: 'Nozzle updated' });
     } catch (err) {
-      return sendResponse(res, { success: false, error: err.message, message: 'Failed to save nozzle', status: 500 });
+      console.error('Error updating nozzle:', err);
+      return sendResponse(res, { success: false, error: err.message, message: 'Failed to update nozzle', status: 500 });
     }
   }
 

@@ -14,11 +14,11 @@ router.post('/station/booths', StationController.createBooth);
 router.put('/station/booths/:id', StationController.updateBooth);
 router.delete('/station/booths/:id', StationController.deleteBooth);
 
-// Nozzles
-router.get('/station/booths/:boothId/nozzles', StationController.listNozzles);
-router.post('/station/booths/:boothId/nozzles', StationController.upsertNozzle);
-router.put('/station/nozzles/:nozzleId', StationController.upsertNozzle);
-router.delete('/station/nozzles/:nozzleId', StationController.deleteNozzle);
+// Nozzles (simple CRUD)
+router.get('/station/nozzles', StationController.listNozzles);
+router.post('/station/nozzles', StationController.createNozzle);
+router.put('/station/nozzles/:id', StationController.updateNozzle);
+router.delete('/station/nozzles/:id', StationController.deleteNozzle);
 
 export default router;
 

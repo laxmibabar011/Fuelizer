@@ -30,12 +30,12 @@ const StationService = {
     return api.delete(`/api/tenant/station/booths/${id}`);
   },
 
-  // Nozzles
-  listNozzles(boothId: string | number) {
-    return api.get(`/api/tenant/station/booths/${boothId}/nozzles`);
+  // Nozzles (simple CRUD)
+  listNozzles() {
+    return api.get("/api/tenant/station/nozzles");
   },
-  addNozzle(boothId: string | number, nozzle: NozzleDTO) {
-    return api.post(`/api/tenant/station/booths/${boothId}/nozzles`, nozzle);
+  createNozzle(nozzle: NozzleDTO & { boothId: string | number }) {
+    return api.post("/api/tenant/station/nozzles", nozzle);
   },
   updateNozzle(nozzleId: string | number, nozzle: NozzleDTO) {
     return api.put(`/api/tenant/station/nozzles/${nozzleId}`, nozzle);

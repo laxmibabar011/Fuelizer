@@ -21,7 +21,7 @@ export const initStationModels = (sequelize) => {
   const Nozzle = sequelize.define('Nozzle', {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
     boothId: { type: DataTypes.INTEGER, allowNull: false },
-    code: { type: DataTypes.STRING, allowNull: false },
+    code: { type: DataTypes.STRING(20), allowNull: false }, // Explicitly set length to 20 characters
     productId: { type: DataTypes.INTEGER, allowNull: true }, // mapped fuel product
     status: { type: DataTypes.STRING, allowNull: false, defaultValue: 'active' }, // 'active' | 'inactive'
     updatedAt: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },

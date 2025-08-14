@@ -1,14 +1,14 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Card,
   CardHeader,
   CardTitle,
   CardDescription,
-  CardFooter,
   CardContent,
+  CardFooter,
 } from "../../../components/ui/card";
 import Button from "../../../components/ui/button/Button";
-import { PlusIcon } from "../../../icons";
+import { PlusIcon, ChevronDownIcon, ChevronUpIcon } from "../../../icons";
 import { Modal } from "../../../components/ui/modal";
 import Input from "../../../components/form/input/InputField";
 import Select from "../../../components/form/Select";
@@ -16,179 +16,196 @@ import Switch from "../../../components/form/switch/Switch";
 import { Badge } from "../../../components/ui/badge";
 import StationService from "../../../services/stationService";
 
+interface Nozzle {
+  id: string;
+  code: string;
+  productId: string;
+  productName?: string;
+}
+
+interface Booth {
+  id: string;
+  name: string;
+  code: string;
+  active: boolean;
+  nozzles: Nozzle[];
+}
+
 const StationSetup: React.FC = () => {
-  type Nozzle = { id: string; code: string; fuel: string };
-  type Booth = {
-    id: string;
-    name: string;
-    code: string;
-    active: boolean;
-    nozzles: Nozzle[];
-  };
-
   const [booths, setBooths] = useState<Booth[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [expandedBooth, setExpandedBooth] = useState<string | null>(null);
+  const [fuelOptions, setFuelOptions] = useState<{ value: string; label: string }[]>([]);
 
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-
-  // Add / Edit Booth Modal state
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isEdit, setIsEdit] = useState(false);
-  const [form, setForm] = useState<{ name: string; code: string; id?: string }>({
-    name: "",
-    code: "",
+  // Booth modal state
+  const [boothModal, setBoothModal] = useState({
+    open: false,
+    editing: false,
+    data: { name: "", code: "" },
+    boothId: ""
   });
 
-  const modalTitle = useMemo(
-    () => (isEdit ? `Edit Dispensing Unit` : `Add New Dispensing Unit`),
-    [isEdit]
-  );
+  // Nozzle modal state
+  const [nozzleModal, setNozzleModal] = useState({
+    open: false,
+    editing: false,
+    data: { code: "", productId: "" },
+    nozzleId: "",
+    boothId: ""
+  });
 
-  // Load booths
+  // Load data
   useEffect(() => {
-    StationService.listBooths().then((res) => {
-      const data = (res.data?.data || []) as any[];
-      const mapped: Booth[] = data.map((b: any) => ({
+    loadBooths();
+    loadFuelOptions();
+  }, []);
+
+  const loadBooths = async () => {
+    setLoading(true);
+    try {
+      const res = await StationService.listBooths();
+      const data = res.data?.data || [];
+      
+      const mappedBooths: Booth[] = data.map((b: any) => ({
         id: b.id,
         name: b.name,
         code: b.code,
         active: !!b.active,
-        nozzles: (b.Nozzles || b.nozzles || []).map((n: any) => ({
+        nozzles: (b.Nozzles || []).map((n: any) => ({
           id: n.id,
           code: n.code,
-          fuel: n.Product?.name ? n.Product.name.toLowerCase().replace(" ", "-") : "",
-        })),
+          productId: n.Product?.id ? String(n.Product.id) : "",
+          productName: n.Product?.name || ""
+        }))
       }));
-      setBooths(mapped);
-    });
-  }, []);
-
-  const openAdd = () => {
-    setIsEdit(false);
-    setForm({ name: "", code: "" });
-    setIsModalOpen(true);
-  };
-
-  const openEdit = (booth: { id: string; name: string; code: string }) => {
-    setIsEdit(true);
-    setForm({ id: booth.id, name: booth.name, code: booth.code });
-    setIsModalOpen(true);
-  };
-
-  const saveBooth = () => {
-    if (!form.name.trim() || !form.code.trim()) return;
-    if (isEdit && form.id) {
-      StationService.updateBooth(form.id, { name: form.name, code: form.code }).then(() => {
-        setBooths((prev) => prev.map((b) => (b.id === form.id ? { ...b, name: form.name, code: form.code } : b)));
-        setIsModalOpen(false);
-      });
-    } else {
-      StationService.createBooth({ name: form.name, code: form.code, active: true }).then((res) => {
-        const b = res.data?.data;
-        setBooths((prev) => [
-          ...prev,
-          { id: b.id, name: b.name, code: b.code, active: b.active, nozzles: [] },
-        ]);
-        setIsModalOpen(false);
-      });
+      
+      setBooths(mappedBooths);
+    } catch (err) {
+      console.error("Failed to load booths:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Inline management handlers
-  const toggleActive = (boothId: string, active: boolean) => {
-    StationService.updateBooth(boothId, { active }).then(() => {
-      setBooths((prev) => prev.map((b) => (b.id === boothId ? { ...b, active } : b)));
+  const loadFuelOptions = async () => {
+    try {
+      const { default: ProductMasterService } = await import("../../../services/productMasterService");
+      const res = await ProductMasterService.listProducts({ category_type: "Fuel" });
+      const products = res.data?.data || [];
+      const options = products.map((p: any) => ({
+        value: String(p.id),
+        label: p.name
+      }));
+      setFuelOptions(options);
+    } catch (err) {
+      console.error("Failed to load fuel options:", err);
+      setFuelOptions([
+        { value: "1", label: "Petrol" },
+        { value: "2", label: "Diesel" }
+      ]);
+    }
+  };
+
+  // Booth operations
+  const openBoothModal = (editing = false, booth?: Booth) => {
+    setBoothModal({
+      open: true,
+      editing,
+      data: booth ? { name: booth.name, code: booth.code } : { name: "", code: "" },
+      boothId: booth?.id || ""
     });
   };
 
-  const addNozzle = (boothId: string) => {
-    const newNozzle = { id: `temp-${Date.now()}`, code: "", fuel: "" };
-    setBooths((prev) =>
-      prev.map((b) =>
-        b.id === boothId
-          ? { ...b, nozzles: [...b.nozzles, newNozzle] }
-          : b
-      )
-    );
+  const saveBooth = async () => {
+    const { name, code } = boothModal.data;
+    if (!name.trim() || !code.trim()) return;
+
+    try {
+      if (boothModal.editing) {
+        await StationService.updateBooth(boothModal.boothId, { name, code });
+      } else {
+        await StationService.createBooth({ name, code, active: true });
+      }
+      await loadBooths();
+      setBoothModal({ open: false, editing: false, data: { name: "", code: "" }, boothId: "" });
+    } catch (err) {
+      console.error("Failed to save booth:", err);
+    }
   };
 
-  const updateNozzle = (
-    boothId: string,
-    nozzleId: string,
-    patch: Partial<Nozzle>
-  ) => {
-    // Update local state immediately for better UX
-    setBooths((prev) =>
-      prev.map((b) =>
-        b.id === boothId
-          ? {
-              ...b,
-              nozzles: b.nozzles.map((n) => (n.id === nozzleId ? { ...n, ...patch } : n)),
-            }
-          : b
-      )
-    );
+  const deleteBooth = async (boothId: string) => {
+    if (!window.confirm("Are you sure you want to delete this booth?")) return;
+    try {
+      await StationService.deleteBooth(boothId);
+      await loadBooths();
+      if (expandedBooth === boothId) setExpandedBooth(null);
+    } catch (err) {
+      console.error("Failed to delete booth:", err);
+    }
+  };
 
-    // If this is a temporary nozzle (starts with 'temp-'), save it to backend
-    if (typeof nozzleId === 'string' && nozzleId.startsWith('temp-')) {
-      const nozzle = booths.find(b => b.id === boothId)?.nozzles.find(n => n.id === nozzleId);
-      if (nozzle && nozzle.code && nozzle.fuel) {
-        StationService.addNozzle(boothId, { 
-          code: nozzle.code, 
-          productId: nozzle.fuel ? 1 : null // Placeholder - will need proper product mapping
-        }).then((res) => {
-          const savedNozzle = res.data?.data;
-          // Replace temporary nozzle with saved one
-          setBooths((prev) =>
-            prev.map((b) =>
-              b.id === boothId
-                ? {
-                    ...b,
-                    nozzles: b.nozzles.map((n) => 
-                      n.id === nozzleId ? { ...n, id: savedNozzle.id } : n
-                    ),
-                  }
-                : b
-            )
-          );
+  const toggleBoothStatus = async (boothId: string, active: boolean) => {
+    try {
+      await StationService.updateBooth(boothId, { active });
+      setBooths(prev => prev.map(b => b.id === boothId ? { ...b, active } : b));
+    } catch (err) {
+      console.error("Failed to update booth status:", err);
+    }
+  };
+
+  // Nozzle operations
+  const openNozzleModal = (editing = false, nozzle?: Nozzle, boothId?: string) => {
+    setNozzleModal({
+      open: true,
+      editing,
+      data: nozzle ? { code: nozzle.code, productId: nozzle.productId } : { code: "", productId: "" },
+      nozzleId: nozzle?.id || "",
+      boothId: boothId || ""
+    });
+  };
+
+  const saveNozzle = async () => {
+    const { code, productId } = nozzleModal.data;
+    if (!code.trim() || !productId) return;
+
+    try {
+      if (nozzleModal.editing) {
+        await StationService.updateNozzle(nozzleModal.nozzleId, { 
+          code, 
+          productId: Number(productId) 
+        });
+      } else {
+        await StationService.createNozzle({ 
+          boothId: Number(nozzleModal.boothId), 
+          code, 
+          productId: Number(productId) 
         });
       }
-    } else {
-      // Update existing nozzle
-      const payload: any = {};
-      if (patch.code !== undefined) payload.code = patch.code;
-      if (patch.fuel !== undefined)
-        payload.productId = patch.fuel ? 1 : null; // Placeholder - will need proper product mapping
-      
-      StationService.updateNozzle(nozzleId, payload);
+      await loadBooths();
+      setNozzleModal({ open: false, editing: false, data: { code: "", productId: "" }, nozzleId: "", boothId: "" });
+    } catch (err) {
+      console.error("Failed to save nozzle:", err);
     }
   };
 
-  const removeNozzle = (boothId: string, nozzleId: string) => {
-    // Remove from local state immediately
-    setBooths((prev) =>
-      prev.map((b) =>
-        b.id === boothId ? { ...b, nozzles: b.nozzles.filter((n) => n.id !== nozzleId) } : b
-      )
+  const deleteNozzle = async (nozzleId: string) => {
+    if (!window.confirm("Are you sure you want to delete this nozzle?")) return;
+    try {
+      await StationService.deleteNozzle(nozzleId);
+      await loadBooths();
+    } catch (err) {
+      console.error("Failed to delete nozzle:", err);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="p-6 text-center">
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white"></div>
+        <p className="mt-2 text-gray-600 dark:text-gray-400">Loading...</p>
+      </div>
     );
-
-    // Only call API if it's not a temporary nozzle
-    if (!nozzleId.toString().startsWith('temp-')) {
-      StationService.deleteNozzle(nozzleId);
-    }
-  };
-
-  const deleteBooth = (boothId: string) => {
-    StationService.deleteBooth(boothId).then(() => {
-      setBooths((prev) => prev.filter((b) => b.id !== boothId));
-      if (expandedId === boothId) setExpandedId(null);
-    });
-  };
-
-  const fuelOptions = [
-    { value: "petrol", label: "Petrol" },
-    { value: "diesel", label: "Diesel" },
-    { value: "power-petrol", label: "Power Petrol" },
-  ];
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -199,157 +216,215 @@ const StationSetup: React.FC = () => {
             Station Setup
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
-            Manage all dispensing units (booths) in your station.
+            Manage dispensing units and their nozzles
           </p>
         </div>
-        <Button startIcon={<PlusIcon className="h-4 w-4" />} onClick={openAdd}>
-          Add Booth
+        <Button onClick={() => openBoothModal(false)} startIcon={<PlusIcon className="h-3 w-3" />}>
+          +   Add Booth
         </Button>
       </div>
 
       {/* Booths Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {booths.map((booth) => {
-          const isExpanded = expandedId === booth.id;
-          const statusBadge = booth.active ? (
-            <Badge className="bg-green-500 text-white border-transparent">Active</Badge>
-          ) : (
-            <Badge className="bg-gray-300 text-gray-900 dark:bg-gray-700 dark:text-gray-100 border-transparent">Inactive</Badge>
-          );
-
-          const cardTone = booth.active
-            ? "bg-green-50 border-green-200 dark:bg-green-900/10 dark:border-green-800"
-            : "bg-gray-50 border-gray-200 dark:bg-gray-900 dark:border-gray-800";
-
+          const isExpanded = expandedBooth === booth.id;
+          
           return (
-            <Card key={booth.id} className={cardTone}>
-            <CardHeader>
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <CardTitle>{booth.name}</CardTitle>
+                         <Card key={booth.id} className={`transition-all duration-200 ${isExpanded ? 'ring-2 ring-blue-500' : 'hover:shadow-md'} ${booth.active ? 'bg-green-50 border-green-200 dark:bg-green-900/10 dark:border-green-800' : 'bg-gray-50 border-gray-200 dark:bg-gray-900 dark:border-gray-800'}`}>
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <CardTitle className="text-lg">{booth.name}</CardTitle>
                     <CardDescription>Code: {booth.code}</CardDescription>
+                    <div className="flex items-center gap-2 mt-2">
+                      <Badge className={booth.active ? "bg-green-500" : "bg-gray-500"}>
+                        {booth.active ? "Active" : "Inactive"}
+                      </Badge>
+                      <span className="text-sm text-gray-500">
+                        {booth.nozzles.length} nozzle{booth.nozzles.length !== 1 ? 's' : ''}
+                      </span>
+                    </div>
                   </div>
-                  <div className="mt-1">{statusBadge}</div>
+                                                        <Button
+                     size="sm"
+                     variant="outline"
+                     onClick={() => openBoothModal(true, booth)}
+                   >
+                     Edit
+                   </Button>
                 </div>
-            </CardHeader>
+              </CardHeader>
+
               {isExpanded && (
                 <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Booth Status
-                    </span>
+                  {/* Booth Status Toggle */}
+                  <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <span className="text-sm font-medium">Booth Status</span>
                     <Switch
                       label={booth.active ? "Active" : "Inactive"}
                       defaultChecked={booth.active}
-                      onChange={(checked) => toggleActive(booth.id, checked)}
+                      onChange={(checked) => toggleBoothStatus(booth.id, checked)}
                     />
                   </div>
 
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="text-sm font-medium text-gray-800 dark:text-white/90">
+                  {/* Nozzles Section */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-medium text-gray-900 dark:text-white">
                         Nozzles
                       </h4>
-                      <Button size="sm" variant="outline" onClick={() => addNozzle(booth.id)}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => openNozzleModal(false, undefined, booth.id)}
+                      >
+                        <PlusIcon className="h-3 w-3 mr-1" />
                         Add Nozzle
                       </Button>
                     </div>
-                    <div className="space-y-3">
-                      {booth.nozzles.length === 0 && (
-                        <p className="text-sm text-gray-500">No nozzles configured.</p>
-                      )}
-                      {booth.nozzles.map((nz) => (
-                        <div
-                          key={nz.id}
-                          className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-800"
-                        >
-                          <Input
-                            placeholder="Nozzle Code"
-                            value={nz.code}
-                            onChange={(e) =>
-                              updateNozzle(booth.id, nz.id, { code: e.target.value })
-                            }
-                          />
-                          <Select
-                            options={fuelOptions}
-                            placeholder="Map to Fuel Product"
-                            defaultValue={nz.fuel}
-                            onChange={(value) => updateNozzle(booth.id, nz.id, { fuel: value })}
-                          />
-                          <div className="flex items-center justify-end gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => removeNozzle(booth.id, nz.id)}
-                            >
-                              Remove
-                            </Button>
+
+                    {booth.nozzles.length === 0 ? (
+                      <div className="text-center py-4 text-gray-500">
+                        <p className="text-sm">No nozzles configured</p>
+                        <p className="text-xs">Click "Add Nozzle" to get started</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {booth.nozzles.map((nozzle) => (
+                          <div
+                            key={nozzle.id}
+                            className="flex items-center justify-between p-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg"
+                          >
+                            <div className="flex-1">
+                              <div className="font-medium text-sm">{nozzle.code}</div>
+                              <div className="text-xs text-gray-500">
+                                {fuelOptions.find(f => f.value === nozzle.productId)?.label || "Unknown Fuel"}
+                              </div>
+                            </div>
+                                                         <div className="flex items-center gap-2">
+                               <Button
+                                 size="sm"
+                                 variant="outline"
+                                 onClick={() => openNozzleModal(true, nozzle, booth.id)}
+                               >
+                                 Edit
+                               </Button>
+                               <Button
+                                 size="sm"
+                                 variant="outline"
+                                 onClick={() => deleteNozzle(nozzle.id)}
+                                 className="text-red-600 hover:text-red-700"
+                               >
+                                 Delete
+                               </Button>
+                             </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               )}
-            <CardFooter className="justify-end gap-3">
-                {!isExpanded ? (
-                  <>
-                    <Button size="sm" variant="outline" onClick={() => openEdit(booth)}>
-                      Edit
-                    </Button>
-                    <Button size="sm" onClick={() => setExpandedId(booth.id)}>
-                      Manage Nozzles
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Button size="sm" variant="outline" onClick={() => setExpandedId(null)}>
-                      Cancel
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => deleteBooth(booth.id)}>
-                      Delete
-                    </Button>
-                    <Button size="sm" onClick={() => setExpandedId(null)}>
-                      Save
-                    </Button>
-                  </>
-                )}
-            </CardFooter>
+
+                             <CardFooter className="justify-end gap-2">
+                 <Button
+                   size="sm"
+                   variant="outline"
+                   onClick={() => setExpandedBooth(isExpanded ? null : booth.id)}
+                 >
+                   {isExpanded ? (
+                     <>
+                       <ChevronUpIcon className="h-4 w-4 mr-1" />
+                       Hide Nozzles
+                     </>
+                   ) : (
+                     <>
+                       <ChevronDownIcon className="h-4 w-4 mr-1" />
+                       Manage Nozzles
+                     </>
+                   )}
+                 </Button>
+                 <Button
+                   size="sm"
+                   variant="outline"
+                   onClick={() => deleteBooth(booth.id)}
+                   className="text-red-600 hover:text-red-700"
+                 >
+                   Delete
+                 </Button>
+               </CardFooter>
             </Card>
           );
         })}
       </div>
 
-      {/* Add/Edit Booth Modal */}
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} className="max-w-lg w-full">
-        <div className="px-6 pt-6 pb-4">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">{modalTitle}</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-            Define the unit name and unique code for this dispensing unit.
-          </p>
-          <div className="space-y-5">
+             {/* Booth Modal */}
+       <Modal isOpen={boothModal.open} onClose={() => setBoothModal({ open: false, editing: false, data: { name: "", code: "" }, boothId: "" })} className="max-w-md w-full">
+         <div className="p-6 space-y-4">
+          <h3 className="text-lg font-semibold">
+            {boothModal.editing ? "Edit Booth" : "Add New Booth"}
+          </h3>
+          <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Booth Name</label>
+              <label className="block text-sm font-medium mb-1">Booth Name</label>
               <Input
+                value={boothModal.data.name}
+                onChange={(e) => setBoothModal(prev => ({ ...prev, data: { ...prev.data, name: e.target.value } }))}
                 placeholder="e.g., Frontage - Unit 1"
-                value={form.name}
-                onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Booth Code</label>
+              <label className="block text-sm font-medium mb-1">Booth Code</label>
               <Input
+                value={boothModal.data.code}
+                onChange={(e) => setBoothModal(prev => ({ ...prev, data: { ...prev.data, code: e.target.value } }))}
                 placeholder="e.g., F-001"
-                value={form.code}
-                onChange={(e) => setForm((s) => ({ ...s, code: e.target.value }))}
               />
             </div>
           </div>
-          <div className="flex justify-end gap-3 mt-8">
-            <Button variant="outline" onClick={() => setIsModalOpen(false)}>
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" onClick={() => setBoothModal({ open: false, editing: false, data: { name: "", code: "" }, boothId: "" })}>
               Cancel
             </Button>
-            <Button onClick={saveBooth}>{isEdit ? "Save Changes" : "Save Booth"}</Button>
+            <Button onClick={saveBooth}>
+              {boothModal.editing ? "Update" : "Create"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+             {/* Nozzle Modal */}
+       <Modal isOpen={nozzleModal.open} onClose={() => setNozzleModal({ open: false, editing: false, data: { code: "", productId: "" }, nozzleId: "", boothId: "" })} className="max-w-md w-full">
+         <div className="p-6 space-y-4">
+          <h3 className="text-lg font-semibold">
+            {nozzleModal.editing ? "Edit Nozzle" : "Add New Nozzle"}
+          </h3>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Nozzle Code</label>
+              <Input
+                value={nozzleModal.data.code}
+                onChange={(e) => setNozzleModal(prev => ({ ...prev, data: { ...prev.data, code: e.target.value } }))}
+                placeholder="e.g., NO1, NO2"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Fuel Type</label>
+              <Select
+                options={fuelOptions}
+                defaultValue={nozzleModal.data.productId}
+                onChange={(value) => setNozzleModal(prev => ({ ...prev, data: { ...prev.data, productId: value } }))}
+                placeholder="Select fuel type"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" onClick={() => setNozzleModal({ open: false, editing: false, data: { code: "", productId: "" }, nozzleId: "", boothId: "" })}>
+              Cancel
+            </Button>
+            <Button onClick={saveNozzle}>
+              {nozzleModal.editing ? "Update" : "Create"}
+            </Button>
           </div>
         </div>
       </Modal>
