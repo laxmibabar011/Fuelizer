@@ -27,11 +27,12 @@ import {
   Operator,
   OperatorStatus,
   AssignmentType,
-  Pump,
+  Booth,
+  Nozzle,
 } from "../../../types/common";
 import { StatusUtils } from "../../../utils/common/StatusUtils";
 import { DataUtils } from "../../../utils/common/DataUtils";
-import { MockData } from "../../../utils/common/MockData";
+import staffshiftService from "../../../services/staffshiftService";
 import { OperatorUtils } from "../../../utils/modules/shift-staff/OperatorUtils";
 import {
   EntityCardFactory,
@@ -47,40 +48,108 @@ const OperatorManagement: React.FC = () => {
     null
   );
   const [draggedOperator, setDraggedOperator] = useState<string | null>(null);
-  const [showPumpAssignmentModal, setShowPumpAssignmentModal] = useState(false);
-  const [selectedPump, setSelectedPump] = useState<Pump | null>(null);
+  const [showBoothAssignmentModal, setShowBoothAssignmentModal] =
+    useState(false);
+  const [selectedBooth, setSelectedBooth] = useState<Booth | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [showShiftPumpModal, setShowShiftPumpModal] = useState(false);
+  const [showShiftBoothModal, setShowShiftBoothModal] = useState(false);
+  // NEW: deletion state
+  const [deleting, setDeleting] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [restoring, setRestoring] = useState(false);
+  // NEW: duty update state
+  const [selectedDuty, setSelectedDuty] = useState<string>("attendant");
+  const [savingDuty, setSavingDuty] = useState<boolean>(false);
 
-  // Use centralized data and utilities
-  const operators = MockData.operators;
-  const pumps = MockData.pumps;
+  // NEW: operators state loaded from API
+  const [operators, setOperators] = useState<Operator[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [showArchived, setShowArchived] = useState<boolean>(false);
+
+  const fetchOperators = async (includeInactive: boolean) => {
+    try {
+      setLoading(true);
+      const res = await staffshiftService.listOperators({ includeInactive });
+      const apiOperators = (res.data?.data || []) as any[];
+      const mapped: Operator[] = apiOperators.map((op: any) => ({
+        id: String(op.id || op.operator_id),
+        name: op.UserDetails?.full_name || op.User?.email || op.operator_id,
+        email: op.User?.email || "",
+        phone: op.UserDetails?.phone || "",
+        status: (op.status as OperatorStatus) || OperatorStatus.AVAILABLE,
+        shift: "",
+        joinDate: op.join_date
+          ? new Date(op.join_date).toISOString()
+          : new Date().toISOString(),
+        // mark archived in a custom field for UI badge
+        // @ts-ignore
+        _archived: op.is_active === false,
+        // duty from backend
+        // @ts-ignore
+        duty: op.duty,
+      }));
+      setOperators(mapped);
+      setLoadError(null);
+    } catch (e: any) {
+      setLoadError(
+        e?.response?.data?.error || e?.message || "Failed to load operators"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchOperators(showArchived);
+  }, [showArchived]);
+
+  // Initialize duty when opening edit modal/operator changes
+  useEffect(() => {
+    if (showShiftBoothModal && selectedOperator) {
+      setSelectedDuty(
+        ((selectedOperator as any).duty as string) || "attendant"
+      );
+    }
+  }, [showShiftBoothModal, selectedOperator]);
+
+  // Placeholder booths until real API wired
+  const booths: Booth[] = [];
 
   // Use utility methods instead of repeated calculations
-  const availableOperators =
-    OperatorUtils.getAvailableOperatorsCount(operators);
-  const assignedOperators = OperatorUtils.getAssignedOperatorsCount(operators);
-  const averagePerformance =
-    OperatorUtils.calculateAveragePerformance(operators);
+  const availableOperators = OperatorUtils.getAvailableOperatorsCount(
+    operators as any
+  );
+  const assignedOperators = OperatorUtils.getAssignedOperatorsCount(
+    operators as any
+  );
+  const averagePerformance = OperatorUtils.calculateAveragePerformance(
+    operators as any
+  );
 
   /**
-   * Handle operator assignment to pump
+   * Handle operator assignment to booth/nozzle
    * Demonstrates encapsulation
    */
-  const handleOperatorAssignment = (operatorId: string, pumpName: string) => {
-    console.log(`Assigned operator ${operatorId} to ${pumpName}`);
-    // In a real application, this would update the state and make an API call
-    setShowPumpAssignmentModal(false);
-    setSelectedPump(null);
+  const handleOperatorAssignment = (
+    operatorId: string,
+    boothName: string,
+    nozzleId?: string
+  ) => {
+    console.log(
+      `Assigned operator ${operatorId} to ${boothName}${nozzleId ? ` - Nozzle ${nozzleId}` : ""}`
+    );
+    setShowBoothAssignmentModal(false);
+    setSelectedBooth(null);
   };
 
   /**
-   * Handle pump click for assignment
+   * Handle booth click for assignment
    */
-  const handlePumpClick = (pump: Pump) => {
-    if (pump.status === "available") {
-      setSelectedPump(pump);
-      setShowPumpAssignmentModal(true);
+  const handleBoothClick = (booth: Booth) => {
+    if (booth.status === "online") {
+      setSelectedBooth(booth);
+      setShowBoothAssignmentModal(true);
     }
   };
 
@@ -92,20 +161,81 @@ const OperatorManagement: React.FC = () => {
   };
 
   /**
-   * Handle edit shift and pump assignment
+   * Handle edit shift and booth assignment
    */
-  const handleEditShiftPump = () => {
-    setShowShiftPumpModal(true);
+  const handleEditShiftBooth = () => {
+    setShowShiftBoothModal(true);
+  };
+
+  // Handlers
+  const handleDeleteOperator = async () => {
+    if (!selectedOperator) return;
+    if (!window.confirm(`Delete operator "${selectedOperator.name}"?`)) return;
+    try {
+      setDeleting(true);
+      setActionError(null);
+      const pk = Number(selectedOperator.id);
+      if (Number.isNaN(pk)) {
+        throw new Error("Invalid operator id");
+      }
+      await staffshiftService.deleteOperator(pk);
+      setOperators((prev) => prev.filter((op) => op.id !== String(pk)));
+      setSelectedOperator(null);
+    } catch (e: any) {
+      setActionError(
+        e?.response?.data?.error || e?.message || "Failed to delete operator"
+      );
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleRestoreOperator = async () => {
+    if (!selectedOperator) return;
+    try {
+      setRestoring(true);
+      setActionError(null);
+      const pk = Number(selectedOperator.id);
+      if (Number.isNaN(pk)) throw new Error("Invalid operator id");
+      await staffshiftService.updateOperator(pk, { is_active: true });
+      await fetchOperators(showArchived);
+      setSelectedOperator(null);
+    } catch (e: any) {
+      setActionError(
+        e?.response?.data?.error || e?.message || "Failed to restore operator"
+      );
+    } finally {
+      setRestoring(false);
+    }
+  };
+
+  const handleSaveDuty = async () => {
+    if (!selectedOperator) return;
+    try {
+      setSavingDuty(true);
+      setActionError(null);
+      const pk = Number(selectedOperator.id);
+      if (Number.isNaN(pk)) throw new Error("Invalid operator id");
+      await staffshiftService.updateOperator(pk, { duty: selectedDuty });
+      await fetchOperators(showArchived);
+      setShowShiftBoothModal(false);
+    } catch (e: any) {
+      setActionError(
+        e?.response?.data?.error || e?.message || "Failed to update duty"
+      );
+    } finally {
+      setSavingDuty(false);
+    }
   };
 
   /**
    * Render operator card using the factory pattern
    */
-  const renderOperatorCard = (operator: Operator) => {
+  const renderOperatorCard = (operator: Operator & { _archived?: boolean }) => {
     const cardProps: BaseEntityCardProps<Operator> = {
       entity: operator,
       title: operator.name,
-      subtitle: `${operator.id} • ${operator.shift} Shift`,
+      subtitle: `${operator.id}${operator._archived ? " • archived" : ""}`,
       status: operator.status,
       statusType: "operator",
       onClick: () => setSelectedOperator(operator),
@@ -131,9 +261,9 @@ const OperatorManagement: React.FC = () => {
             onClick={(e) => {
               e.stopPropagation();
               setSelectedOperator(operator);
-              setShowShiftPumpModal(true);
+              setShowShiftBoothModal(true);
             }}
-            title="Edit Shift & Pump Assignment"
+            title="Edit Shift & Booth Assignment"
           >
             <Clock className="h-4 w-4" />
           </Button>
@@ -142,265 +272,14 @@ const OperatorManagement: React.FC = () => {
     );
   };
 
-  /**
-   * Render pump assignment interface
-   */
-  const renderPumpAssignment = () => {
+  if (loading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <MapPin className="h-5 w-5" />
-            <span>Pump Assignment Interface</span>
-          </CardTitle>
-          <div className="text-sm text-gray-600 dark:text-gray-400">
-            Click on available pumps to assign operators, or drag and drop
-            operators to pumps
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {pumps.map((pump) => (
-              <div
-                key={pump.id}
-                className={`p-4 border-2 border-dashed rounded-lg text-center transition-colors cursor-pointer ${
-                  pump.status === "available"
-                    ? "border-green-300 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/40"
-                    : pump.status === "assigned"
-                      ? "border-blue-300 bg-blue-50 dark:bg-blue-900/20"
-                      : "border-gray-300 bg-gray-50 dark:bg-gray-900/20"
-                }`}
-                onClick={() => handlePumpClick(pump)}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  if (draggedOperator && pump.status === "available") {
-                    handleOperatorAssignment(draggedOperator, pump.name);
-                  }
-                }}
-              >
-                <div className="font-medium text-sm">{pump.name}</div>
-                <div className="text-xs text-gray-600 dark:text-gray-400 capitalize">
-                  {pump.status}
-                </div>
-                {pump.status === "assigned" && pump.assignedOperator && (
-                  <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                    {
-                      MockData.getOperatorById(
-                        pump.assignedOperator
-                      )?.name.split(" ")[0]
-                    }
-                  </div>
-                )}
-                {pump.status === "available" && (
-                  <div className="text-xs text-green-600 dark:text-green-400 mt-1">
-                    Click to assign
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      <div className="p-6 text-sm text-gray-600">Loading operators...</div>
     );
-  };
-
-  /**
-   * Render operator details modal
-   */
-  const renderOperatorModal = () => {
-    if (!selectedOperator) return null;
-
-    return (
-      <Modal
-        isOpen={!!selectedOperator}
-        onClose={() => setSelectedOperator(null)}
-        className="max-w-2xl mx-4"
-      >
-        <div className="p-6">
-          <div className="flex items-center space-x-4 mb-6">
-            <Avatar
-              src={selectedOperator.photo || ""}
-              alt={selectedOperator.name}
-              size="xlarge"
-              status={
-                selectedOperator.status === OperatorStatus.AVAILABLE
-                  ? "online"
-                  : selectedOperator.status === OperatorStatus.ASSIGNED
-                    ? "busy"
-                    : "offline"
-              }
-            />
-            <div className="flex-1">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                {selectedOperator.name}
-              </h2>
-              <p className="text-gray-600 dark:text-gray-400">
-                {selectedOperator.id} • {selectedOperator.shift} Shift
-              </p>
-              <div className="flex items-center space-x-2 mt-2">
-                {OperatorUtils.getOperatorStatusIcon(selectedOperator.status)}
-                <Badge
-                  className={OperatorUtils.getOperatorStatusColor(
-                    selectedOperator.status,
-                    true
-                  )}
-                >
-                  {selectedOperator.status
-                    .replace("-", " ")
-                    .replace(/\b\w/g, (l) => l.toUpperCase())}
-                </Badge>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Personal Information */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center space-x-2">
-                <User className="h-5 w-5" />
-                <span>Personal Information</span>
-              </h3>
-              <div className="space-y-3">
-                <div className="flex items-center space-x-3">
-                  <Phone className="h-4 w-4 text-gray-500" />
-                  <span className="text-gray-700 dark:text-gray-300">
-                    {selectedOperator.phone}
-                  </span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Mail className="h-4 w-4 text-gray-500" />
-                  <span className="text-gray-700 dark:text-gray-300">
-                    {selectedOperator.email}
-                  </span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Calendar className="h-4 w-4 text-gray-500" />
-                  <span className="text-gray-700 dark:text-gray-300">
-                    Joined: {DataUtils.formatDate(selectedOperator.joinDate)}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Assignment Information */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center space-x-2">
-                <MapPin className="h-5 w-5" />
-                <span>Assignment Details</span>
-              </h3>
-              {selectedOperator.currentAssignment ? (
-                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-                  <div className="text-sm font-medium text-blue-800 dark:text-blue-300 mb-2">
-                    Current Assignment
-                  </div>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-gray-600 dark:text-gray-400">
-                        Type:
-                      </span>
-                      <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
-                        {selectedOperator.currentAssignment.type}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-gray-600 dark:text-gray-400">
-                        Location:
-                      </span>
-                      <span className="text-gray-700 dark:text-gray-300">
-                        {selectedOperator.currentAssignment.location}
-                      </span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-gray-600 dark:text-gray-400">
-                        Since:
-                      </span>
-                      <span className="text-gray-700 dark:text-gray-300">
-                        {DataUtils.formatTime(
-                          selectedOperator.currentAssignment.startTime
-                        )}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="bg-gray-50 dark:bg-gray-900/20 p-4 rounded-lg">
-                  <div className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
-                    No Current Assignment
-                  </div>
-                  <p className="text-sm text-gray-500 dark:text-gray-500">
-                    This operator is available for new assignments.
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Performance & Certifications */}
-          <div className="mt-6 space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center space-x-2">
-              <Award className="h-5 w-5" />
-              <span>Performance & Certifications</span>
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
-                <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                  {averagePerformance}
-                </div>
-                <div className="text-sm text-green-700 dark:text-green-300">
-                  Performance Rating
-                </div>
-              </div>
-              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                  {DataUtils.calculateExperienceYears(
-                    selectedOperator.joinDate
-                  )}
-                </div>
-                <div className="text-sm text-blue-700 dark:text-blue-300">
-                  Years Experience
-                </div>
-              </div>
-              <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg">
-                <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-                  3
-                </div>
-                <div className="text-sm text-yellow-700 dark:text-yellow-300">
-                  Active Certifications
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex justify-end space-x-3 mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-            <Button variant="outline" onClick={() => setSelectedOperator(null)}>
-              Close
-            </Button>
-            <Button
-              className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
-              onClick={() => {
-                setShowEditModal(true);
-              }}
-            >
-              <Edit className="h-4 w-4 mr-2" />
-              Edit Details
-            </Button>
-            <Button
-              className="bg-gray-100 text-blue-700 hover:bg-blue-100"
-              onClick={() => {
-                setShowShiftPumpModal(true);
-                setSelectedOperator(selectedOperator);
-              }}
-            >
-              <Clock className="h-4 w-4 mr-2" />
-              Edit Shift & Pump
-            </Button>
-          </div>
-        </div>
-      </Modal>
-    );
-  };
+  }
+  if (loadError) {
+    return <div className="p-6 text-sm text-red-600">{loadError}</div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -414,7 +293,15 @@ const OperatorManagement: React.FC = () => {
             Manage operator assignments, certifications, and performance
           </p>
         </div>
-        <div className="flex space-x-3">
+        <div className="flex items-center space-x-4">
+          <label className="flex items-center space-x-2 text-sm">
+            <input
+              type="checkbox"
+              checked={showArchived}
+              onChange={(e) => setShowArchived(e.target.checked)}
+            />
+            <span>Show archived</span>
+          </label>
           <Button variant="outline">Bulk Assignment</Button>
           <Button className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600">
             <Plus className="h-4 w-4 mr-2" />
@@ -467,273 +354,208 @@ const OperatorManagement: React.FC = () => {
         </Card>
       </div>
 
-      {/* Operator Cards Grid */}
+      {/* Operator Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {operators.map(renderOperatorCard)}
+        {operators.map((operator) => renderOperatorCard(operator))}
       </div>
 
-      {/* Pump Assignment Interface */}
-      {renderPumpAssignment()}
-
       {/* Operator Details Modal */}
-      {renderOperatorModal()}
-
-      {/* Edit Operator Details Modal */}
-      {showEditModal && selectedOperator && (
+      {selectedOperator && (
         <Modal
-          isOpen={showEditModal}
-          onClose={() => {
-            setShowEditModal(false);
-          }}
-          className="max-w-md mx-4"
+          isOpen={!!selectedOperator}
+          onClose={() => setSelectedOperator(null)}
+          className="max-w-2xl mx-4"
         >
           <div className="p-6">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-              Edit Operator Details: {selectedOperator.name}
-            </h2>
+            <div className="flex items-center space-x-4 mb-6">
+              <Avatar
+                src={selectedOperator.photo || ""}
+                alt={selectedOperator.name}
+                size="xlarge"
+                status={
+                  selectedOperator.status === OperatorStatus.AVAILABLE
+                    ? "online"
+                    : selectedOperator.status === OperatorStatus.ASSIGNED
+                      ? "busy"
+                      : "offline"
+                }
+              />
+              <div className="flex-1">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {selectedOperator.name}
+                </h2>
+                <p className="text-gray-600 dark:text-gray-400">
+                  {selectedOperator.id}
+                </p>
+                <div className="flex items-center space-x-2 mt-2">
+                  {OperatorUtils.getOperatorStatusIcon(selectedOperator.status)}
+                  <Badge
+                    className={OperatorUtils.getOperatorStatusColor(
+                      selectedOperator.status,
+                      true
+                    )}
+                  >
+                    {selectedOperator.status
+                      .replace("-", " ")
+                      .replace(/\b\w/g, (l) => l.toUpperCase())}
+                  </Badge>
+                </div>
+              </div>
+            </div>
 
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Personal Information */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center space-x-2">
                   <User className="h-5 w-5" />
                   <span>Personal Information</span>
                 </h3>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Name
-                    </label>
-                    <input
-                      type="text"
-                      defaultValue={selectedOperator.name}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                    />
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-3">
+                    <Phone className="h-4 w-4 text-gray-500" />
+                    <span className="text-gray-700 dark:text-gray-300">
+                      {selectedOperator.phone}
+                    </span>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Email
-                    </label>
-                    <input
-                      type="email"
-                      defaultValue={selectedOperator.email}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                    />
+                  <div className="flex items-center space-x-3">
+                    <Mail className="h-4 w-4 text-gray-500" />
+                    <span className="text-gray-700 dark:text-gray-300">
+                      {selectedOperator.email}
+                    </span>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Phone
-                    </label>
-                    <input
-                      type="tel"
-                      defaultValue={selectedOperator.phone}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                    />
+                  <div className="flex items-center space-x-3">
+                    <Calendar className="h-4 w-4 text-gray-500" />
+                    <span className="text-gray-700 dark:text-gray-300">
+                      Joined: {DataUtils.formatDate(selectedOperator.joinDate)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Assignment Information */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center space-x-2">
+                  <MapPin className="h-5 w-5" />
+                  <span>Assignment Details</span>
+                </h3>
+                <div className="bg-gray-50 dark:bg-gray-900/20 p-4 rounded-lg">
+                  <div className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                    No Current Assignment
+                  </div>
+                  <p className="text-sm text-gray-500 dark:text-gray-500">
+                    This operator is available for new assignments.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Performance & Certifications */}
+            <div className="mt-6 space-y-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center space-x-2">
+                <Award className="h-5 w-5" />
+                <span>Performance & Certifications</span>
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
+                  <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                    {averagePerformance}
+                  </div>
+                  <div className="text-sm text-green-700 dark:text-green-300">
+                    Performance Rating
+                  </div>
+                </div>
+                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                  <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                    {/* Placeholder until we track experience */}0
+                  </div>
+                  <div className="text-sm text-blue-700 dark:text-blue-300">
+                    Years Experience
+                  </div>
+                </div>
+                <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg">
+                  <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                    3
+                  </div>
+                  <div className="text-sm text-yellow-700 dark:text-yellow-300">
+                    Active Certifications
                   </div>
                 </div>
               </div>
             </div>
 
+            {actionError && (
+              <div className="mt-4 text-sm text-red-600">{actionError}</div>
+            )}
             {/* Action Buttons */}
-            <div className="flex justify-end space-x-3 mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowEditModal(false);
-                }}
-              >
-                Cancel
-              </Button>
-              <Button className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600">
-                Save Changes
-              </Button>
+            <div className="flex justify-between mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex space-x-2">
+                {(selectedOperator as any)?._archived ? (
+                  <Button
+                    className="bg-green-600 hover:bg-green-700"
+                    onClick={handleRestoreOperator}
+                    disabled={restoring}
+                  >
+                    {restoring ? "Restoring..." : "Restore Operator"}
+                  </Button>
+                ) : (
+                  <Button
+                    className="bg-red-600 hover:bg-red-700"
+                    onClick={handleDeleteOperator}
+                    disabled={deleting}
+                  >
+                    {deleting ? "Deleting..." : "Delete Operator"}
+                  </Button>
+                )}
+              </div>
+              <div className="flex space-x-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setSelectedOperator(null)}
+                >
+                  Close
+                </Button>
+                <Button
+                  className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
+                  onClick={() => {
+                    setShowEditModal(true);
+                  }}
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit Details
+                </Button>
+                <Button
+                  className="bg-gray-100 text-blue-700 hover:bg-blue-100"
+                  onClick={() => {
+                    setShowShiftBoothModal(true);
+                    setSelectedOperator(selectedOperator);
+                  }}
+                >
+                  <Clock className="h-4 w-4 mr-2" />
+                  Edit Shift & Pump
+                </Button>
+              </div>
             </div>
           </div>
         </Modal>
       )}
 
-      {/* Edit Shift & Pump Assignment Modal */}
-      {showShiftPumpModal && selectedOperator && (
+      {/* Edit Operator Details Modal */}
+      {showEditModal && selectedOperator && (
         <Modal
-          isOpen={showShiftPumpModal}
-          onClose={() => {
-            setShowShiftPumpModal(false);
-          }}
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
           className="max-w-2xl mx-4"
         >
           <div className="p-6">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-              Manage Shift & Pump Assignment: {selectedOperator.name}
+              Edit Operator Details
             </h2>
-
-            <div className="space-y-6">
-              {/* Shift & Pump Management */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center space-x-2">
-                  <Clock className="h-5 w-5" />
-                  <span>Shift & Pump Management</span>
-                </h3>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Shift Assignment */}
-                  <div className="space-y-3">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Shift Assignment
-                    </label>
-                    <select
-                      defaultValue={selectedOperator.shift}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                    >
-                      <option value="Morning">
-                        Morning Shift (6:00 AM - 2:00 PM)
-                      </option>
-                      <option value="Afternoon">
-                        Afternoon Shift (2:00 PM - 10:00 PM)
-                      </option>
-                      <option value="Night">
-                        Night Shift (10:00 PM - 6:00 AM)
-                      </option>
-                    </select>
-
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                      Current shift: {selectedOperator.shift} Shift
-                    </div>
-                  </div>
-
-                  {/* Current Assignment Status */}
-                  <div className="space-y-3">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Current Assignment
-                    </label>
-                    {selectedOperator.currentAssignment ? (
-                      <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
-                        <div className="text-sm font-medium text-blue-800 dark:text-blue-300">
-                          {selectedOperator.currentAssignment.location}
-                        </div>
-                        <div className="text-xs text-blue-700 dark:text-blue-400">
-                          Since: {selectedOperator.currentAssignment.startTime}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="bg-gray-50 dark:bg-gray-900/20 p-3 rounded-lg">
-                        <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                          No Current Assignment
-                        </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-500">
-                          Available for assignment
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Pump Assignment */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center space-x-2">
-                  <MapPin className="h-5 w-5" />
-                  <span>Pump Assignment</span>
-                </h3>
-
-                <div className="space-y-4">
-                  {/* Quick Assignment Info */}
-                  <div className="bg-gray-50 dark:bg-gray-900/20 p-4 rounded-lg">
-                    <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Quick Assignment Guide:
-                    </div>
-                    <div className="grid grid-cols-3 gap-4 text-xs">
-                      <div className="flex items-center space-x-2">
-                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                        <span>Available Pumps</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                        <span>Assigned Pumps</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
-                        <span>Maintenance</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Pump Grid */}
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                    {pumps.map((pump) => (
-                      <div
-                        key={pump.id}
-                        className={`p-3 border-2 rounded-lg text-center cursor-pointer transition-colors ${
-                          pump.status === "available"
-                            ? "border-green-300 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/40"
-                            : pump.status === "assigned"
-                              ? "border-blue-300 bg-blue-50 dark:bg-blue-900/20"
-                              : "border-gray-300 bg-gray-50 dark:bg-gray-900/20"
-                        } ${
-                          selectedOperator.currentAssignment?.location ===
-                          pump.name
-                            ? "ring-2 ring-blue-500"
-                            : ""
-                        }`}
-                        onClick={() => {
-                          if (
-                            pump.status === "available" ||
-                            selectedOperator.currentAssignment?.location ===
-                              pump.name
-                          ) {
-                            handleOperatorAssignment(
-                              selectedOperator.id,
-                              pump.name
-                            );
-                          }
-                        }}
-                      >
-                        <div className="font-medium text-sm">{pump.name}</div>
-                        <div className="text-xs text-gray-600 dark:text-gray-400 capitalize">
-                          {pump.status}
-                        </div>
-                        {pump.status === "assigned" &&
-                          pump.assignedOperator && (
-                            <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                              {
-                                MockData.getOperatorById(
-                                  pump.assignedOperator
-                                )?.name.split(" ")[0]
-                              }
-                            </div>
-                          )}
-                        {selectedOperator.currentAssignment?.location ===
-                          pump.name && (
-                          <div className="text-xs text-blue-600 dark:text-blue-400 mt-1 font-medium">
-                            Current Assignment
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-
-                  {selectedOperator.currentAssignment && (
-                    <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
-                      <div className="text-sm font-medium text-blue-800 dark:text-blue-300">
-                        Current Assignment:{" "}
-                        {selectedOperator.currentAssignment.location}
-                      </div>
-                      <div className="text-sm text-blue-700 dark:text-blue-400">
-                        Since: {selectedOperator.currentAssignment.startTime}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex justify-end space-x-3 mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowShiftPumpModal(false);
-                }}
-              >
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              Update operator information and settings
+            </p>
+            {/* Add edit form here */}
+            <div className="flex justify-end space-x-3">
+              <Button variant="outline" onClick={() => setShowEditModal(false)}>
                 Cancel
               </Button>
               <Button className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600">
@@ -744,84 +566,95 @@ const OperatorManagement: React.FC = () => {
         </Modal>
       )}
 
-      {/* Pump Assignment Modal */}
-      {showPumpAssignmentModal && selectedPump && (
+      {/* Edit Shift & Booth Assignment Modal */}
+      {showShiftBoothModal && selectedOperator && (
         <Modal
-          isOpen={showPumpAssignmentModal}
+          isOpen={showShiftBoothModal}
           onClose={() => {
-            setShowPumpAssignmentModal(false);
-            setSelectedPump(null);
+            setShowShiftBoothModal(false);
           }}
-          className="max-w-md mx-4"
+          className="max-w-2xl mx-4 max-h-[95vh] overflow-hidden"
         >
-          <div className="p-6">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-              Assign Operator to {selectedPump.name}
+          <div className="p-4 max-h-[calc(95vh-4rem)] overflow-y-auto">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-3">
+              Manage Shift & Booth Assignment: {selectedOperator.name}
             </h2>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Select an available operator to assign to this pump
-            </p>
 
-            <div className="space-y-3 max-h-60 overflow-y-auto">
-              {operators
-                .filter(
-                  (operator) => operator.status === OperatorStatus.AVAILABLE
-                )
-                .map((operator) => (
-                  <div
-                    key={operator.id}
-                    className="flex items-center space-x-3 p-3 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
-                    onClick={() =>
-                      handleOperatorAssignment(operator.id, selectedPump.name)
-                    }
+            <div className="space-y-4">
+              {/* Shift & Booth Management */}
+              <div className="space-y-3">
+                <h3 className="text-base font-semibold text-gray-900 dark:text-white flex items-center space-x-2">
+                  <Clock className="h-4 w-4" />
+                  <span>Shift & Booth Management</span>
+                </h3>
+
+                {/* Shift Selection */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Shift
+                  </label>
+                  <select
+                    defaultValue={selectedOperator.shift}
+                    className="w-full px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
                   >
-                    <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-                      <svg
-                        className="w-4 h-4 text-blue-600 dark:text-blue-400"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-medium text-gray-900 dark:text-white">
-                        {operator.name}
-                      </div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
-                        {operator.id} • {operator.shift} Shift
-                      </div>
-                    </div>
-                    <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
-                      Available
-                    </Badge>
+                    <option value="Morning">Morning Shift</option>
+                    <option value="Afternoon">Afternoon Shift</option>
+                    <option value="Night">Night Shift</option>
+                  </select>
+                </div>
+
+                {/* Duty Selection */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Duty
+                  </label>
+                  <select
+                    value={selectedDuty}
+                    className="w-full px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
+                    onChange={(e) => setSelectedDuty(e.target.value)}
+                  >
+                    <option value="cashier">cashier</option>
+                    <option value="attendant">attendant</option>
+                  </select>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    Current duty: {selectedDuty}
                   </div>
-                ))}
-            </div>
+                </div>
 
-            {operators.filter(
-              (operator) => operator.status === OperatorStatus.AVAILABLE
-            ).length === 0 && (
-              <div className="text-center py-6 text-gray-500 dark:text-gray-400">
-                No available operators at the moment
+                {/* Current Assignment Info */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Current Assignment
+                  </label>
+                  <div className="bg-gray-50 dark:bg-gray-900/20 p-2 rounded-lg">
+                    <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                      No Current Assignment
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-500">
+                      Available for assignment
+                    </div>
+                  </div>
+                </div>
               </div>
-            )}
-
-            <div className="flex justify-end space-x-3 mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowPumpAssignmentModal(false);
-                  setSelectedPump(null);
-                }}
-              >
-                Cancel
-              </Button>
             </div>
+          </div>
+
+          {/* Action Buttons - Fixed at bottom */}
+          <div className="p-4 pt-3 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-3">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowShiftBoothModal(false);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
+              onClick={handleSaveDuty}
+            >
+              {savingDuty ? "Saving..." : "Save Changes"}
+            </Button>
           </div>
         </Modal>
       )}

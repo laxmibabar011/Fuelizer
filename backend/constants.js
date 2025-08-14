@@ -11,8 +11,8 @@ export const StatusCode = {
 };
 
 export const tokenTimeToLive = {
-  ACCESS_TOKEN_COOKIE: 15 * 60 * 1000, // 15 minutes for access token
-  REFRESH_TOKEN_COOKIE: 7 * 24 * 60 * 60 * 1000 // 7 days for refresh token
+  ACCESS_TOKEN_COOKIE: "30m", // 15 minutes for access token
+  REFRESH_TOKEN_COOKIE: "7d" // 7 days for refresh token
 };
 
 // Enum for all user roles in the system

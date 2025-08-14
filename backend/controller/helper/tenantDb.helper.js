@@ -6,42 +6,47 @@ import { getTenantSequelize, tenantConnections } from '../../config/db.config.js
 import { initTenantModels } from '../../models/user.model.js';
 import { initCreditModels } from '../../models/credit.model.js';
 import { initStationModels } from '../../models/station.model.js';
+import { initStaffShiftModels } from '../../models/staffshift.model.js';
 import { initProductMasterModels } from '../../models/productMaster.model.js';
+
+// simple in-memory cache of initialized models per dbName
+const tenantModelCache = new Map();
+
+// track one-time sync done per tenant
+const tenantSyncDone = new Set();
 
 // Helper for connecting to a tenant database and initializing models
 export async function getTenantDbModels(dbName) {
   try {
+    if (tenantModelCache.has(dbName)) {
+      return tenantModelCache.get(dbName);
+    }
+
     const tenantSequelize = getTenantSequelize({ dbName });
     
-    // Test connection and reconnect if needed
-    try {
-      await tenantSequelize.authenticate();
-    } catch (authErr) {
-      console.log(`[tenantDb.helper]: Connection failed for ${dbName}, attempting reconnect...`);
-      // Force new connection by clearing from cache
-      tenantConnections.delete(dbName);
-      const newSequelize = getTenantSequelize({ dbName });
-      await newSequelize.authenticate();
-    }
+    // Authenticate once when establishing the connection
+    await tenantSequelize.authenticate();
     
     const { User, Role, UserDetails, RefreshToken } = initTenantModels(tenantSequelize);
     const { CreditAccount, Vehicle } = initCreditModels(tenantSequelize);
-    const { Booth, Nozzle, Product } = initStationModels(tenantSequelize);
-    const { ProductMasterCategory, ProductMasterProduct } = initProductMasterModels(tenantSequelize);
-    
-    // Sync with alter true for development - auto-updates schema
-    try {
+    const { Booth, Nozzle} = initStationModels(tenantSequelize);
+    const { Operator, Shift, ShiftAssignment } = initStaffShiftModels(tenantSequelize);
+    const { ProductCategory, ProductMaster } = initProductMasterModels(tenantSequelize);
+
+    // Optional, one-time sync for agile development
+    if (process.env.DB_SYNC_ALTER === 'true' && !tenantSyncDone.has(dbName)) {
       await tenantSequelize.sync({ alter: true });
-    } catch (syncErr) {
-      console.warn(`[tenantDb.helper]: Sync warning for ${dbName}: ${syncErr.message}`);
+      tenantSyncDone.add(dbName);
     }
 
-    //return the models
-    
-    return { tenantSequelize, User, Role, UserDetails, RefreshToken, CreditAccount, Vehicle, Booth, Nozzle, Product, ProductMasterCategory, ProductMasterProduct };
+    const models = { tenantSequelize, User, Role, UserDetails, RefreshToken, CreditAccount, Vehicle, Booth, Nozzle, Operator, Shift, ShiftAssignment, ProductCategory, ProductMaster };
+    tenantModelCache.set(dbName, models);
+    return models;
     
   } catch (error) {
     console.error(`[tenantDb.helper]: Failed to initialize models for ${dbName}:`, error);
+    // If initialization failed, ensure we do not leave a bad cache entry
+    tenantModelCache.delete(dbName);
     throw error;
   }
 }

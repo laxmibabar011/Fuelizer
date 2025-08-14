@@ -5,7 +5,7 @@ export default class StationController {
   static async listBooths(req, res) {
     try {
       const repo = new StationRepository(req.tenantSequelize);
-      await repo.ensureFuelProducts(); // seed minimal fuels
+      //await repo.ensureFuelProducts(); // seed minimal fuels
       const booths = await repo.listBooths();
       
       // Debug: Log the raw data before sending
@@ -20,14 +20,26 @@ export default class StationController {
 
   static async createBooth(req, res) {
     try {
-      const { name, code, active = true } = req.body;
+      const name = String(req.body?.name || '').trim();
+      const code = String(req.body?.code || '').trim();
+      const active = req.body?.active !== undefined ? Boolean(req.body.active) : true;
+
       if (!name || !code) {
         return sendResponse(res, { success: false, error: 'name and code required', message: 'Validation error', status: 400 });
       }
+
       const repo = new StationRepository(req.tenantSequelize);
       const booth = await repo.createBooth({ name, code, active });
       return sendResponse(res, { data: booth, message: 'Booth created', status: 201 });
     } catch (err) {
+      // Provide clearer error messaging for unique constraint violations
+      if (err?.name === 'SequelizeUniqueConstraintError') {
+        return sendResponse(res, { success: false, error: 'Booth code must be unique', message: 'Validation error', status: 409 });
+      }
+      if (err?.name === 'SequelizeValidationError') {
+        const details = err.errors?.map(e => e.message).join(', ');
+        return sendResponse(res, { success: false, error: details || err.message, message: 'Validation error', status: 400 });
+      }
       return sendResponse(res, { success: false, error: err.message, message: 'Failed to create booth', status: 500 });
     }
   }
@@ -129,9 +141,9 @@ export default class StationController {
 
   static async deleteNozzle(req, res) {
     try {
-      const { nozzleId } = req.params;
+      const { id } = req.params;
       const repo = new StationRepository(req.tenantSequelize);
-      const deleted = await repo.deleteNozzle(nozzleId);
+      const deleted = await repo.deleteNozzle(id);
       if (!deleted) {
         return sendResponse(res, { success: false, error: 'Not found', message: 'Nozzle not found', status: 404 });
       }

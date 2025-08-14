@@ -30,6 +30,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // Define the refresh interval time (e.g., 14 minutes in milliseconds)
 const REFRESH_INTERVAL = 14 * 60 * 1000;
 
+let initPromise: Promise<void> | null = null;
+let lastRefreshAt = 0;
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [accessToken, setAccessTokenState] = useState<string | null>(null);
@@ -59,11 +62,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Effect for the initial "silent refresh" on app load
   useEffect(() => {
-    const silentRefresh = async () => {
+    const doInit = async () => {
       try {
         const res = await AuthService.refresh();
         const newAccessToken = res.data.data.accessToken;
         setAccessToken(newAccessToken);
+        lastRefreshAt = Date.now();
 
         const userRes = await AuthService.getMe();
         setAuthUser(userRes.data.data);
@@ -79,7 +83,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     };
 
-    silentRefresh();
+    // ensure only one init runs
+    if (!initPromise) {
+      initPromise = doInit();
+    }
+    initPromise.finally(() => {
+      initPromise = null;
+    });
   }, []); // Runs only ONCE on initial mount
 
   // ## NEW: Effect for the proactive background refresh ##
@@ -87,11 +97,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const interval = setInterval(() => {
       // Only refresh if there's an existing access token
       if (accessToken) {
-        console.log("Proactively refreshing token in the background...");
+        // Skip if we refreshed in the last 60 seconds to avoid back-to-back refreshes
+        if (Date.now() - lastRefreshAt < 60 * 1000) return;
         AuthService.refresh()
           .then((res) => {
             const newAccessToken = res.data.data.accessToken;
             setAccessToken(newAccessToken);
+            lastRefreshAt = Date.now();
           })
           .catch((err) => {
             console.error("Proactive refresh failed:", err);

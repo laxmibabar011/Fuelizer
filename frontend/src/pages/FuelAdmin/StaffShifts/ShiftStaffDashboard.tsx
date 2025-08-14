@@ -5,13 +5,24 @@ import {
   TabsTrigger,
   TabsContent,
 } from "../../../components/ui/tabs/Tabs";
-import { Users, UserPlus, Clock, Settings } from "lucide-react";
+import {
+  Users,
+  UserPlus,
+  Clock,
+  Settings,
+  BarChart2,
+  Calendar,
+} from "lucide-react";
 import OperatorOnboarding from "./OperatorOnboarding";
 import OperatorManagement from "./OperatorManagement";
 import ShiftManagement from "./ShiftManagement";
 import StaffSettings from "./StaffSettings";
+import { useNavigate } from "react-router-dom";
+import { Button } from "../../../components/ui/button";
+import { Card } from "../../../components/ui/card";
 
 const ShiftStaffDashboard: React.FC = () => {
+  const navigate = useNavigate();
   return (
     <div className="mx-auto max-w-7xl p-6">
       {/* Header */}
@@ -25,8 +36,12 @@ const ShiftStaffDashboard: React.FC = () => {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="operators">
-        <TabsList className="grid w-full grid-cols-4">
+      <Tabs defaultValue="dashboard">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="dashboard" className="flex items-center gap-2">
+            <BarChart2 className="h-4 w-4" />
+            <span className="hidden sm:inline">Dashboard</span>
+          </TabsTrigger>
           <TabsTrigger value="operators" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
             <span className="hidden sm:inline">Operators</span>
@@ -44,6 +59,73 @@ const ShiftStaffDashboard: React.FC = () => {
             <span className="hidden sm:inline">Settings</span>
           </TabsTrigger>
         </TabsList>
+
+        {/* Dashboard Tab */}
+        <TabsContent value="dashboard" className="space-y-6">
+          {/* Filters */}
+          <Card className="p-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                <input
+                  type="date"
+                  className="border rounded px-2 py-1 text-sm"
+                />
+                <span className="text-sm text-gray-500">to</span>
+                <input
+                  type="date"
+                  className="border rounded px-2 py-1 text-sm"
+                />
+              </div>
+              <select className="border rounded px-2 py-1 text-sm">
+                <option>All Shifts</option>
+                <option>Morning</option>
+                <option>Afternoon</option>
+                <option>Night</option>
+              </select>
+              <select className="border rounded px-2 py-1 text-sm">
+                <option>All Duties</option>
+                <option>Cashier</option>
+                <option>Attendant</option>
+              </select>
+              <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                Apply
+              </Button>
+            </div>
+          </Card>
+
+          {/* KPI cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card className="p-4">
+              <div className="text-xs text-gray-500">Total Shifts</div>
+              <div className="text-2xl font-bold">0</div>
+            </Card>
+            <Card className="p-4">
+              <div className="text-xs text-gray-500">Completed</div>
+              <div className="text-2xl font-bold">0</div>
+            </Card>
+            <Card className="p-4">
+              <div className="text-xs text-gray-500">Attendance Rate</div>
+              <div className="text-2xl font-bold">0%</div>
+            </Card>
+            <Card className="p-4">
+              <div className="text-xs text-gray-500">Absences</div>
+              <div className="text-2xl font-bold">0</div>
+            </Card>
+          </div>
+
+          {/* Tables */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card className="p-4">
+              <div className="font-medium mb-3">Shifts by Day</div>
+              <div className="text-sm text-gray-500">Coming soon</div>
+            </Card>
+            <Card className="p-4">
+              <div className="font-medium mb-3">Operator Attendance</div>
+              <div className="text-sm text-gray-500">Coming soon</div>
+            </Card>
+          </div>
+        </TabsContent>
 
         {/* Operators Tab */}
         <TabsContent value="operators" className="space-y-6">
@@ -76,14 +158,24 @@ const ShiftStaffDashboard: React.FC = () => {
 
       {/* Connection to Daily Operations */}
       <div className="mt-8 p-6 bg-blue-50 border border-blue-200 rounded-lg">
-        <div className="text-center">
-          <h3 className="text-lg font-medium text-blue-800 mb-2">
-            Connected to Daily Operations
-          </h3>
-          <p className="text-blue-700">
-            Staff and shifts configured here will be available for daily
-            assignments in Daily Operations → Today's Setup.
-          </p>
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div>
+            <h3 className="text-lg font-medium text-blue-800 mb-1">
+              Daily assignments moved to Today's Setup
+            </h3>
+            <p className="text-blue-700 text-sm">
+              Perform Shift & Staff assignments and Booths in Daily Operations →
+              Today's Setup.
+            </p>
+          </div>
+          <Button
+            className="bg-blue-600 hover:bg-blue-700"
+            onClick={() =>
+              navigate("/fuel-admin/operations/today-setup?tab=nozzles")
+            }
+          >
+            Go to Booths
+          </Button>
         </div>
       </div>
     </div>

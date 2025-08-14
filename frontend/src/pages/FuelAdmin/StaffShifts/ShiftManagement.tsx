@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -16,8 +16,12 @@ import {
   AlertCircle,
   XCircle,
 } from "lucide-react";
+import staffshiftService from "../../../services/staffshiftService";
+import { Modal } from "../../../components/ui/modal";
+import Input from "../../../components/form/input/InputField";
+import Label from "../../../components/form/Label";
 
-interface Shift {
+interface UiShift {
   id: string;
   name: string;
   timeRange: string;
@@ -28,60 +32,36 @@ interface Shift {
   handoverNotes?: string;
 }
 
-interface Operator {
-  id: string;
-  name: string;
-  status: "available" | "assigned" | "unavailable";
-  currentShift?: string;
-}
-
-const shifts: Shift[] = [
-  {
-    id: "1",
-    name: "Morning Shift",
-    timeRange: "6:00 AM - 2:00 PM",
-    status: "active",
-    operators: ["OP001", "OP003", "OP005", "OP007"],
-    operatorCount: 4,
-    maxOperators: 5,
-    handoverNotes: "Pump 3 nozzle needs attention. Tank 2 refilled at 5:30 AM.",
-  },
-  {
-    id: "2",
-    name: "Afternoon Shift",
-    timeRange: "2:00 PM - 10:00 PM",
-    status: "not-started",
-    operators: ["OP002", "OP004", "OP006"],
-    operatorCount: 3,
-    maxOperators: 5,
-  },
-  {
-    id: "3",
-    name: "Night Shift",
-    timeRange: "10:00 PM - 6:00 AM",
-    status: "completed",
-    operators: ["OP008", "OP009", "OP010"],
-    operatorCount: 3,
-    maxOperators: 4,
-    handoverNotes: "All systems normal. Security patrol completed at 3:00 AM.",
-  },
-];
-
-const operators: Operator[] = [
-  { id: "OP001", name: "Rajesh Kumar", status: "assigned", currentShift: "1" },
-  { id: "OP002", name: "Priya Sharma", status: "available" },
-  { id: "OP003", name: "Amit Singh", status: "assigned", currentShift: "1" },
-  { id: "OP004", name: "Sunita Devi", status: "available" },
-  { id: "OP005", name: "Vikram Yadav", status: "assigned", currentShift: "1" },
-  { id: "OP006", name: "Meera Patel", status: "available" },
-  { id: "OP007", name: "Ravi Gupta", status: "assigned", currentShift: "1" },
-  { id: "OP008", name: "Anjali Verma", status: "unavailable" },
-  { id: "OP009", name: "Suresh Reddy", status: "unavailable" },
-  { id: "OP010", name: "Kavita Joshi", status: "unavailable" },
-];
-
 const ShiftManagement: React.FC = () => {
-  const [selectedShift, setSelectedShift] = useState<Shift | null>(null);
+  const [selectedShift, setSelectedShift] = useState<UiShift | null>(null);
+  const [shifts, setShifts] = useState<UiShift[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  // Create shift modal state
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [form, setForm] = useState({
+    name: "",
+    start_time: "06:00",
+    end_time: "14:00",
+    max_operators: 5,
+    description: "",
+  });
+
+  // Edit shift modal state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [updating, setUpdating] = useState(false);
+  const [updateError, setUpdateError] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({
+    id: "",
+    name: "",
+    start_time: "06:00",
+    end_time: "14:00",
+    max_operators: 5,
+    description: "",
+  });
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -109,18 +89,110 @@ const ShiftManagement: React.FC = () => {
     }
   };
 
-  const getOperatorStatusColor = (status: string) => {
-    switch (status) {
-      case "available":
-        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
-      case "assigned":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
-      case "unavailable":
-        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300";
-      default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300";
+  // Load shifts from backend
+  const fetchShifts = async () => {
+    try {
+      setLoading(true);
+      const res = await staffshiftService.listShifts();
+      const apiShifts = (res.data?.data || []) as any[];
+      const mapped: UiShift[] = apiShifts.map((s: any) => ({
+        id: String(s.id),
+        name: s.name,
+        timeRange: `${s.start_time?.slice(0, 5)} - ${s.end_time?.slice(0, 5)}`,
+        status: "not-started",
+        operators: [],
+        operatorCount: 0,
+        maxOperators: Number(s.max_operators) || 0,
+        handoverNotes: s.description || undefined,
+      }));
+      setShifts(mapped);
+      setLoadError(null);
+    } catch (e: any) {
+      setLoadError(
+        e?.response?.data?.error || e?.message || "Failed to load shifts"
+      );
+    } finally {
+      setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchShifts();
+  }, []);
+
+  const handleCreateShift = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setCreating(true);
+      setCreateError(null);
+      await staffshiftService.createShift({
+        name: form.name,
+        start_time: form.start_time,
+        end_time: form.end_time,
+        max_operators: Number(form.max_operators),
+        description: form.description || undefined,
+      });
+      setShowCreateModal(false);
+      setForm({
+        name: "",
+        start_time: "06:00",
+        end_time: "14:00",
+        max_operators: 5,
+        description: "",
+      });
+      await fetchShifts();
+    } catch (e: any) {
+      setCreateError(
+        e?.response?.data?.error || e?.message || "Failed to create shift"
+      );
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  // Open edit modal with selected shift values
+  const openEdit = (s: UiShift) => {
+    setSelectedShift(s);
+    setEditForm({
+      id: s.id,
+      name: s.name,
+      start_time: s.timeRange.split(" - ")[0],
+      end_time: s.timeRange.split(" - ")[1],
+      max_operators: s.maxOperators,
+      description: s.handoverNotes || "",
+    });
+    setShowEditModal(true);
+  };
+
+  const handleUpdateShift = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setUpdating(true);
+      setUpdateError(null);
+      await staffshiftService.updateShift(editForm.id, {
+        name: editForm.name,
+        start_time: editForm.start_time,
+        end_time: editForm.end_time,
+        max_operators: Number(editForm.max_operators),
+        description: editForm.description || undefined,
+      });
+      setShowEditModal(false);
+      await fetchShifts();
+    } catch (e: any) {
+      setUpdateError(
+        e?.response?.data?.error || e?.message || "Failed to update shift"
+      );
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  if (loading) {
+    return <div className="p-6 text-sm text-gray-600">Loading shifts...</div>;
+  }
+  if (loadError) {
+    return <div className="p-6 text-sm text-red-600">{loadError}</div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -135,7 +207,7 @@ const ShiftManagement: React.FC = () => {
           </p>
         </div>
         <div className="flex space-x-3">
-          <Button variant="outline">
+          <Button variant="outline" onClick={() => setShowCreateModal(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Create New Shift
           </Button>
@@ -206,9 +278,20 @@ const ShiftManagement: React.FC = () => {
                     </div>
                   </div>
                 </div>
-                <Badge className={getStatusColor(shift.status)}>
-                  {shift.status.replace("-", " ")}
-                </Badge>
+                <div className="flex items-center space-x-2">
+                  <Badge className={getStatusColor(shift.status)}>
+                    {shift.status.replace("-", " ")}
+                  </Badge>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 px-2 text-xs"
+                    onClick={() => openEdit(shift)}
+                    aria-label="Edit shift"
+                  >
+                    <Edit className="h-3 w-3" />
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -231,26 +314,9 @@ const ShiftManagement: React.FC = () => {
                   <div
                     className="bg-blue-600 h-2 rounded-full"
                     style={{
-                      width: `${(shift.operatorCount / shift.maxOperators) * 100}%`,
+                      width: `${(shift.operatorCount / Math.max(shift.maxOperators || 1, 1)) * 100}%`,
                     }}
                   ></div>
-                </div>
-
-                {/* Assigned Operators */}
-                <div className="space-y-2">
-                  <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Assigned Operators:
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    {shift.operators.map((opId) => {
-                      const operator = operators.find((op) => op.id === opId);
-                      return (
-                        <Badge key={opId} variant="outline" className="text-xs">
-                          {operator?.name.split(" ")[0]}
-                        </Badge>
-                      );
-                    })}
-                  </div>
                 </div>
 
                 {/* Handover Notes */}
@@ -259,56 +325,216 @@ const ShiftManagement: React.FC = () => {
                     <div className="text-xs font-medium text-blue-800 dark:text-blue-300 mb-1">
                       Handover Notes:
                     </div>
-                    <div className="text-xs text-blue-700 dark:text-blue-400">
+                    <div className="text-sm text-blue-700 dark:text-blue-200">
                       {shift.handoverNotes}
                     </div>
                   </div>
                 )}
-
-                {/* Action Button */}
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => setSelectedShift(shift)}
-                >
-                  <Edit className="h-4 w-4 mr-2" />
-                  Manage Shift
-                </Button>
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {/* Available Operators */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Users className="h-5 w-5" />
-            <span>Operator Availability</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-            {operators.map((operator) => (
-              <div
-                key={operator.id}
-                className="flex items-center justify-between p-3 border rounded-lg dark:border-gray-700"
-              >
-                <div>
-                  <div className="font-medium text-sm">{operator.name}</div>
-                  <div className="text-xs text-gray-600 dark:text-gray-400">
-                    {operator.id}
-                  </div>
-                </div>
-                <Badge className={getOperatorStatusColor(operator.status)}>
-                  {operator.status}
-                </Badge>
+      {/* Create Shift Modal */}
+      {showCreateModal && (
+        <Modal
+          isOpen={showCreateModal}
+          onClose={() => setShowCreateModal(false)}
+          className="max-w-md mx-4"
+        >
+          <div className="p-6 space-y-4">
+            <h3 className="text-lg font-semibold">Create New Shift</h3>
+            <form onSubmit={handleCreateShift} className="space-y-4">
+              <div>
+                <Label htmlFor="name">Shift Name</Label>
+                <Input
+                  id="name"
+                  name="name"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  placeholder="Morning Shift"
+                />
               </div>
-            ))}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="start_time">Start Time</Label>
+                  <Input
+                    id="start_time"
+                    name="start_time"
+                    type="time"
+                    value={form.start_time}
+                    onChange={(e) =>
+                      setForm({ ...form, start_time: e.target.value })
+                    }
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="end_time">End Time</Label>
+                  <Input
+                    id="end_time"
+                    name="end_time"
+                    type="time"
+                    value={form.end_time}
+                    onChange={(e) =>
+                      setForm({ ...form, end_time: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="max_operators">Max Operators</Label>
+                  <Input
+                    id="max_operators"
+                    name="max_operators"
+                    type="number"
+                    min={1 as unknown as string}
+                    value={String(form.max_operators)}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        max_operators: Number(e.target.value),
+                      })
+                    }
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="description">Description</Label>
+                  <Input
+                    id="description"
+                    name="description"
+                    value={form.description}
+                    onChange={(e) =>
+                      setForm({ ...form, description: e.target.value })
+                    }
+                    placeholder="Optional"
+                  />
+                </div>
+              </div>
+              {createError && (
+                <div className="text-sm text-red-600">{createError}</div>
+              )}
+              <div className="flex justify-end space-x-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowCreateModal(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  className="bg-blue-600 hover:bg-blue-700"
+                  disabled={creating}
+                >
+                  {creating ? "Creating..." : "Create Shift"}
+                </Button>
+              </div>
+            </form>
           </div>
-        </CardContent>
-      </Card>
+        </Modal>
+      )}
+
+      {/* Edit Shift Modal */}
+      {showEditModal && (
+        <Modal
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          className="max-w-md mx-4"
+        >
+          <div className="p-6 space-y-4">
+            <h3 className="text-lg font-semibold">Edit Shift</h3>
+            <form onSubmit={handleUpdateShift} className="space-y-4">
+              <div>
+                <Label htmlFor="edit_name">Shift Name</Label>
+                <Input
+                  id="edit_name"
+                  name="edit_name"
+                  value={editForm.name}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, name: e.target.value })
+                  }
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="edit_start_time">Start Time</Label>
+                  <Input
+                    id="edit_start_time"
+                    name="edit_start_time"
+                    type="time"
+                    value={editForm.start_time}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, start_time: e.target.value })
+                    }
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit_end_time">End Time</Label>
+                  <Input
+                    id="edit_end_time"
+                    name="edit_end_time"
+                    type="time"
+                    value={editForm.end_time}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, end_time: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="edit_max_operators">Max Operators</Label>
+                  <Input
+                    id="edit_max_operators"
+                    name="edit_max_operators"
+                    type="number"
+                    min={1 as unknown as string}
+                    value={String(editForm.max_operators)}
+                    onChange={(e) =>
+                      setEditForm({
+                        ...editForm,
+                        max_operators: Number(e.target.value),
+                      })
+                    }
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit_description">Description</Label>
+                  <Input
+                    id="edit_description"
+                    name="edit_description"
+                    value={editForm.description}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, description: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+              {updateError && (
+                <div className="text-sm text-red-600">{updateError}</div>
+              )}
+              <div className="flex justify-end space-x-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowEditModal(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  className="bg-blue-600 hover:bg-blue-700"
+                  disabled={updating}
+                >
+                  {updating ? "Saving..." : "Save Changes"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };

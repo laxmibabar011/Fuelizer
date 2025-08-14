@@ -25,9 +25,16 @@ export enum ProductStatus {
 }
 
 export enum AssignmentType {
-  PUMP = "pump",
+  BOOTH = "booth",
+  NOZZLE = "nozzle",
   SHIFT = "shift",
   MAINTENANCE = "maintenance",
+}
+
+// Add global operator duty enum
+export enum OperatorDuty {
+  CASHIER = "cashier",
+  ATTENDANT = "attendant",
 }
 
 // Base interface for all entities
@@ -47,12 +54,15 @@ export interface Operator extends BaseEntity {
   currentAssignment?: Assignment;
   shift: string;
   joinDate: string;
+  duty?: OperatorDuty; // newly added for global duty configuration
 }
 
 // Assignment interface
 export interface Assignment {
   type: AssignmentType;
   location: string;
+  boothId?: string;
+  nozzleId?: string;
   startTime: string;
 }
 
@@ -118,6 +128,10 @@ export interface Nozzle {
   currentReading: number | null;
   variance: number;
   status: "pending" | "completed" | "error";
+  // Backward compatibility: single assignment
+  assignedOperator?: string;
+  // New: support multiple operators per nozzle
+  assignedOperators?: string[];
 }
 
 // Booth interface
@@ -125,4 +139,5 @@ export interface Booth extends BaseEntity {
   status: "online" | "offline" | "maintenance";
   nozzles: Nozzle[];
   lastMaintenance: string;
+  assignedOperator?: string;
 }

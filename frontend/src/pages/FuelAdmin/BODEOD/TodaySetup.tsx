@@ -9,8 +9,19 @@ import {
   DollarLineIcon,
   UsersIcon,
 } from "../../../icons";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "../../../components/ui/tabs/Tabs";
+import { useLocation } from "react-router-dom";
+import BoothManagement from "../StaffShifts/BoothManagement";
 
 const TodaySetup: React.FC = () => {
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const initialTab = searchParams.get("tab") || "fuel-rates";
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -28,155 +39,148 @@ const TodaySetup: React.FC = () => {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Tabbed BOD Workflow */}
+      <Tabs defaultValue={initialTab}>
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="fuel-rates" className="flex items-center gap-2">
+            <FuelIcon className="h-4 w-4" />
+            <span className="hidden sm:inline">Fuel Rates</span>
+          </TabsTrigger>
+          <TabsTrigger value="nozzles" className="flex items-center gap-2">
+            <BoltIcon className="h-4 w-4" />
+            <span className="hidden sm:inline">Booths</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="opening-meter"
+            className="flex items-center gap-2"
+          >
+            <ClockIcon className="h-4 w-4" />
+            <span className="hidden sm:inline">Opening Meter</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="opening-stock"
+            className="flex items-center gap-2"
+          >
+            <GridIcon className="h-4 w-4" />
+            <span className="hidden sm:inline">Opening Stock</span>
+          </TabsTrigger>
+          <TabsTrigger value="opening-cash" className="flex items-center gap-2">
+            <DollarLineIcon className="h-4 w-4" />
+            <span className="hidden sm:inline">Opening Cash</span>
+          </TabsTrigger>
+        </TabsList>
+
         {/* Fuel Rate Manager */}
-        <Card className="p-6">
-          <div className="flex items-center mb-4">
-            <FuelIcon className="h-6 w-6 text-blue-600 mr-3" />
-            <h2 className="text-xl font-semibold">Fuel Rate Manager</h2>
-          </div>
-          <div className="space-y-4">
-            <div className="p-4 border rounded-lg">
-              <h3 className="font-medium">Petrol</h3>
-              <p className="text-sm text-gray-600">Current Rate: ₹96.72</p>
-              <div className="mt-2">
-                <input
-                  type="number"
-                  placeholder="Enter today's rate"
-                  className="w-full p-2 border rounded"
-                />
+        <TabsContent value="fuel-rates" className="space-y-6">
+          <Card className="p-6">
+            <div className="flex items-center mb-4">
+              <FuelIcon className="h-6 w-6 text-blue-600 mr-3" />
+              <h2 className="text-xl font-semibold">Fuel Rate Manager</h2>
+            </div>
+            <div className="space-y-4">
+              <div className="p-4 border rounded-lg">
+                <h3 className="font-medium">Petrol</h3>
+                <p className="text-sm text-gray-600">Current Rate: ₹96.72</p>
+                <div className="mt-2">
+                  <input
+                    type="number"
+                    placeholder="Enter today's rate"
+                    className="w-full p-2 border rounded"
+                  />
+                </div>
+              </div>
+              <div className="p-4 border rounded-lg">
+                <h3 className="font-medium">Diesel</h3>
+                <p className="text-sm text-gray-600">Current Rate: ₹89.62</p>
+                <div className="mt-2">
+                  <input
+                    type="number"
+                    placeholder="Enter today's rate"
+                    className="w-full p-2 border rounded"
+                  />
+                </div>
               </div>
             </div>
-            <div className="p-4 border rounded-lg">
-              <h3 className="font-medium">Diesel</h3>
-              <p className="text-sm text-gray-600">Current Rate: ₹89.62</p>
-              <div className="mt-2">
-                <input
-                  type="number"
-                  placeholder="Enter today's rate"
-                  className="w-full p-2 border rounded"
-                />
-              </div>
-            </div>
-          </div>
-        </Card>
+          </Card>
+        </TabsContent>
 
-        {/* Shift & Staff Assignment */}
-        <Card className="p-6">
-          <div className="flex items-center mb-4">
-            <UsersIcon className="h-6 w-6 text-green-600 mr-3" />
-            <h2 className="text-xl font-semibold">Shift & Staff Assignment</h2>
-          </div>
-          <div className="space-y-4">
-            <div className="p-4 border rounded-lg">
-              <h3 className="font-medium">Morning Shift (6:00 AM - 2:00 PM)</h3>
-              <p className="text-sm text-gray-600">Staff: 3 assigned</p>
-              <div className="mt-2 flex space-x-2">
-                <Button size="sm" variant="outline">
-                  Assign Staff
-                </Button>
-                <Button size="sm" variant="outline">
-                  View Details
-                </Button>
-              </div>
-            </div>
-            <div className="p-4 border rounded-lg">
-              <h3 className="font-medium">
-                Evening Shift (2:00 PM - 10:00 PM)
-              </h3>
-              <p className="text-sm text-gray-600">Staff: 2 assigned</p>
-              <div className="mt-2 flex space-x-2">
-                <Button size="sm" variant="outline">
-                  Assign Staff
-                </Button>
-                <Button size="sm" variant="outline">
-                  View Details
-                </Button>
-              </div>
-            </div>
-          </div>
-        </Card>
+        {/* Booths */}
+        <TabsContent value="nozzles" className="space-y-6">
+          <BoothManagement />
+        </TabsContent>
 
-        {/* Nozzle Assignment */}
-        <Card className="p-6">
-          <div className="flex items-center mb-4">
-            <BoltIcon className="h-6 w-6 text-yellow-600 mr-3" />
-            <h2 className="text-xl font-semibold">Nozzle Assignment</h2>
-          </div>
-          <div className="space-y-4">
-            <div className="p-4 border rounded-lg">
-              <h3 className="font-medium">Nozzle P1 (Petrol)</h3>
-              <p className="text-sm text-gray-600">Assigned to: Rajesh Kumar</p>
-              <div className="mt-2 flex space-x-2">
-                <Button size="sm" variant="outline">
-                  Reassign
-                </Button>
-                <Button size="sm" variant="outline">
-                  View Details
-                </Button>
+        {/* Opening Meter Readings */}
+        <TabsContent value="opening-meter" className="space-y-6">
+          <Card className="p-6">
+            <div className="flex items-center mb-4">
+              <ClockIcon className="h-6 w-6 text-purple-600 mr-3" />
+              <h2 className="text-xl font-semibold">Opening Meter Readings</h2>
+            </div>
+            <div className="space-y-4">
+              <div className="p-4 border rounded-lg">
+                <h3 className="font-medium">Meter Readings</h3>
+                <p className="text-sm text-gray-600">All nozzles verified</p>
+                <div className="mt-2 flex space-x-2">
+                  <Button size="sm" variant="outline">
+                    View Details
+                  </Button>
+                  <Button size="sm" variant="outline">
+                    Edit
+                  </Button>
+                </div>
               </div>
             </div>
-            <div className="p-4 border rounded-lg">
-              <h3 className="font-medium">Nozzle P2 (Diesel)</h3>
-              <p className="text-sm text-gray-600">Assigned to: Priya Sharma</p>
-              <div className="mt-2 flex space-x-2">
-                <Button size="sm" variant="outline">
-                  Reassign
-                </Button>
-                <Button size="sm" variant="outline">
-                  View Details
-                </Button>
-              </div>
-            </div>
-          </div>
-        </Card>
+          </Card>
+        </TabsContent>
 
-        {/* Opening Readings */}
-        <Card className="p-6">
-          <div className="flex items-center mb-4">
-            <ClockIcon className="h-6 w-6 text-purple-600 mr-3" />
-            <h2 className="text-xl font-semibold">Opening Readings</h2>
-          </div>
-          <div className="space-y-4">
-            <div className="p-4 border rounded-lg">
-              <h3 className="font-medium">Meter Readings</h3>
-              <p className="text-sm text-gray-600">All nozzles verified</p>
-              <div className="mt-2 flex space-x-2">
-                <Button size="sm" variant="outline">
-                  View Details
-                </Button>
-                <Button size="sm" variant="outline">
-                  Edit
-                </Button>
+        {/* Opening Tank Stock */}
+        <TabsContent value="opening-stock" className="space-y-6">
+          <Card className="p-6">
+            <div className="flex items-center mb-4">
+              <GridIcon className="h-6 w-6 text-purple-600 mr-3" />
+              <h2 className="text-xl font-semibold">Opening Tank Stock</h2>
+            </div>
+            <div className="space-y-4">
+              <div className="p-4 border rounded-lg">
+                <h3 className="font-medium">Tank Stock</h3>
+                <p className="text-sm text-gray-600">Dip readings entered</p>
+                <div className="mt-2 flex space-x-2">
+                  <Button size="sm" variant="outline">
+                    View Details
+                  </Button>
+                  <Button size="sm" variant="outline">
+                    Edit
+                  </Button>
+                </div>
               </div>
             </div>
-            <div className="p-4 border rounded-lg">
-              <h3 className="font-medium">Tank Stock</h3>
-              <p className="text-sm text-gray-600">Dip readings entered</p>
-              <div className="mt-2 flex space-x-2">
-                <Button size="sm" variant="outline">
-                  View Details
-                </Button>
-                <Button size="sm" variant="outline">
-                  Edit
-                </Button>
+          </Card>
+        </TabsContent>
+
+        {/* Opening Cash */}
+        <TabsContent value="opening-cash" className="space-y-6">
+          <Card className="p-6">
+            <div className="flex items-center mb-4">
+              <DollarLineIcon className="h-6 w-6 text-purple-600 mr-3" />
+              <h2 className="text-xl font-semibold">Opening Cash</h2>
+            </div>
+            <div className="space-y-4">
+              <div className="p-4 border rounded-lg">
+                <h3 className="font-medium">Opening Cash</h3>
+                <p className="text-sm text-gray-600">₹5,000.00</p>
+                <div className="mt-2 flex space-x-2">
+                  <Button size="sm" variant="outline">
+                    Edit
+                  </Button>
+                  <Button size="sm" variant="outline">
+                    Verify
+                  </Button>
+                </div>
               </div>
             </div>
-            <div className="p-4 border rounded-lg">
-              <h3 className="font-medium">Opening Cash</h3>
-              <p className="text-sm text-gray-600">₹5,000.00</p>
-              <div className="mt-2 flex space-x-2">
-                <Button size="sm" variant="outline">
-                  Edit
-                </Button>
-                <Button size="sm" variant="outline">
-                  Verify
-                </Button>
-              </div>
-            </div>
-          </div>
-        </Card>
-      </div>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Setup Progress */}
       <Card className="p-6 bg-blue-50 border-blue-200">
@@ -195,13 +199,7 @@ const TodaySetup: React.FC = () => {
               <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white text-sm mx-auto mb-1">
                 ✓
               </div>
-              <p className="text-sm text-blue-700">Staff Assignment</p>
-            </div>
-            <div className="text-center">
-              <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white text-sm mx-auto mb-1">
-                ✓
-              </div>
-              <p className="text-sm text-blue-700">Nozzle Assignment</p>
+              <p className="text-sm text-blue-700">Booths</p>
             </div>
             <div className="text-center">
               <div className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center text-white text-sm mx-auto mb-1">

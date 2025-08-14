@@ -3,6 +3,7 @@ import { Card } from "../../../components/ui/card";
 import { Button } from "../../../components/ui/button";
 import Input from "../../../components/form/input/InputField";
 import Label from "../../../components/form/Label";
+import apiClient from "../../../services/apiClient";
 
 interface OperatorForm {
   name: string;
@@ -33,13 +34,14 @@ const OperatorOnboarding: React.FC = () => {
     setSubmitting(true);
     setError(null);
     setSuccess(false);
-    // For now, just log the data
     try {
-      console.log("Operator Data:", form);
+      await apiClient.post("/api/tenant/staffshift/operators/onboard", form);
       setSuccess(true);
       setForm(initialForm);
-    } catch (err) {
-      setError("Failed to submit.");
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.error || err?.message || "Failed to submit.";
+      setError(message);
     } finally {
       setSubmitting(false);
     }

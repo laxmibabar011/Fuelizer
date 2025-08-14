@@ -38,11 +38,18 @@ apiClient.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    if (
-      error.response?.status === 401 &&
-      originalRequest &&
-      !(originalRequest as any)._retry
-    ) {
+    const status = error.response?.status;
+    const isUnauthorized = status === 401;
+
+    if (isUnauthorized && originalRequest && !(originalRequest as any)._retry) {
+      // Only refresh for requests that require auth (i.e., have Authorization header)
+      const hadAuthHeader =
+        !!originalRequest.headers?.["Authorization"] ||
+        !!apiClient.defaults.headers.common["Authorization"];
+      if (!hadAuthHeader) {
+        return Promise.reject(error);
+      }
+
       if (isRefreshing) {
         // --- FIX: Mark queued requests as retries to prevent loops ---
         (originalRequest as any)._retry = true;
@@ -50,7 +57,7 @@ apiClient.interceptors.response.use(
           failedQueue.push({ resolve, reject });
         })
           .then((token) => {
-            if (originalRequest.headers) {
+            if (originalRequest.headers && token) {
               originalRequest.headers["Authorization"] = "Bearer " + token;
             }
             return apiClient(originalRequest);
@@ -64,9 +71,13 @@ apiClient.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        // Call the refresh endpoint directly, removing the AuthService dependency
-        const res = await apiClient.post("/api/auth/refresh", {});
-        const newAccessToken = res.data.data.accessToken;
+        // Call the refresh endpoint directly without Authorization header
+        const res = await apiClient.post(
+          "/api/auth/refresh",
+          {},
+          { headers: { Authorization: undefined } }
+        );
+        const newAccessToken = (res as any).data.data.accessToken;
         apiClient.defaults.headers.common["Authorization"] =
           `Bearer ${newAccessToken}`;
         if (originalRequest.headers) {

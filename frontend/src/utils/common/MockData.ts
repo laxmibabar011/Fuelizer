@@ -12,6 +12,7 @@ import {
   TankStatus,
   ProductStatus,
   AssignmentType,
+  OperatorDuty,
 } from "../../types/common";
 
 /**
@@ -30,12 +31,14 @@ export class MockData {
       email: "rajesh.kumar@fuelstation.com",
       status: OperatorStatus.ASSIGNED,
       currentAssignment: {
-        type: AssignmentType.PUMP,
-        location: "Pump 1-2",
+        type: AssignmentType.BOOTH,
+        location: "Booth 1",
+        boothId: "B001",
         startTime: "06:00",
       },
       shift: "Morning",
       joinDate: "2022-03-15",
+      duty: OperatorDuty.CASHIER,
     },
     {
       id: "OP002",
@@ -45,6 +48,7 @@ export class MockData {
       status: OperatorStatus.AVAILABLE,
       shift: "Afternoon",
       joinDate: "2021-11-08",
+      duty: OperatorDuty.ATTENDANT,
     },
     {
       id: "OP003",
@@ -53,12 +57,15 @@ export class MockData {
       email: "amit.singh@fuelstation.com",
       status: OperatorStatus.ASSIGNED,
       currentAssignment: {
-        type: AssignmentType.PUMP,
-        location: "Pump 3-4",
+        type: AssignmentType.NOZZLE,
+        location: "Booth 2 - Diesel Nozzle",
+        boothId: "B002",
+        nozzleId: "N003",
         startTime: "06:00",
       },
       shift: "Morning",
       joinDate: "2023-01-20",
+      duty: OperatorDuty.ATTENDANT,
     },
     {
       id: "OP004",
@@ -68,6 +75,7 @@ export class MockData {
       status: OperatorStatus.ON_BREAK,
       shift: "Afternoon",
       joinDate: "2022-08-12",
+      duty: OperatorDuty.ATTENDANT,
     },
     {
       id: "OP005",
@@ -82,6 +90,7 @@ export class MockData {
       },
       shift: "Morning",
       joinDate: "2020-05-10",
+      duty: OperatorDuty.ATTENDANT,
     },
     {
       id: "OP006",
@@ -91,6 +100,7 @@ export class MockData {
       status: OperatorStatus.AVAILABLE,
       shift: "Afternoon",
       joinDate: "2023-04-03",
+      duty: OperatorDuty.ATTENDANT,
     },
   ];
 
@@ -303,35 +313,14 @@ export class MockData {
   ];
 
   /**
-   * Mock pumps data
-   */
-  static readonly pumps: Pump[] = [
-    { id: "P001", name: "Pump 1", status: "available" },
-    {
-      id: "P002",
-      name: "Pump 2",
-      status: "assigned",
-      assignedOperator: "OP001",
-    },
-    { id: "P003", name: "Pump 3", status: "available" },
-    {
-      id: "P004",
-      name: "Pump 4",
-      status: "assigned",
-      assignedOperator: "OP003",
-    },
-    { id: "P005", name: "Pump 5", status: "maintenance" },
-    { id: "P006", name: "Pump 6", status: "available" },
-  ];
-
-  /**
-   * Mock booths data
+   * Mock booths data with operator assignments
    */
   static readonly booths: Booth[] = [
     {
       id: "B001",
       name: "Booth 1",
       status: "online",
+      assignedOperator: undefined, // No booth-level assignment, only nozzle-level
       nozzles: [
         {
           id: "N001",
@@ -340,6 +329,8 @@ export class MockData {
           currentReading: 13200,
           variance: 700,
           status: "completed",
+          assignedOperator: "OP001", // Rajesh Kumar assigned to this nozzle
+          assignedOperators: ["OP001", "OP002"],
         },
         {
           id: "N002",
@@ -348,6 +339,28 @@ export class MockData {
           currentReading: null,
           variance: 0,
           status: "pending",
+          assignedOperator: "OP002", // Priya Sharma assigned to this nozzle
+          assignedOperators: ["OP002"],
+        },
+        {
+          id: "N003",
+          fuelType: "Diesel",
+          previousReading: 15600,
+          currentReading: 16200,
+          variance: 600,
+          status: "completed",
+          assignedOperator: "OP003", // Amit Singh assigned to this nozzle
+          assignedOperators: ["OP003"],
+        },
+        {
+          id: "N004",
+          fuelType: "CNG",
+          previousReading: 4500,
+          currentReading: null,
+          variance: 0,
+          status: "pending",
+          assignedOperator: undefined, // Available for assignment
+          assignedOperators: [],
         },
       ],
       lastMaintenance: "2024-01-10",
@@ -356,14 +369,27 @@ export class MockData {
       id: "B002",
       name: "Booth 2",
       status: "online",
+      assignedOperator: undefined, // No booth-level assignment
       nozzles: [
         {
-          id: "N003",
-          fuelType: "Diesel",
-          previousReading: 15600,
-          currentReading: 16200,
-          variance: 600,
+          id: "N005",
+          fuelType: "Petrol Regular",
+          previousReading: 9800,
+          currentReading: 10500,
+          variance: 700,
           status: "completed",
+          assignedOperator: "OP004", // Sunita Devi assigned to this nozzle
+          assignedOperators: ["OP004"],
+        },
+        {
+          id: "N006",
+          fuelType: "Diesel",
+          previousReading: 12000,
+          currentReading: null,
+          variance: 0,
+          status: "pending",
+          assignedOperator: "OP005", // Vikram Yadav assigned to this nozzle
+          assignedOperators: ["OP005", "OP001"],
         },
       ],
       lastMaintenance: "2024-01-12",
@@ -372,14 +398,17 @@ export class MockData {
       id: "B003",
       name: "Booth 3",
       status: "maintenance",
+      assignedOperator: undefined,
       nozzles: [
         {
-          id: "N004",
-          fuelType: "CNG",
-          previousReading: 4500,
+          id: "N007",
+          fuelType: "Petrol Premium",
+          previousReading: 7500,
           currentReading: null,
           variance: 0,
           status: "error",
+          assignedOperator: undefined, // No assignment during maintenance
+          assignedOperators: [],
         },
       ],
       lastMaintenance: "2024-01-15",

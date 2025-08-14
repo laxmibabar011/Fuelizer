@@ -122,8 +122,16 @@ export class OperatorCard extends BaseEntityCard<any> {
         {/* Current Assignment */}
         {entity.currentAssignment ? (
           <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
-            <div className="text-sm font-medium text-blue-800 dark:text-blue-300">
-              Current Assignment
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-sm font-medium text-blue-800 dark:text-blue-300">
+                Current Assignment
+              </div>
+              {/* Duty Badge */}
+              {(entity as any).duty && (
+                <Badge variant="outline" className="text-xs uppercase">
+                  {(entity as any).duty}
+                </Badge>
+              )}
             </div>
             <div className="text-sm text-blue-700 dark:text-blue-400">
               {entity.currentAssignment.location} • Since{" "}
@@ -132,8 +140,16 @@ export class OperatorCard extends BaseEntityCard<any> {
           </div>
         ) : (
           <div className="bg-gray-50 dark:bg-gray-900/20 p-3 rounded-lg">
-            <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
-              No Current Assignment
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                No Current Assignment
+              </div>
+              {/* Duty Badge */}
+              {(entity as any).duty && (
+                <Badge variant="outline" className="text-xs uppercase">
+                  {(entity as any).duty}
+                </Badge>
+              )}
             </div>
             <div className="text-sm text-gray-500 dark:text-gray-500">
               Available for assignment

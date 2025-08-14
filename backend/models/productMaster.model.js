@@ -1,9 +1,9 @@
 import { DataTypes } from 'sequelize'
 
 // Initializes Product Master models in a tenant database
-// Exposed model names: ProductMasterCategory, ProductMasterProduct
+// Exposed model names: ProductCategory, ProductMaster
 export const initProductMasterModels = (sequelize) => {
-  const ProductMasterCategory = sequelize.define('ProductMasterCategory', {
+  const ProductCategory = sequelize.define('ProductCategory', {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
     category_type: { type: DataTypes.ENUM('Fuel', 'Other Product'), allowNull: false },
     name: { type: DataTypes.STRING, allowNull: true }, // Hidden for Fuel type
@@ -11,7 +11,7 @@ export const initProductMasterModels = (sequelize) => {
     is_active: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
   })
 
-  const ProductMasterProduct = sequelize.define('ProductMasterProduct', {
+  const ProductMaster = sequelize.define('ProductMaster', {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
     category_type: { type: DataTypes.ENUM('Fuel', 'Other Product'), allowNull: false },
     category_id: { type: DataTypes.INTEGER, allowNull: true }, // nullable for Fuel
@@ -36,10 +36,10 @@ export const initProductMasterModels = (sequelize) => {
     status: { type: DataTypes.ENUM('active', 'inactive'), allowNull: false, defaultValue: 'active' },
   })
 
-  ProductMasterCategory.hasMany(ProductMasterProduct, { foreignKey: 'category_id', onDelete: 'SET NULL' })
-  ProductMasterProduct.belongsTo(ProductMasterCategory, { foreignKey: 'category_id' })
+  ProductCategory.hasMany(ProductMaster, { foreignKey: 'category_id', onDelete: 'SET NULL' })
+  ProductMaster.belongsTo(ProductCategory, { foreignKey: 'category_id' })
 
-  return { ProductMasterCategory, ProductMasterProduct }
+  return { ProductCategory, ProductMaster }
 }
 
 

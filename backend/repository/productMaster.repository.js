@@ -7,7 +7,7 @@ export class ProductMasterRepository {
 
   // Categories
   async createCategory(payload) {
-    return this.models.ProductMasterCategory.create(payload)
+    return this.models.ProductCategory.create(payload)
   }
 
   async listCategories(filter = {}) {
@@ -15,11 +15,11 @@ export class ProductMasterRepository {
     if (typeof where.is_active === 'undefined') {
       where.is_active = true
     }
-    return this.models.ProductMasterCategory.findAll({ where, order: [['id', 'ASC']] })
+    return this.models.ProductCategory.findAll({ where, order: [['id', 'ASC']] })
   }
 
   async getCategoryById(id) {
-    return this.models.ProductMasterCategory.findByPk(id)
+    return this.models.ProductCategory.findByPk(id)
   }
 
   async updateCategory(id, patch) {
@@ -38,7 +38,7 @@ export class ProductMasterRepository {
 
   // Products
   async createProduct(payload) {
-    return this.models.ProductMasterProduct.create(payload)
+    return this.models.ProductMaster.create(payload)
   }
 
   async listProducts(query = {}) {
@@ -51,11 +51,11 @@ export class ProductMasterRepository {
     } else {
       where.status = status
     }
-    return this.models.ProductMasterProduct.findAll({ where, order: [['id', 'ASC']] })
+    return this.models.ProductMaster.findAll({ where, order: [['id', 'ASC']] })
   }
 
   async getProductById(id) {
-    return this.models.ProductMasterProduct.findByPk(id)
+    return this.models.ProductMaster.findByPk(id)
   }
 
   async updateProduct(id, patch) {
