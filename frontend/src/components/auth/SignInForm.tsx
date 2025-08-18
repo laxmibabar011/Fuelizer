@@ -95,11 +95,12 @@ export default function SignInForm() {
       <div className="flex flex-col justify-center flex-1 w-full max-w-md mx-auto">
         <div>
           <div className="mb-5 sm:mb-8">
-            <h1 className="mb-2 font-semibold text-gray-800 text-title-sm dark:text-white/90 sm:text-title-md">
+            <img src="/InvLogo.png" alt="Fuelizer logo" className="h-12 w-auto block -mt-2 mb-3 mx-auto" />
+            <h1 className="mb-2 font-semibold text-gray-800 text-lg dark:text-white/90 sm:text-xl">
               Fuelizer
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              To Continue, Enter your Bunk ID, Email and Password
+              To continue, Enter your Bunk ID, Email and Password.
             </p>
           </div>
 
