@@ -66,7 +66,7 @@ const AppSidebar: React.FC = () => {
     },
     {
       icon: <PlugInIcon />,
-      name: "Logout",
+      name: "Log out",
       onClick: logout,
     },
   ];
@@ -137,7 +137,7 @@ const AppSidebar: React.FC = () => {
     },
     {
       icon: <PlugInIcon />,
-      name: "Logout",
+      name: "Log out",
       onClick: logout,
     },
   ];

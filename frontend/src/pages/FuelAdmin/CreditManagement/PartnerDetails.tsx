@@ -364,10 +364,10 @@ const PartnerDetails: React.FC = () => {
                 <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white truncate">
                   {partner.companyName}
                 </h1>
-                <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600 dark:text-gray-400 truncate">
+                {/* <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600 dark:text-gray-400 truncate">
                   Partner ID: {partner.id}{" "}
                   {partner.createdAt && `• Created: ${partner.createdAt}`}
-                </p>
+                </p> */}
               </div>
             </div>
           </div>
@@ -391,10 +391,10 @@ const PartnerDetails: React.FC = () => {
                   d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
                 />
               </svg>
-              <span className="hidden sm:inline">Edit Partner</span>
+              <span className="hidden sm:inline">Edit Credit Customer</span>
               <span className="sm:hidden">Edit</span>
             </button>
-            <button
+            {/* <button
               onClick={() => navigate("/fuel-admin/credit-onboarding")}
               className="inline-flex items-center justify-center px-3 sm:px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 text-sm sm:text-base"
             >
@@ -413,7 +413,7 @@ const PartnerDetails: React.FC = () => {
               </svg>
               <span className="hidden sm:inline">Add User</span>
               <span className="sm:hidden">Add</span>
-            </button>
+            </button> */}
           </div>
         </div>
       </div>
@@ -500,7 +500,7 @@ const PartnerDetails: React.FC = () => {
                   ₹
                   {partner.currentBalance
                     ? Number(partner.currentBalance).toLocaleString("en-IN")
-                    : "-"}
+                    : "10,00,000"}
                 </p>
               </div>
               <div>
@@ -511,7 +511,7 @@ const PartnerDetails: React.FC = () => {
                   ₹
                   {partner.availableCredit
                     ? Number(partner.availableCredit).toLocaleString("en-IN")
-                    : "-"}
+                    : "10,00,000"}
                 </p>
               </div>
             </div>

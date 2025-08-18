@@ -1,12 +1,16 @@
-import React from "react";
-import { Card } from "../../../components/ui/card";
-import { Button } from "../../../components/ui/button";
+import React, { useEffect, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
+import Button from "../../../components/ui/button/Button";
+import Input from "../../../components/form/input/InputField";
+import { Modal } from "../../../components/ui/modal";
 import {
   GridIcon,
   BoltIcon,
   ClockIcon,
   FuelIcon,
   DollarLineIcon,
+  PlusIcon,
+  CalenderIcon,
 } from "../../../icons";
 import {
   Tabs,
@@ -16,11 +20,139 @@ import {
 } from "../../../components/ui/tabs/Tabs";
 import { useLocation } from "react-router-dom";
 import BoothManagement from "../StaffShifts/BoothManagement";
+import { Badge } from "../../../components/ui/badge";
+
+interface FuelProduct {
+  id: string;
+  name: string;
+  category: string;
+}
+
+interface FuelRate {
+  id: string;
+  productId: string;
+  productName: string;
+  rate: number;
+  date: string;
+  isToday: boolean;
+}
 
 const TodaySetup: React.FC = () => {
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const initialTab = searchParams.get("tab") || "fuel-rates";
+
+  // Fuel Rate Manager State
+  const [fuelProducts, setFuelProducts] = useState<FuelProduct[]>([]);
+  const [fuelRates, setFuelRates] = useState<FuelRate[]>([]);
+  const [yesterdayRates, setYesterdayRates] = useState<FuelRate[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [rateModal, setRateModal] = useState({
+    open: false,
+    product: null as FuelProduct | null,
+    todayRate: "",
+    yesterdayRate: 0,
+  });
+
+  // Load fuel products and rates
+  useEffect(() => {
+    loadFuelData();
+  }, []);
+
+  const loadFuelData = async () => {
+    setLoading(true);
+    try {
+      // Load fuel products from Product Master
+      const { default: ProductMasterService } = await import("../../../services/productMasterService");
+      const productsRes = await ProductMasterService.listProducts({ category_type: "Fuel" });
+      const products = productsRes.data?.data || [];
+      setFuelProducts(products);
+
+      // Load today's rates (mock data for now - will be replaced with API)
+      const today = new Date().toISOString().split('T')[0];
+      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+      // Mock data - replace with actual API calls
+      const mockTodayRates: FuelRate[] = products.map((p: any) => ({
+        id: `today-${p.id}`,
+        productId: p.id,
+        productName: p.name,
+        rate: 0, // Will be set by user
+        date: today,
+        isToday: true,
+      }));
+
+      const mockYesterdayRates: FuelRate[] = products.map((p: any) => ({
+        id: `yesterday-${p.id}`,
+        productId: p.id,
+        productName: p.name,
+        rate: Math.round((Math.random() * 20 + 80) * 100) / 100, // Random rate between 80-100
+        date: yesterday,
+        isToday: false,
+      }));
+
+      setFuelRates(mockTodayRates);
+      setYesterdayRates(mockYesterdayRates);
+    } catch (err) {
+      console.error("Failed to load fuel data:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const openRateModal = (product: FuelProduct) => {
+    const yesterdayRate = yesterdayRates.find(r => r.productId === product.id)?.rate || 0;
+    const todayRate = fuelRates.find(r => r.productId === product.id)?.rate || 0;
+    
+    setRateModal({
+      open: true,
+      product,
+      todayRate: todayRate > 0 ? todayRate.toString() : "",
+      yesterdayRate,
+    });
+  };
+
+  const saveFuelRate = () => {
+    if (!rateModal.product || !rateModal.todayRate) return;
+
+    const newRate = parseFloat(rateModal.todayRate);
+    if (isNaN(newRate) || newRate <= 0) return;
+
+    setFuelRates(prev => prev.map(rate => 
+      rate.productId === rateModal.product!.id 
+        ? { ...rate, rate: newRate }
+        : rate
+    ));
+
+    setRateModal({ open: false, product: null, todayRate: "", yesterdayRate: 0 });
+  };
+
+  const setSameAsYesterday = () => {
+    if (!rateModal.product) return;
+    
+    setRateModal(prev => ({
+      ...prev,
+      todayRate: prev.yesterdayRate.toFixed(2),
+    }));
+  };
+
+  const getRateChange = (productId: string) => {
+    const todayRate = fuelRates.find(r => r.productId === productId)?.rate || 0;
+    const yesterdayRate = yesterdayRates.find(r => r.productId === productId)?.rate || 0;
+    
+    if (todayRate === 0) return null;
+    if (yesterdayRate === 0) return { change: todayRate, percentage: 0, isIncrease: true };
+    
+    const change = todayRate - yesterdayRate;
+    const percentage = (change / yesterdayRate) * 100;
+    
+    return {
+      change: Math.abs(change),
+      percentage: Math.abs(percentage),
+      isIncrease: change > 0,
+    };
+  };
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -49,17 +181,11 @@ const TodaySetup: React.FC = () => {
             <BoltIcon className="h-4 w-4" />
             <span className="hidden sm:inline">Booths</span>
           </TabsTrigger>
-          <TabsTrigger
-            value="opening-meter"
-            className="flex items-center gap-2"
-          >
+          <TabsTrigger value="opening-meter" className="flex items-center gap-2">
             <ClockIcon className="h-4 w-4" />
             <span className="hidden sm:inline">Opening Meter</span>
           </TabsTrigger>
-          <TabsTrigger
-            value="opening-stock"
-            className="flex items-center gap-2"
-          >
+          <TabsTrigger value="opening-stock" className="flex items-center gap-2">
             <GridIcon className="h-4 w-4" />
             <span className="hidden sm:inline">Opening Stock</span>
           </TabsTrigger>
@@ -71,36 +197,110 @@ const TodaySetup: React.FC = () => {
 
         {/* Fuel Rate Manager */}
         <TabsContent value="fuel-rates" className="space-y-6">
-          <Card className="p-6">
-            <div className="flex items-center mb-4">
-              <FuelIcon className="h-6 w-6 text-blue-600 mr-3" />
-              <h2 className="text-xl font-semibold">Fuel Rate Manager</h2>
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white"></div>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">Loading fuel rates...</p>
             </div>
-            <div className="space-y-4">
-              <div className="p-4 border rounded-lg">
-                <h3 className="font-medium">Petrol</h3>
-                <p className="text-sm text-gray-600">Current Rate: ₹96.72</p>
-                <div className="mt-2">
-                  <input
-                    type="number"
-                    placeholder="Enter today's rate"
-                    className="w-full p-2 border rounded"
-                  />
-                </div>
-              </div>
-              <div className="p-4 border rounded-lg">
-                <h3 className="font-medium">Diesel</h3>
-                <p className="text-sm text-gray-600">Current Rate: ₹89.62</p>
-                <div className="mt-2">
-                  <input
-                    type="number"
-                    placeholder="Enter today's rate"
-                    className="w-full p-2 border rounded"
-                  />
-                </div>
-              </div>
-            </div>
-          </Card>
+          ) : (
+            <>
+              {/* Today's Rates Dashboard */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <FuelIcon className="h-6 w-6 text-blue-600" />
+                      <div>
+                        <CardTitle>Today's Fuel Rates</CardTitle>
+                        <p className="text-sm text-gray-600">Set today's rates for all fuel products</p>
+                      </div>
+                    </div>
+                                         <div className="flex items-center gap-2 text-sm text-gray-500">
+                       <CalenderIcon className="h-4 w-4" />
+                       {new Date().toLocaleDateString()}
+                     </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {fuelProducts.map((product) => {
+                      const todayRate = fuelRates.find(r => r.productId === product.id)?.rate || 0;
+                      const rateChange = getRateChange(product.id);
+                      
+                      return (
+                        <Card key={product.id} className="p-4 hover:shadow-md transition-shadow">
+                          <div className="flex items-start justify-between mb-3">
+                            <div>
+                              <h3 className="font-semibold text-gray-900 dark:text-white">{product.name}</h3>
+                              <p className="text-sm text-gray-500">Fuel Product</p>
+                            </div>
+                            {rateChange && (
+                              <Badge className={`text-xs ${rateChange.isIncrease ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                {rateChange.isIncrease ? '+' : '-'}₹{rateChange.change.toFixed(2)}
+                              </Badge>
+                            )}
+                          </div>
+                          
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-gray-600">Today's Rate:</span>
+                              <span className="font-semibold text-lg">
+                                {todayRate > 0 ? `₹${todayRate.toFixed(2)}` : 'Not Set'}
+                              </span>
+                            </div>
+                            
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-gray-600">Yesterday's Rate:</span>
+                              <span className="text-sm">
+                                ₹{yesterdayRates.find(r => r.productId === product.id)?.rate.toFixed(2) || '0.00'}
+                              </span>
+                            </div>
+                            
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => openRateModal(product)}
+                              className="w-full"
+                            >
+                              {todayRate > 0 ? 'Update Rate' : 'Set Rate'}
+                            </Button>
+                          </div>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Yesterday's Rates History */}
+              <Card>
+                                 <CardHeader>
+                   <div className="flex items-center gap-3">
+                     <GridIcon className="h-6 w-6 text-purple-600" />
+                     <div>
+                       <CardTitle>Yesterday's Rates History</CardTitle>
+                       <p className="text-sm text-gray-600">Reference for setting today's rates</p>
+                     </div>
+                   </div>
+                 </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {yesterdayRates.map((rate) => (
+                      <div key={rate.id} className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-800">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="font-medium">{rate.productName}</h4>
+                          <span className="text-sm text-gray-500">{rate.date}</span>
+                        </div>
+                        <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                          ₹{rate.rate.toFixed(2)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
         </TabsContent>
 
         {/* Booths */}
@@ -110,48 +310,323 @@ const TodaySetup: React.FC = () => {
 
         {/* Opening Meter Readings */}
         <TabsContent value="opening-meter" className="space-y-6">
-          <Card className="p-6">
-            <div className="flex items-center mb-4">
-              <ClockIcon className="h-6 w-6 text-purple-600 mr-3" />
-              <h2 className="text-xl font-semibold">Opening Meter Readings</h2>
-            </div>
-            <div className="space-y-4">
-              <div className="p-4 border rounded-lg">
-                <h3 className="font-medium">Meter Readings</h3>
-                <p className="text-sm text-gray-600">All nozzles verified</p>
-                <div className="mt-2 flex space-x-2">
-                  <Button size="sm" variant="outline">
-                    View Details
-                  </Button>
-                  <Button size="sm" variant="outline">
-                    Edit
-                  </Button>
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <ClockIcon className="h-6 w-6 text-purple-600" />
+                  <div>
+                    <CardTitle>Opening Meter Readings</CardTitle>
+                    <p className="text-sm text-gray-600">Record opening meter readings for all nozzles</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <CalenderIcon className="h-4 w-4" />
+                  {new Date().toLocaleDateString()}
                 </div>
               </div>
-            </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                {/* Meter Readings Dashboard */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="p-4 border rounded-lg bg-blue-50 dark:bg-blue-900/20">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-600">Total Nozzles</p>
+                        <p className="text-2xl font-bold text-blue-600">12</p>
+                      </div>
+                      <BoltIcon className="h-8 w-8 text-blue-400" />
+                    </div>
+                  </div>
+                  <div className="p-4 border rounded-lg bg-green-50 dark:bg-green-900/20">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-600">Readings Entered</p>
+                        <p className="text-2xl font-bold text-green-600">8</p>
+                      </div>
+                      <ClockIcon className="h-8 w-8 text-green-400" />
+                    </div>
+                  </div>
+                  <div className="p-4 border rounded-lg bg-yellow-50 dark:bg-yellow-900/20">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-600">Pending</p>
+                        <p className="text-2xl font-bold text-yellow-600">4</p>
+                      </div>
+                      <GridIcon className="h-8 w-8 text-yellow-400" />
+                    </div>
+                  </div>
+                  <div className="p-4 border rounded-lg bg-purple-50 dark:bg-purple-900/20">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-600">Yesterday's Total</p>
+                        <p className="text-2xl font-bold text-purple-600">₹45,230</p>
+                      </div>
+                      <DollarLineIcon className="h-8 w-8 text-purple-400" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Meter Readings Table */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold">Today's Meter Readings</h3>
+                    <Button size="sm" variant="outline">
+                      <PlusIcon className="h-4 w-4 mr-2" />
+                      Add Reading
+                    </Button>
+                  </div>
+                  
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse border border-gray-200 dark:border-gray-700">
+                      <thead>
+                        <tr className="bg-gray-50 dark:bg-gray-800">
+                          <th className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-left text-sm font-medium">Pump (Nozzle)</th>
+                          <th className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-left text-sm font-medium">Opening</th>
+                          <th className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-left text-sm font-medium">Test</th>
+                          <th className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-left text-sm font-medium">Closing</th>
+                          <th className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-left text-sm font-medium">Sales (L)</th>
+                          <th className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-left text-sm font-medium">Amount (₹)</th>
+                          <th className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-left text-sm font-medium">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="border-b border-gray-200 dark:border-gray-700">
+                          <td className="border border-gray-200 dark:border-gray-700 px-4 py-2">
+                            <div>
+                              <div className="font-medium">NO1</div>
+                              <div className="text-xs text-gray-500">Petrol</div>
+                            </div>
+                          </td>
+                          <td className="border border-gray-200 dark:border-gray-700 px-4 py-2">
+                            <Input
+                              type="number"
+                              step={0.01}
+                              className="w-20 h-8 text-sm"
+                              placeholder="0.00"
+                            />
+                          </td>
+                          <td className="border border-gray-200 dark:border-gray-700 px-4 py-2">
+                            <Input
+                              type="number"
+                              step={0.01}
+                              className="w-20 h-8 text-sm"
+                              placeholder="0.00"
+                            />
+                          </td>
+                          <td className="border border-gray-200 dark:border-gray-700 px-4 py-2">
+                            <Input
+                              type="number"
+                              step={0.01}
+                              className="w-20 h-8 text-sm"
+                              placeholder="0.00"
+                            />
+                          </td>
+                          <td className="border border-gray-200 dark:border-gray-700 px-4 py-2">
+                            <span className="text-sm font-medium">0.00</span>
+                          </td>
+                          <td className="border border-gray-200 dark:border-gray-700 px-4 py-2">
+                            <span className="text-sm font-medium">₹0.00</span>
+                          </td>
+                          <td className="border border-gray-200 dark:border-gray-700 px-4 py-2">
+                            <Button size="sm" variant="outline" className="h-8">
+                              Save
+                            </Button>
+                          </td>
+                        </tr>
+                        <tr className="border-b border-gray-200 dark:border-gray-700">
+                          <td className="border border-gray-200 dark:border-gray-700 px-4 py-2">
+                            <div>
+                              <div className="font-medium">NO2</div>
+                              <div className="text-xs text-gray-500">Diesel</div>
+                            </div>
+                          </td>
+                          <td className="border border-gray-200 dark:border-gray-700 px-4 py-2">
+                            <Input
+                              type="number"
+                              step={0.01}
+                              className="w-20 h-8 text-sm"
+                              placeholder="0.00"
+                            />
+                          </td>
+                          <td className="border border-gray-200 dark:border-gray-700 px-4 py-2">
+                            <Input
+                              type="number"
+                              step={0.01}
+                              className="w-20 h-8 text-sm"
+                              placeholder="0.00"
+                            />
+                          </td>
+                          <td className="border border-gray-200 dark:border-gray-700 px-4 py-2">
+                            <Input
+                              type="number"
+                              step={0.01}
+                              className="w-20 h-8 text-sm"
+                              placeholder="0.00"
+                            />
+                          </td>
+                          <td className="border border-gray-200 dark:border-gray-700 px-4 py-2">
+                            <span className="text-sm font-medium">0.00</span>
+                          </td>
+                          <td className="border border-gray-200 dark:border-gray-700 px-4 py-2">
+                            <span className="text-sm font-medium">₹0.00</span>
+                          </td>
+                          <td className="border border-gray-200 dark:border-gray-700 px-4 py-2">
+                            <Button size="sm" variant="outline" className="h-8">
+                              Save
+                            </Button>
+                          </td>
+                        </tr>
+                        <tr className="border-b border-gray-200 dark:border-gray-700">
+                          <td className="border border-gray-200 dark:border-gray-700 px-4 py-2">
+                            <div>
+                              <div className="font-medium">NO3</div>
+                              <div className="text-xs text-gray-500">Petrol</div>
+                            </div>
+                          </td>
+                          <td className="border border-gray-200 dark:border-gray-700 px-4 py-2">
+                            <Input
+                              type="number"
+                              step={0.01}
+                              className="w-20 h-8 text-sm"
+                              placeholder="0.00"
+                            />
+                          </td>
+                          <td className="border border-gray-200 dark:border-gray-700 px-4 py-2">
+                            <Input
+                              type="number"
+                              step={0.01}
+                              className="w-20 h-8 text-sm"
+                              placeholder="0.00"
+                            />
+                          </td>
+                          <td className="border border-gray-200 dark:border-gray-700 px-4 py-2">
+                            <Input
+                              type="number"
+                              step={0.01}
+                              className="w-20 h-8 text-sm"
+                              placeholder="0.00"
+                            />
+                          </td>
+                          <td className="border border-gray-200 dark:border-gray-700 px-4 py-2">
+                            <span className="text-sm font-medium">0.00</span>
+                          </td>
+                          <td className="border border-gray-200 dark:border-gray-700 px-4 py-2">
+                            <span className="text-sm font-medium">₹0.00</span>
+                          </td>
+                          <td className="border border-gray-200 dark:border-gray-700 px-4 py-2">
+                            <Button size="sm" variant="outline" className="h-8">
+                              Save
+                            </Button>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Yesterday's Readings History */}
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center gap-3">
+                      <GridIcon className="h-6 w-6 text-purple-600" />
+                      <div>
+                        <CardTitle>Yesterday's Readings History</CardTitle>
+                        <p className="text-sm text-gray-600">Reference for today's readings</p>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-collapse border border-gray-200 dark:border-gray-700">
+                        <thead>
+                          <tr className="bg-gray-50 dark:bg-gray-800">
+                            <th className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-left text-sm font-medium">Pump</th>
+                            <th className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-left text-sm font-medium">Opening</th>
+                            <th className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-left text-sm font-medium">Closing</th>
+                            <th className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-left text-sm font-medium">Sales (L)</th>
+                            <th className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-left text-sm font-medium">Amount (₹)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr className="border-b border-gray-200 dark:border-gray-700">
+                            <td className="border border-gray-200 dark:border-gray-700 px-4 py-2">
+                              <div>
+                                <div className="font-medium">NO1</div>
+                                <div className="text-xs text-gray-500">Petrol</div>
+                              </div>
+                            </td>
+                            <td className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-sm">1,250.50</td>
+                            <td className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-sm">1,450.75</td>
+                            <td className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-sm font-medium">200.25</td>
+                            <td className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-sm font-medium">₹19,368.18</td>
+                          </tr>
+                          <tr className="border-b border-gray-200 dark:border-gray-700">
+                            <td className="border border-gray-200 dark:border-gray-700 px-4 py-2">
+                              <div>
+                                <div className="font-medium">NO2</div>
+                                <div className="text-xs text-gray-500">Diesel</div>
+                              </div>
+                            </td>
+                            <td className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-sm">2,100.00</td>
+                            <td className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-sm">2,350.25</td>
+                            <td className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-sm font-medium">250.25</td>
+                            <td className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-sm font-medium">₹22,398.88</td>
+                          </tr>
+                          <tr className="border-b border-gray-200 dark:border-gray-700">
+                            <td className="border border-gray-200 dark:border-gray-700 px-4 py-2">
+                              <div>
+                                <div className="font-medium">NO3</div>
+                                <div className="text-xs text-gray-500">Petrol</div>
+                              </div>
+                            </td>
+                            <td className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-sm">800.00</td>
+                            <td className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-sm">950.50</td>
+                            <td className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-sm font-medium">150.50</td>
+                            <td className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-sm font-medium">₹14,562.36</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </CardContent>
           </Card>
         </TabsContent>
 
         {/* Opening Tank Stock */}
         <TabsContent value="opening-stock" className="space-y-6">
           <Card className="p-6">
-            <div className="flex items-center mb-4">
-              <GridIcon className="h-6 w-6 text-purple-600 mr-3" />
-              <h2 className="text-xl font-semibold">Opening Tank Stock</h2>
-            </div>
-            <div className="space-y-4">
-              <div className="p-4 border rounded-lg">
-                <h3 className="font-medium">Tank Stock</h3>
-                <p className="text-sm text-gray-600">Dip readings entered</p>
-                <div className="mt-2 flex space-x-2">
-                  <Button size="sm" variant="outline">
-                    View Details
-                  </Button>
-                  <Button size="sm" variant="outline">
-                    Edit
-                  </Button>
-                </div>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center">
+                <GridIcon className="h-6 w-6 text-purple-600 mr-3" />
+                <h2 className="text-xl font-semibold">Opening Tank Stock</h2>
               </div>
+              <span className="text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500">Coming soon</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="p-4 border rounded-lg bg-white dark:bg-gray-800">
+                <h3 className="font-medium mb-1">Tank A</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Dip reading</p>
+                <div className="mt-3 animate-pulse h-20 bg-gray-100 dark:bg-gray-700 rounded"></div>
+              </div>
+              <div className="p-4 border rounded-lg bg-white dark:bg-gray-800">
+                <h3 className="font-medium mb-1">Tank B</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Dip reading</p>
+                <div className="mt-3 animate-pulse h-20 bg-gray-100 dark:bg-gray-700 rounded"></div>
+              </div>
+              <div className="p-4 border rounded-lg bg-white dark:bg-gray-800">
+                <h3 className="font-medium mb-1">Tank C</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Dip reading</p>
+                <div className="mt-3 animate-pulse h-20 bg-gray-100 dark:bg-gray-700 rounded"></div>
+              </div>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button size="sm" variant="outline" disabled className="cursor-not-allowed opacity-60">Record Dip</Button>
+              <Button size="sm" variant="outline" disabled className="cursor-not-allowed opacity-60">Upload Gauge</Button>
+              <Button size="sm" variant="outline" disabled className="cursor-not-allowed opacity-60">Download Template</Button>
             </div>
           </Card>
         </TabsContent>
@@ -159,23 +634,35 @@ const TodaySetup: React.FC = () => {
         {/* Opening Cash */}
         <TabsContent value="opening-cash" className="space-y-6">
           <Card className="p-6">
-            <div className="flex items-center mb-4">
-              <DollarLineIcon className="h-6 w-6 text-purple-600 mr-3" />
-              <h2 className="text-xl font-semibold">Opening Cash</h2>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center">
+                <DollarLineIcon className="h-6 w-6 text-purple-600 mr-3" />
+                <h2 className="text-xl font-semibold">Opening Cash</h2>
+              </div>
+              <span className="text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500">Coming soon</span>
             </div>
-            <div className="space-y-4">
-              <div className="p-4 border rounded-lg">
-                <h3 className="font-medium">Opening Cash</h3>
-                <p className="text-sm text-gray-600">₹5,000.00</p>
-                <div className="mt-2 flex space-x-2">
-                  <Button size="sm" variant="outline">
-                    Edit
-                  </Button>
-                  <Button size="sm" variant="outline">
-                    Verify
-                  </Button>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="p-4 border rounded-lg bg-white dark:bg-gray-800">
+                <h3 className="font-medium mb-1">Opening Cash</h3>
+                <div className="mt-2 h-8 w-32 rounded bg-gray-100 dark:bg-gray-700 animate-pulse"></div>
+              </div>
+              <div className="p-4 border rounded-lg bg-white dark:bg-gray-800">
+                <h3 className="font-medium mb-1">Denominations</h3>
+                <div className="space-y-2 mt-2">
+                  <div className="h-3 rounded bg-gray-100 dark:bg-gray-700 animate-pulse w-3/4"></div>
+                  <div className="h-3 rounded bg-gray-100 dark:bg-gray-700 animate-pulse w-2/3"></div>
+                  <div className="h-3 rounded bg-gray-100 dark:bg-gray-700 animate-pulse w-1/2"></div>
                 </div>
               </div>
+              <div className="p-4 border rounded-lg bg-white dark:bg-gray-800">
+                <h3 className="font-medium mb-1">Notes</h3>
+                <div className="mt-2 h-16 rounded bg-gray-100 dark:bg-gray-700 animate-pulse"></div>
+              </div>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button size="sm" variant="outline" disabled className="cursor-not-allowed opacity-60">Edit</Button>
+              <Button size="sm" variant="outline" disabled className="cursor-not-allowed opacity-60">Verify</Button>
+              <Button size="sm" variant="outline" disabled className="cursor-not-allowed opacity-60">Upload Receipt</Button>
             </div>
           </Card>
         </TabsContent>
@@ -210,18 +697,55 @@ const TodaySetup: React.FC = () => {
         </div>
       </Card>
 
-      {/* Coming Soon Notice */}
-      <Card className="p-6 bg-yellow-50 border-yellow-200">
-        <div className="text-center">
-          <h3 className="text-lg font-medium text-yellow-800 mb-2">
-            Daily Operations - Today's Setup
+      {/* Fuel Rate Modal */}
+      <Modal isOpen={rateModal.open} onClose={() => setRateModal({ open: false, product: null, todayRate: "", yesterdayRate: 0 })} className="max-w-md w-full">
+        <div className="p-6 space-y-4">
+          <h3 className="text-lg font-semibold">
+            Set Rate for {rateModal.product?.name}
           </h3>
-          <p className="text-yellow-700">
-            This page will provide a step-by-step wizard for Beginning of Day
-            setup. Full functionality coming soon.
-          </p>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Yesterday's Rate</label>
+              <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <span className="text-lg font-semibold">₹{rateModal.yesterdayRate.toFixed(2)}</span>
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-1">Today's Rate (₹)</label>
+              <Input
+                type="number"
+                step={0.01}
+                min="0"
+                value={rateModal.todayRate}
+                onChange={(e) => setRateModal(prev => ({ ...prev, todayRate: e.target.value }))}
+                placeholder="Enter today's rate"
+              />
+            </div>
+            
+            <Button
+              variant="outline"
+              onClick={setSameAsYesterday}
+              className="w-full"
+            >
+              Set Same as Yesterday (₹{rateModal.yesterdayRate.toFixed(2)})
+            </Button>
+          </div>
+          
+          <div className="flex justify-end gap-3">
+            <Button
+              variant="outline"
+              onClick={() => setRateModal({ open: false, product: null, todayRate: "", yesterdayRate: 0 })}
+            >
+              Cancel
+            </Button>
+            <Button onClick={saveFuelRate}>
+              Save Rate
+            </Button>
+          </div>
         </div>
-      </Card>
+      </Modal>
     </div>
   );
 };
