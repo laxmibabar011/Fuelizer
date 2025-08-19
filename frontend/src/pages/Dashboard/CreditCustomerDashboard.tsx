@@ -70,7 +70,7 @@ const PartnerDashboard: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
           <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
-            Credit Limit
+            Sanctioned Limit
           </p>
           <p className="text-2xl font-bold text-gray-900 dark:text-white">
             ₹{partnerInfo.creditLimit.toLocaleString()}
@@ -78,7 +78,7 @@ const PartnerDashboard: React.FC = () => {
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
           <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
-            Current Balance
+            Utilised (BOD)
           </p>
           <p className="text-2xl font-bold text-red-600 dark:text-red-400">
             ₹{partnerInfo.currentBalance.toLocaleString()}
@@ -86,7 +86,15 @@ const PartnerDashboard: React.FC = () => {
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
           <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
-            Available Credit
+            Available Balance
+          </p>
+          <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+            ₹{availableCredit.toLocaleString()}
+          </p>
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+          <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
+            Adhoc Addition during the day
           </p>
           <p className="text-2xl font-bold text-green-600 dark:text-green-400">
             ₹{availableCredit.toLocaleString()}

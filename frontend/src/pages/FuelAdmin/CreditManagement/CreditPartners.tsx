@@ -4,6 +4,8 @@ import Input from "../../../components/form/input/InputField";
 import Label from "../../../components/form/Label";
 import creditService from "../../../services/creditService";
 import { useAuth } from "../../../context/AuthContext";
+import { Modal } from "../../../components/ui/modal";
+import Button from "../../../components/ui/button/Button";
 
 interface Partner {
   id: number;
@@ -25,6 +27,15 @@ const CreditPartners: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [partners, setPartners] = useState<Partner[]>([]);
   const [error, setError] = useState<string>("");
+
+  // Adjust limit modal state
+  const [showAdjustLimit, setShowAdjustLimit] = useState(false);
+  const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null);
+  const [newCreditLimit, setNewCreditLimit] = useState<string>("");
+  const [adhocAddition, setAdhocAddition] = useState<string>("");
+  const [utilisedBod, setUtilisedBod] = useState<string>("");
+  const [adjustLoading, setAdjustLoading] = useState(false);
+  const [adjustError, setAdjustError] = useState<string>("");
 
   useEffect(() => {
     const fetchPartners = async () => {
@@ -77,6 +88,15 @@ const CreditPartners: React.FC = () => {
 
   const handleEditPartner = (partnerId: number) => {
     navigate(`/fuel-admin/credit-partners/${partnerId}/edit`);
+  };
+
+  const handleOpenAdjust = (partner: Partner) => {
+    setSelectedPartner(partner);
+    setNewCreditLimit(String(partner.creditLimit ?? ""));
+    setAdhocAddition("");
+    setUtilisedBod(partner.currentBalance ? String(partner.currentBalance) : "");
+    setAdjustError("");
+    setShowAdjustLimit(true);
   };
 
   return (
@@ -309,6 +329,12 @@ const CreditPartners: React.FC = () => {
                         >
                           Edit
                         </button>
+                        <button
+                          onClick={() => handleOpenAdjust(partner)}
+                          className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300"
+                        >
+                          Adjust Limit
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -366,6 +392,71 @@ const CreditPartners: React.FC = () => {
             </div>
           )}
         </div>
+      )}
+
+      {/* Adjust Credit Limit Wizard Modal */}
+      {showAdjustLimit && selectedPartner && (
+        <Modal isOpen={showAdjustLimit} onClose={() => setShowAdjustLimit(false)} className="max-w-xl w-full p-0">
+          <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Adjust Credit Limit</h3>
+          </div>
+          <div className="p-6 space-y-5">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label>Sanctioned Limit</Label>
+                <Input type="number" value={newCreditLimit} onChange={(e) => {
+                  const val = e.target.value.replace(/[^0-9.]/g, "");
+                  setNewCreditLimit(val);
+                }} />
+              </div>
+              <div>
+                <Label>Utilised (BOD)</Label>
+                <Input type="text" value={utilisedBod} onChange={(e) => {
+                  const val = e.target.value.replace(/[^0-9.]/g, "");
+                  setUtilisedBod(val);
+                }} />
+              </div>
+              <div>
+                <Label>Available Balance</Label>
+                <Input type="text" value={(Number(newCreditLimit || 0) - Number(utilisedBod || 0) + Number(adhocAddition || 0)).toString()} disabled />
+              </div>
+            </div>
+            <div>
+              <Label>Adhoc Addition during the day</Label>
+              <Input type="text" value={adhocAddition} onChange={(e) => {
+                const val = e.target.value.replace(/[^0-9.]/g, "");
+                setAdhocAddition(val);
+              }} />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">This temporary amount increases available balance for the day. It won't persist as sanctioned limit.</p>
+            </div>
+            {adjustError && (
+              <div className="rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-400">{adjustError}</div>
+            )}
+          </div>
+          <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
+            <Button variant="outline" onClick={() => setShowAdjustLimit(false)}>Cancel</Button>
+            <Button onClick={async () => {
+              try {
+                setAdjustError("");
+                setAdjustLoading(true);
+                const limitNum = Number(newCreditLimit);
+                if (Number.isNaN(limitNum) || limitNum <= 0) {
+                  setAdjustError("Please enter a valid sanctioned limit.");
+                  setAdjustLoading(false);
+                  return;
+                }
+                await creditService.updateCreditLimit(selectedPartner.id, limitNum);
+                // update local partner list
+                setPartners((prev) => prev.map((p) => p.id === selectedPartner.id ? { ...p, creditLimit: limitNum } : p));
+                setShowAdjustLimit(false);
+              } catch (err: any) {
+                setAdjustError(err?.response?.data?.message || "Failed to update credit limit");
+              } finally {
+                setAdjustLoading(false);
+              }
+            }} disabled={adjustLoading}>{adjustLoading ? "Updating..." : "Update"}</Button>
+          </div>
+        </Modal>
       )}
     </div>
   );

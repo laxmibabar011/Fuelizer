@@ -2,6 +2,10 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
 import VehicleOnboardingStep from "./VehicleOnboardingStep";
 import creditService from "../../../services/creditService";
+import { Modal } from "../../../components/ui/modal";
+import Input from "../../../components/form/input/InputField";
+import Label from "../../../components/form/Label";
+import Button from "../../../components/ui/button/Button";
 // import { useAuth } from "../../context/AuthContext";
 
 interface PartnerUser {
@@ -45,6 +49,17 @@ const PartnerDetails: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<any>(null);
 
+  // Adjust credit limit modal state
+  const [showAdjustLimit, setShowAdjustLimit] = useState(false);
+  const [newCreditLimit, setNewCreditLimit] = useState<string>("");
+  const [adhocAddition, setAdhocAddition] = useState<string>("");
+  const [utilisedBod, setUtilisedBod] = useState<string>("");
+  const [adjustLoading, setAdjustLoading] = useState(false);
+  const [adjustError, setAdjustError] = useState<string>("");
+  // Display states for credit info (adhoc + utilised) to reflect wizard entries
+  const [displayAdhoc, setDisplayAdhoc] = useState<number>(0);
+  const [displayUtilised, setDisplayUtilised] = useState<number>(0);
+
   useEffect(() => {
     const fetchPartner = async () => {
       setLoading(true);
@@ -53,6 +68,7 @@ const PartnerDetails: React.FC = () => {
         const res = await creditService.getPartnerById(id || "");
         if (res.data.success && res.data.data) {
           setPartner(res.data.data);
+          setDisplayUtilised(Number(res.data.data.currentBalance || 0));
         } else {
           setError(res.data.message || "Partner not found");
         }
@@ -103,8 +119,13 @@ const PartnerDetails: React.FC = () => {
   };
 
   const getCreditUtilizationPercentage = () => {
-    if (!partner || !partner.creditLimit || !partner.currentBalance) return 0;
-    return Math.round((partner.currentBalance / partner.creditLimit) * 100);
+    if (!partner) return 0;
+    const sanctioned = Number(partner.creditLimit || 0);
+    const utilised = Number(displayUtilised || 0);
+    const adhoc = Number(displayAdhoc || 0);
+    const denominator = sanctioned + adhoc;
+    if (denominator <= 0) return 0;
+    return Math.round((utilised / denominator) * 100);
   };
 
   const getVehicleTypeIcon = (vehicleType: string) => {
@@ -483,35 +504,39 @@ const PartnerDetails: React.FC = () => {
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
               Credit Information
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Credit Limit
+                  Sanctioned Limit
                 </label>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  ₹{Number(partner.creditLimit).toLocaleString("en-IN")}
+                  ₹{Number(partner.creditLimit || 0).toLocaleString("en-IN")}
                 </p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Current Balance
+                  Utilised (BOD)
                 </label>
                 <p className="text-2xl font-bold text-red-600 dark:text-red-400">
-                  ₹
-                  {partner.currentBalance
-                    ? Number(partner.currentBalance).toLocaleString("en-IN")
-                    : "10,00,000"}
+                  ₹{Number(displayUtilised || partner.currentBalance || 0).toLocaleString("en-IN")}
                 </p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Available Credit
+                  Adhoc (Today)
+                </label>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                  ₹{Number(displayAdhoc || 0).toLocaleString("en-IN")}
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Available Balance
                 </label>
                 <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                  ₹
-                  {partner.availableCredit
-                    ? Number(partner.availableCredit).toLocaleString("en-IN")
-                    : "10,00,000"}
+                  ₹{(
+                    Number(partner.creditLimit || 0) - Number(displayUtilised || partner.currentBalance || 0) + Number(displayAdhoc || 0)
+                  ).toLocaleString("en-IN")}
                 </p>
               </div>
             </div>
@@ -564,7 +589,13 @@ const PartnerDetails: React.FC = () => {
               </p>
             </div>
             <div className="p-3 space-y-2">
-              <button className="w-full group relative overflow-hidden rounded-lg bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 border border-gray-200 dark:border-gray-600 hover:from-brand-50 hover:to-brand-100 dark:hover:from-brand-900/20 dark:hover:to-brand-800/20 hover:border-brand-200 dark:hover:border-brand-700 transition-all duration-200 ease-in-out transform hover:scale-[1.02] active:scale-[0.98] shadow-sm hover:shadow-md">
+              <button onClick={() => {
+                setAdjustError("");
+                setNewCreditLimit(partner?.creditLimit ? String(partner.creditLimit) : "");
+                setAdhocAddition("");
+                setUtilisedBod(partner?.currentBalance ? String(partner.currentBalance) : "");
+                setShowAdjustLimit(true);
+              }} className="w-full group relative overflow-hidden rounded-lg bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 border border-gray-200 dark:border-gray-600 hover:from-brand-50 hover:to-brand-100 dark:hover:from-brand-900/20 dark:hover:to-brand-800/20 hover:border-brand-200 dark:hover:border-brand-700 transition-all duration-200 ease-in-out transform hover:scale-[1.02] active:scale-[0.98] shadow-sm hover:shadow-md">
                 <div className="flex items-center p-3">
                   <div className="flex-shrink-0 w-8 h-8 bg-brand-100 dark:bg-brand-900/30 rounded-lg flex items-center justify-center group-hover:bg-brand-200 dark:group-hover:bg-brand-800/50 transition-colors shadow-sm">
                     <svg
@@ -1175,6 +1206,74 @@ const PartnerDetails: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Adjust Credit Limit Wizard Modal */}
+      {showAdjustLimit && partner && (
+        <Modal isOpen={showAdjustLimit} onClose={() => setShowAdjustLimit(false)} className="max-w-xl w-full p-0">
+          <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Adjust Credit Limit</h3>
+          </div>
+          <div className="p-6 space-y-5">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label>Sanctioned Limit</Label>
+                <Input type="text" value={newCreditLimit} onChange={(e) => {
+                  const val = e.target.value.replace(/[^0-9.]/g, "");
+                  setNewCreditLimit(val);
+                }} />
+              </div>
+              <div>
+                <Label>Utilised (BOD)</Label>
+                <Input type="text" value={utilisedBod} onChange={(e) => {
+                  const val = e.target.value.replace(/[^0-9.]/g, "");
+                  setUtilisedBod(val || "0");
+                }} />
+              </div>
+              <div>
+                <Label>Available Balance</Label>
+                <Input type="text" value={(Number(newCreditLimit || 0) - Number(utilisedBod || 0) + Number(adhocAddition || 0)).toString()} disabled />
+              </div>
+            </div>
+            <div>
+              <Label>Adhoc Addition during the day</Label>
+              <Input type="text" value={adhocAddition} onChange={(e) => {
+                const val = e.target.value.replace(/[^0-9.]/g, "");
+                setAdhocAddition(val);
+              }} />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">This temporary amount increases available balance for the day. It won't persist as sanctioned limit.</p>
+            </div>
+            {adjustError && (
+              <div className="rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-400">{adjustError}</div>
+            )}
+          </div>
+          <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
+            <Button variant="outline" onClick={() => setShowAdjustLimit(false)}>Cancel</Button>
+            <Button onClick={async () => {
+              try {
+                setAdjustError("");
+                setAdjustLoading(true);
+                const limitNum = Number(newCreditLimit);
+                if (Number.isNaN(limitNum) || limitNum <= 0) {
+                  setAdjustError("Please enter a valid sanctioned limit.");
+                  setAdjustLoading(false);
+                  return;
+                }
+                // Update sanctioned credit limit
+                await creditService.updateCreditLimit(partner.id, limitNum);
+                // Locally update state & display metrics
+                setPartner({ ...partner, creditLimit: limitNum });
+                setDisplayAdhoc(Number(adhocAddition || 0));
+                setDisplayUtilised(Number(utilisedBod || 0));
+                setShowAdjustLimit(false);
+              } catch (err: any) {
+                setAdjustError(err?.response?.data?.message || "Failed to update credit limit");
+              } finally {
+                setAdjustLoading(false);
+              }
+            }} disabled={adjustLoading}>{adjustLoading ? "Updating..." : "Update"}</Button>
+          </div>
+        </Modal>
       )}
     </div>
   );

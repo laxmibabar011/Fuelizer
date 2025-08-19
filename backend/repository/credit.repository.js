@@ -58,4 +58,12 @@ export class CreditRepository {
   async deleteVehicle(vehicleId) {
     return this.models.Vehicle.destroy({ where: { id: vehicleId } });
   }
+
+  // Update credit limit for a credit account
+  async updateCreditLimit(partnerId, creditLimit) {
+    const account = await this.models.CreditAccount.findByPk(partnerId);
+    if (!account) return null;
+    await account.update({ creditLimit });
+    return account;
+  }
 }
