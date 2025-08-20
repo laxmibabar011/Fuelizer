@@ -439,133 +439,400 @@ const PartnerDetails: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-5 gap-4 sm:gap-6">
-        {/* Company Information */}
-        <div className="xl:col-span-4 space-y-4 sm:space-y-6">
-          {/* Basic Information */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Company Information
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Company Name
-                </label>
-                <p className="text-gray-900 dark:text-white">
-                  {partner.companyName}
-                </p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Contact Person
-                </label>
-                <p className="text-gray-900 dark:text-white">
-                  {partner.contactName}
-                </p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Contact Email
-                </label>
-                <p className="text-gray-900 dark:text-white">
-                  {partner.contactEmail}
-                </p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Contact Phone
-                </label>
-                <p className="text-gray-900 dark:text-white">
-                  {partner.contactPhone}
-                </p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Status
-                </label>
-                <span
-                  className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(partner.status)}`}
-                >
-                  {partner.status}
-                </span>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Role
-                </label>
-                <p className="text-gray-900 dark:text-white">{partner.role}</p>
-              </div>
-            </div>
-          </div>
+      <div className="space-y-4 sm:space-y-6">
+        <div className="grid grid-cols-1 xl:grid-cols-5 gap-4 sm:gap-6">
+                     {/* Company Information */}
+           <div className="xl:col-span-4 space-y-4 sm:space-y-6">
+             {/* Basic Information */}
+             <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                 Company Information
+               </h3>
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <div>
+                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                     Company Name
+                   </label>
+                   <p className="text-gray-900 dark:text-white">
+                     {partner.companyName}
+                   </p>
+                 </div>
+                 <div>
+                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                     Contact Person
+                   </label>
+                   <p className="text-gray-900 dark:text-white">
+                     {partner.contactName}
+                   </p>
+                 </div>
+                 <div>
+                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                     Contact Email
+                   </label>
+                   <p className="text-gray-900 dark:text-white">
+                     {partner.contactEmail}
+                   </p>
+                 </div>
+                 <div>
+                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                     Contact Phone
+                   </label>
+                   <p className="text-gray-900 dark:text-white">
+                     {partner.contactPhone}
+                   </p>
+                 </div>
+                 <div>
+                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                     Status
+                   </label>
+                   <span
+                     className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(partner.status)}`}
+                   >
+                     {partner.status}
+                   </span>
+                 </div>
+                 <div>
+                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                     Role
+                   </label>
+                   <p className="text-gray-900 dark:text-white">{partner.role}</p>
+                 </div>
+               </div>
+             </div>
 
-          {/* Credit Information */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Credit Information
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Sanctioned Limit
-                </label>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  ₹{Number(partner.creditLimit || 0).toLocaleString("en-IN")}
-                </p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Utilised (BOD)
-                </label>
-                <p className="text-2xl font-bold text-red-600 dark:text-red-400">
-                  ₹{Number(displayUtilised || partner.currentBalance || 0).toLocaleString("en-IN")}
-                </p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Adhoc (Today)
-                </label>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  ₹{Number(displayAdhoc || 0).toLocaleString("en-IN")}
-                </p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Available Balance
-                </label>
-                <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                  ₹{(
-                    Number(partner.creditLimit || 0) - Number(displayUtilised || partner.currentBalance || 0) + Number(displayAdhoc || 0)
-                  ).toLocaleString("en-IN")}
-                </p>
-              </div>
-            </div>
+             {/* Credit Information */}
+             <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                 Credit Information
+               </h3>
+               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                 <div>
+                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                     Sanctioned Limit
+                   </label>
+                   <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                     ₹{Number(partner.creditLimit || 0).toLocaleString("en-IN")}
+                   </p>
+                 </div>
+                 <div>
+                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                     Utilised (BOD)
+                   </label>
+                   <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+                     ₹{Number(displayUtilised || partner.currentBalance || 0).toLocaleString("en-IN")}
+                   </p>
+                 </div>
+                 <div>
+                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                     Adhoc (Today)
+                   </label>
+                   <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                     ₹{Number(displayAdhoc || 0).toLocaleString("en-IN")}
+                   </p>
+                 </div>
+                 <div>
+                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                     Available Balance
+                   </label>
+                   <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                     ₹{(
+                       Number(partner.creditLimit || 0) - Number(displayUtilised || partner.currentBalance || 0) + Number(displayAdhoc || 0)
+                     ).toLocaleString("en-IN")}
+                   </p>
+                 </div>
+               </div>
 
-            {/* Credit Utilization Bar */}
-            <div className="mb-2">
-              <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-1">
-                <span>Credit Utilization</span>
-                <span>{getCreditUtilizationPercentage()}%</span>
-              </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                <div
-                  className={`h-2 rounded-full ${
-                    getCreditUtilizationPercentage() > 80
-                      ? "bg-red-500"
-                      : getCreditUtilizationPercentage() > 60
-                        ? "bg-yellow-500"
-                        : "bg-green-500"
-                  }`}
-                  style={{ width: `${getCreditUtilizationPercentage()}%` }}
-                ></div>
-              </div>
-            </div>
-          </div>
-        </div>
+               {/* Credit Utilization Bar */}
+               <div className="mb-2">
+                 <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-1">
+                   <span>Credit Utilization</span>
+                   <span>{getCreditUtilizationPercentage()}%</span>
+                 </div>
+                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                   <div
+                     className={`h-2 rounded-full ${
+                       getCreditUtilizationPercentage() > 80
+                         ? "bg-red-500"
+                         : getCreditUtilizationPercentage() > 60
+                           ? "bg-yellow-500"
+                           : "bg-green-500"
+                     }`}
+                     style={{ width: `${getCreditUtilizationPercentage()}%` }}
+                   ></div>
+                 </div>
+               </div>
+             </div>
 
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Quick Actions */}
+             {/* Associated Vehicles */}
+             {partner && (
+               <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-4 sm:space-y-0 mb-4 sm:mb-6">
+                   <div>
+                     <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
+                       Associated Vehicles
+                     </h3>
+                     <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                       {vehicles.length} vehicle{vehicles.length !== 1 ? "s" : ""}{" "}
+                       registered
+                     </p>
+                   </div>
+                   <button
+                     onClick={() =>
+                       navigate(`/fuel-admin/vehicle-onboarding/${partner.id}`)
+                     }
+                     className="inline-flex items-center justify-center px-3 sm:px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 text-sm font-medium transition-colors w-full sm:w-auto"
+                   >
+                     <svg
+                       className="w-4 h-4 mr-1 sm:mr-2"
+                       fill="none"
+                       stroke="currentColor"
+                       viewBox="0 0 24 24"
+                     >
+                       <path
+                         strokeLinecap="round"
+                         strokeLinejoin="round"
+                         strokeWidth={2}
+                         d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                       />
+                     </svg>
+                     Add Vehicle
+                   </button>
+                 </div>
+
+                 {vehicleError && (
+                   <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400">
+                     {vehicleError}
+                   </div>
+                 )}
+
+                 {vehicleLoading ? (
+                   <div className="flex items-center justify-center py-12">
+                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600"></div>
+                     <span className="ml-3 text-gray-600 dark:text-gray-400">
+                       Loading vehicles...
+                     </span>
+                   </div>
+                 ) : vehicles.length === 0 ? (
+                   <div className="text-center py-12">
+                     <svg
+                       className="mx-auto h-12 w-12 text-gray-400 mb-4"
+                       fill="none"
+                       stroke="currentColor"
+                       viewBox="0 0 24 24"
+                     >
+                       <path
+                         strokeLinecap="round"
+                         strokeLinejoin="round"
+                         strokeWidth={2}
+                         d="M8 7V3a2 2 0 012-2h4a2 2 0 012 2v4m-6 0h6m-6 0l-6 6m6-6l6 6"
+                       />
+                     </svg>
+                     <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                       No vehicles found
+                     </h3>
+                     <p className="text-gray-600 dark:text-gray-400 mb-4">
+                       This partner doesn't have any vehicles registered yet.
+                     </p>
+                     <button
+                       onClick={() =>
+                         navigate(`/fuel-admin/vehicle-onboarding/${partner.id}`)
+                       }
+                       className="inline-flex items-center px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700"
+                     >
+                       <svg
+                         className="w-4 h-4 mr-2"
+                         fill="none"
+                         stroke="currentColor"
+                         viewBox="0 0 24 24"
+                       >
+                         <path
+                           strokeLinecap="round"
+                           strokeLinejoin="round"
+                           strokeWidth={2}
+                           d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                         />
+                       </svg>
+                       Add First Vehicle
+                     </button>
+                   </div>
+                 ) : (
+                   <div className="w-full">
+                     <div className="overflow-x-auto">
+                       <table className="w-full table-auto border-collapse">
+                         <thead className="bg-gray-50 dark:bg-gray-700">
+                           <tr>
+                             <th className="px-2 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider sm:px-4 w-auto">
+                               Vehicle Number
+                             </th>
+                             <th className="px-2 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider sm:px-4 w-auto">
+                               Type
+                             </th>
+                             <th className="hidden sm:table-cell px-2 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider sm:px-4 w-auto">
+                               Model Year
+                             </th>
+                             <th className="hidden md:table-cell px-2 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider sm:px-4 w-auto">
+                               Capacity
+                             </th>
+                             <th className="hidden lg:table-cell px-2 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider sm:px-4 w-auto">
+                               Fuel Type
+                             </th>
+                             <th className="px-2 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider sm:px-4 w-auto">
+                               Status
+                             </th>
+                             <th className="px-2 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider sm:px-4 w-auto">
+                               Actions
+                             </th>
+                           </tr>
+                         </thead>
+                         <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                           {vehicles.map((v) => (
+                             <tr
+                               key={v.id}
+                               className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                             >
+                               <td className="px-2 py-3 sm:px-4">
+                                 <div className="flex items-center">
+                                   <div className="flex-shrink-0 h-8 w-8 sm:h-10 sm:w-10 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center">
+                                     {getVehicleTypeIcon(v.type)}
+                                   </div>
+                                   <div className="ml-2 sm:ml-3 min-w-0 flex-1">
+                                     <div className="text-sm font-semibold text-gray-900 dark:text-white break-words">
+                                       {v.vehicleNumber}
+                                     </div>
+                                   </div>
+                                 </div>
+                               </td>
+                               <td className="px-2 py-3 sm:px-4">
+                                 <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                   {v.type}
+                                 </span>
+                               </td>
+                               <td className="hidden sm:table-cell px-2 py-3 text-sm text-gray-900 dark:text-white sm:px-4">
+                                 {v.model}
+                               </td>
+                               <td className="hidden md:table-cell px-2 py-3 text-sm text-gray-900 dark:text-white sm:px-4">
+                                 {v.capacity} L
+                               </td>
+                               <td className="hidden lg:table-cell px-2 py-3 sm:px-4">
+                                 <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                   {v.fuelType}
+                                 </span>
+                               </td>
+                               <td className="px-2 py-3 sm:px-4">
+                                 <span
+                                   className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                     v.status === "Active"
+                                       ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                                       : "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200"
+                                   }`}
+                                 >
+                                   <span
+                                     className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full mr-1 sm:mr-1.5 ${
+                                       v.status === "Active"
+                                         ? "bg-green-400 dark:bg-green-300"
+                                         : "bg-gray-400 dark:bg-gray-300"
+                                     }`}
+                                   ></span>
+                                   {v.status}
+                                 </span>
+                               </td>
+                               <td className="px-2 py-3 text-sm font-medium sm:px-4">
+                                 <div className="flex flex-col space-y-1">
+                                   <button
+                                     onClick={() => handleEditVehicle(v)}
+                                     className="inline-flex items-center justify-center px-2 py-1 sm:px-2.5 sm:py-1.5 border border-transparent text-xs font-medium rounded text-brand-700 bg-brand-100 hover:bg-brand-200 dark:bg-brand-900 dark:text-brand-300 dark:hover:bg-brand-800 transition-colors w-full"
+                                     title="Edit Vehicle"
+                                   >
+                                     <svg
+                                       className="w-3 h-3 sm:mr-1"
+                                       fill="none"
+                                       stroke="currentColor"
+                                       viewBox="0 0 24 24"
+                                     >
+                                       <path
+                                         strokeLinecap="round"
+                                         strokeLinejoin="round"
+                                         strokeWidth={2}
+                                         d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                       />
+                                     </svg>
+                                     <span className="hidden sm:inline">Edit</span>
+                                   </button>
+                                   <button
+                                     onClick={() =>
+                                       handleVehicleStatusChange(
+                                         v.id,
+                                         v.status === "Active" ? "Inactive" : "Active"
+                                       )
+                                     }
+                                     className="inline-flex items-center justify-center px-2 py-1 sm:px-2.5 sm:py-1.5 border border-transparent text-xs font-medium rounded text-gray-700 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition-colors w-full"
+                                     title={
+                                       v.status === "Active"
+                                         ? "Deactivate"
+                                         : "Activate"
+                                     }
+                                   >
+                                     <svg
+                                       className="w-3 h-3 sm:mr-1"
+                                       fill="none"
+                                       stroke="currentColor"
+                                       viewBox="0 0 24 24"
+                                     >
+                                       <path
+                                         strokeLinecap="round"
+                                         strokeLinejoin="round"
+                                         strokeWidth={2}
+                                         d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                                       />
+                                       <path
+                                         strokeLinecap="round"
+                                         strokeLinejoin="round"
+                                         strokeWidth={2}
+                                         d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                       />
+                                     </svg>
+                                     <span className="hidden sm:inline">
+                                       {v.status === "Active"
+                                         ? "Deactivate"
+                                         : "Activate"}
+                                     </span>
+                                   </button>
+                                   <button
+                                     onClick={() => handleDeleteVehicle(v.id)}
+                                     className="inline-flex items-center justify-center px-2 py-1 sm:px-2.5 sm:py-1.5 border border-transparent text-xs font-medium rounded text-red-700 bg-red-100 hover:bg-red-200 dark:bg-red-900 dark:text-red-300 dark:hover:bg-red-800 transition-colors w-full"
+                                     title="Delete Vehicle"
+                                   >
+                                     <svg
+                                       className="w-3 h-3 sm:mr-1"
+                                       fill="none"
+                                       stroke="currentColor"
+                                       viewBox="0 0 24 24"
+                                     >
+                                       <path
+                                         strokeLinecap="round"
+                                         strokeLinejoin="round"
+                                         strokeWidth={2}
+                                         d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                       />
+                                     </svg>
+                                     <span className="hidden sm:inline">Delete</span>
+                                   </button>
+                                 </div>
+                               </td>
+                             </tr>
+                           ))}
+                         </tbody>
+                       </table>
+                     </div>
+                   </div>
+                 )}
+               </div>
+             )}
+           </div>
+
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Quick Actions */}
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg">
             <div className="p-4 border-b border-gray-100 dark:border-gray-700 bg-gradient-to-r from-brand-50 to-brand-100 dark:from-brand-900/20 dark:to-brand-800/20">
               <h3 className="text-base font-semibold text-gray-900 dark:text-white flex items-center">
@@ -906,274 +1173,11 @@ const PartnerDetails: React.FC = () => {
               )}
             </div>
           </div>
+          </div>
         </div>
       </div>
 
-      {/* Associated Vehicles - Full Width */}
-      {partner && (
-        <div className="mt-4 sm:mt-6 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-4 sm:space-y-0 mb-4 sm:mb-6">
-            <div>
-              <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
-                Associated Vehicles
-              </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                {vehicles.length} vehicle{vehicles.length !== 1 ? "s" : ""}{" "}
-                registered
-              </p>
-            </div>
-            <button
-              onClick={() =>
-                navigate(`/fuel-admin/vehicle-onboarding/${partner.id}`)
-              }
-              className="inline-flex items-center justify-center px-3 sm:px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 text-sm font-medium transition-colors w-full sm:w-auto"
-            >
-              <svg
-                className="w-4 h-4 mr-1 sm:mr-2"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                />
-              </svg>
-              Add Vehicle
-            </button>
-          </div>
-
-          {vehicleError && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400">
-              {vehicleError}
-            </div>
-          )}
-
-          {vehicleLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600"></div>
-              <span className="ml-3 text-gray-600 dark:text-gray-400">
-                Loading vehicles...
-              </span>
-            </div>
-          ) : vehicles.length === 0 ? (
-            <div className="text-center py-12">
-              <svg
-                className="mx-auto h-12 w-12 text-gray-400 mb-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8 7V3a2 2 0 012-2h4a2 2 0 012 2v4m-6 0h6m-6 0l-6 6m6-6l6 6"
-                />
-              </svg>
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                No vehicles found
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-4">
-                This partner doesn't have any vehicles registered yet.
-              </p>
-              <button
-                onClick={() =>
-                  navigate(`/fuel-admin/vehicle-onboarding/${partner.id}`)
-                }
-                className="inline-flex items-center px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700"
-              >
-                <svg
-                  className="w-4 h-4 mr-2"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                  />
-                </svg>
-                Add First Vehicle
-              </button>
-            </div>
-          ) : (
-            <div className="w-full">
-              <div className="overflow-x-auto">
-                <table className="w-full table-auto border-collapse">
-                  <thead className="bg-gray-50 dark:bg-gray-700">
-                    <tr>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider sm:px-4 w-auto">
-                        Vehicle Number
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider sm:px-4 w-auto">
-                        Type
-                      </th>
-                      <th className="hidden sm:table-cell px-2 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider sm:px-4 w-auto">
-                        Model Year
-                      </th>
-                      <th className="hidden md:table-cell px-2 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider sm:px-4 w-auto">
-                        Capacity
-                      </th>
-                      <th className="hidden lg:table-cell px-2 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider sm:px-4 w-auto">
-                        Fuel Type
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider sm:px-4 w-auto">
-                        Status
-                      </th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider sm:px-4 w-auto">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                    {vehicles.map((v) => (
-                      <tr
-                        key={v.id}
-                        className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                      >
-                        <td className="px-2 py-3 sm:px-4">
-                          <div className="flex items-center">
-                            <div className="flex-shrink-0 h-8 w-8 sm:h-10 sm:w-10 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center">
-                              {getVehicleTypeIcon(v.type)}
-                            </div>
-                            <div className="ml-2 sm:ml-3 min-w-0 flex-1">
-                              <div className="text-sm font-semibold text-gray-900 dark:text-white break-words">
-                                {v.vehicleNumber}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-2 py-3 sm:px-4">
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                            {v.type}
-                          </span>
-                        </td>
-                        <td className="hidden sm:table-cell px-2 py-3 text-sm text-gray-900 dark:text-white sm:px-4">
-                          {v.model}
-                        </td>
-                        <td className="hidden md:table-cell px-2 py-3 text-sm text-gray-900 dark:text-white sm:px-4">
-                          {v.capacity} L
-                        </td>
-                        <td className="hidden lg:table-cell px-2 py-3 sm:px-4">
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                            {v.fuelType}
-                          </span>
-                        </td>
-                        <td className="px-2 py-3 sm:px-4">
-                          <span
-                            className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                              v.status === "Active"
-                                ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                                : "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200"
-                            }`}
-                          >
-                            <span
-                              className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full mr-1 sm:mr-1.5 ${
-                                v.status === "Active"
-                                  ? "bg-green-400 dark:bg-green-300"
-                                  : "bg-gray-400 dark:bg-gray-300"
-                              }`}
-                            ></span>
-                            {v.status}
-                          </span>
-                        </td>
-                        <td className="px-2 py-3 text-sm font-medium sm:px-4">
-                          <div className="flex flex-col space-y-1">
-                            <button
-                              onClick={() => handleEditVehicle(v)}
-                              className="inline-flex items-center justify-center px-2 py-1 sm:px-2.5 sm:py-1.5 border border-transparent text-xs font-medium rounded text-brand-700 bg-brand-100 hover:bg-brand-200 dark:bg-brand-900 dark:text-brand-300 dark:hover:bg-brand-800 transition-colors w-full"
-                              title="Edit Vehicle"
-                            >
-                              <svg
-                                className="w-3 h-3 sm:mr-1"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                />
-                              </svg>
-                              <span className="hidden sm:inline">Edit</span>
-                            </button>
-                            <button
-                              onClick={() =>
-                                handleVehicleStatusChange(
-                                  v.id,
-                                  v.status === "Active" ? "Inactive" : "Active"
-                                )
-                              }
-                              className="inline-flex items-center justify-center px-2 py-1 sm:px-2.5 sm:py-1.5 border border-transparent text-xs font-medium rounded text-gray-700 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition-colors w-full"
-                              title={
-                                v.status === "Active"
-                                  ? "Deactivate"
-                                  : "Activate"
-                              }
-                            >
-                              <svg
-                                className="w-3 h-3 sm:mr-1"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                                />
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                                />
-                              </svg>
-                              <span className="hidden sm:inline">
-                                {v.status === "Active"
-                                  ? "Deactivate"
-                                  : "Activate"}
-                              </span>
-                            </button>
-                            <button
-                              onClick={() => handleDeleteVehicle(v.id)}
-                              className="inline-flex items-center justify-center px-2 py-1 sm:px-2.5 sm:py-1.5 border border-transparent text-xs font-medium rounded text-red-700 bg-red-100 hover:bg-red-200 dark:bg-red-900 dark:text-red-300 dark:hover:bg-red-800 transition-colors w-full"
-                              title="Delete Vehicle"
-                            >
-                              <svg
-                                className="w-3 h-3 sm:mr-1"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                />
-                              </svg>
-                              <span className="hidden sm:inline">Delete</span>
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+      
 
       {/* Edit Vehicle Modal */}
       {showEditModal && editingVehicle && (
