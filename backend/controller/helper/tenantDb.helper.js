@@ -8,6 +8,9 @@ import { initCreditModels } from '../../models/credit.model.js';
 import { initStationModels } from '../../models/station.model.js';
 import { initStaffShiftModels } from '../../models/staffshift.model.js';
 import { initProductMasterModels } from '../../models/productMaster.model.js';
+import { initOperationModels } from '../../models/operations.model.js';
+import { initMeterReadingModel } from '../../models/meterReading.model.js';
+import { initTransactionModels } from '../../models/transaction.model.js';
 
 // simple in-memory cache of initialized models per dbName
 const tenantModelCache = new Map();
@@ -27,11 +30,14 @@ export async function getTenantDbModels(dbName) {
     // Authenticate once when establishing the connection
     await tenantSequelize.authenticate();
     
-    const { User, Role, UserDetails, RefreshToken } = initTenantModels(tenantSequelize);
+    const { User, Role, UserDetails, RefreshToken, OperatorGroup } = initTenantModels(tenantSequelize);
     const { CreditAccount, Vehicle } = initCreditModels(tenantSequelize);
     const { Booth, Nozzle} = initStationModels(tenantSequelize);
     const { Operator, Shift, ShiftAssignment } = initStaffShiftModels(tenantSequelize);
     const { ProductCategory, ProductMaster } = initProductMasterModels(tenantSequelize);
+    const { OperationalDay, ShiftLedger } = initOperationModels(tenantSequelize);
+    const { MeterReading } = initMeterReadingModel(tenantSequelize);
+    const { Transaction, PaymentMethod } = initTransactionModels(tenantSequelize);
 
     // Optional, one-time sync for agile development
     if (process.env.DB_SYNC_ALTER === 'true' && !tenantSyncDone.has(dbName)) {
@@ -39,7 +45,17 @@ export async function getTenantDbModels(dbName) {
       tenantSyncDone.add(dbName);
     }
 
-    const models = { tenantSequelize, User, Role, UserDetails, RefreshToken, CreditAccount, Vehicle, Booth, Nozzle, Operator, Shift, ShiftAssignment, ProductCategory, ProductMaster };
+    const models = { 
+      tenantSequelize, 
+      User, Role, UserDetails, RefreshToken, OperatorGroup, 
+      CreditAccount, Vehicle, 
+      Booth, Nozzle, 
+      Operator, Shift, ShiftAssignment, 
+      ProductCategory, ProductMaster,
+      OperationalDay, ShiftLedger,
+      MeterReading,
+      Transaction, PaymentMethod
+    };
     tenantModelCache.set(dbName, models);
     return models;
     

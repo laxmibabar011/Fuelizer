@@ -18,6 +18,7 @@ export const initStaffShiftModels = (sequelize) => {
   const Shift = sequelize.define('Shift', {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
     name: { type: DataTypes.STRING, allowNull: false }, // e.g., "Morning Shift"
+    shift_type: { type: DataTypes.ENUM('MANAGER', 'WORKER'), allowNull: false },
     start_time: { type: DataTypes.TIME, allowNull: false }, // e.g., "06:00"
     end_time: { type: DataTypes.TIME, allowNull: false }, // e.g., "14:00"
     max_operators: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 5 },
@@ -31,8 +32,8 @@ export const initStaffShiftModels = (sequelize) => {
   const ShiftAssignment = sequelize.define('ShiftAssignment', {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
     date: { type: DataTypes.DATEONLY, allowNull: false }, // YYYY-MM-DD
-    shift_id: { type: DataTypes.INTEGER, allowNull: false },
-    operator_id: { type: DataTypes.INTEGER, allowNull: false },
+    shift_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'Shifts', key: 'id' } },
+    user_id: { type: DataTypes.STRING(50), allowNull: false, references: { model: 'Users', key: 'user_id' } }, // user assigned to shift
     assigned_by: { type: DataTypes.STRING(50), allowNull: true }, // user_id of who made assignment
     status: { type: DataTypes.ENUM('assigned', 'checked-in', 'checked-out', 'absent'), defaultValue: 'assigned' },
     check_in_time: { type: DataTypes.DATE, allowNull: true },
@@ -48,7 +49,9 @@ export const initStaffShiftModels = (sequelize) => {
   
   Shift.hasMany(ShiftAssignment, { foreignKey: 'shift_id', as: 'Assignments' });
   ShiftAssignment.belongsTo(Shift, { foreignKey: 'shift_id', as: 'Shift' });
-  ShiftAssignment.belongsTo(Operator, { foreignKey: 'operator_id', as: 'Operator' });
+  // ShiftAssignment links to User, not Operator, via user_id
+  ShiftAssignment.belongsTo(sequelize.models.User, { foreignKey: 'user_id', targetKey: 'user_id', as: 'User' });
+  ShiftAssignment.belongsTo(sequelize.models.UserDetails, { foreignKey: 'user_id', targetKey: 'user_id', as: 'UserDetails' });
 
   return { Operator, Shift, ShiftAssignment };
 }; 

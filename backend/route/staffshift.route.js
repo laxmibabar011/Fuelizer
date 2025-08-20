@@ -9,6 +9,11 @@ const router = Router();
 router.use(authenticate, tenantDbMiddleware, authorizeRoles('fuel-admin'));
 
 // ===== OPERATOR ROUTES =====
+router.post('/staffshift/admins/onboard', StaffShiftController.onboardAdmin);
+router.get('/staffshift/admins', StaffShiftController.listAdmins);
+router.get('/staffshift/manager-shifts/available', StaffShiftController.listAvailableManagerShifts);
+router.post('/staffshift/manager-shifts/assign', StaffShiftController.assignManagerShift);
+router.post('/staffshift/manager-shifts/unassign', StaffShiftController.unassignManagerShift);
 router.post('/staffshift/operators/onboard', StaffShiftController.onboardOperator);
 router.post('/staffshift/operators', StaffShiftController.createOperator);
 router.get('/staffshift/operators', StaffShiftController.getAllOperators);
@@ -29,5 +34,12 @@ router.post('/staffshift/shift-assignments', StaffShiftController.createShiftAss
 router.get('/staffshift/shift-assignments', StaffShiftController.getShiftAssignments);
 router.put('/staffshift/shift-assignments/:id', StaffShiftController.updateShiftAssignment);
 router.delete('/staffshift/shift-assignments/:id', StaffShiftController.deleteShiftAssignment);
+
+// ===== OPERATOR GROUP ROUTES =====
+router.post('/staffshift/operator-groups', StaffShiftController.createOperatorGroup);
+router.get('/staffshift/operator-groups', StaffShiftController.getAllOperatorGroups);
+router.get('/staffshift/operator-groups/:id', StaffShiftController.getOperatorGroupById);
+router.put('/staffshift/operator-groups/:id', StaffShiftController.updateOperatorGroup);
+router.delete('/staffshift/operator-groups/:id', StaffShiftController.deleteOperatorGroup);
 
 export default router; 

@@ -26,6 +26,23 @@ class StaffShiftService {
     return apiClient.get(url);
   }
 
+  // Managers (Fuel Admins)
+  async listManagers() {
+    return apiClient.get("api/tenant/staffshift/admins");
+  }
+
+  async listAvailableManagerShifts() {
+    return apiClient.get("api/tenant/staffshift/manager-shifts/available");
+  }
+
+  async assignManagerShift(payload: { user_id: string; shift_id: string | number }) {
+    return apiClient.post("api/tenant/staffshift/manager-shifts/assign", payload);
+  }
+
+  async unassignManagerShift(payload: { user_id: string; shift_id: string | number }) {
+    return apiClient.post("api/tenant/staffshift/manager-shifts/unassign", payload);
+  }
+
   async listAvailableOperators() {
     return apiClient.get("api/tenant/staffshift/operators/available");
   }
@@ -63,11 +80,11 @@ class StaffShiftService {
     return apiClient.delete(`api/tenant/staffshift/shifts/${id}`);
   }
 
-  // Shift assignments (today-only can be handled by passing today's date)
+  // Shift assignments (use user_id)
   async createShiftAssignment(payload: {
     date: string;
-    shift_id: number;
-    operator_id: number;
+    shift_id: number | string;
+    user_id: string;
     assigned_by?: string;
   }) {
     return apiClient.post("api/tenant/staffshift/shift-assignments", payload);

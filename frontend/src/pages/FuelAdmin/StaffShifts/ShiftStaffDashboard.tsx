@@ -5,16 +5,10 @@ import {
   TabsTrigger,
   TabsContent,
 } from "../../../components/ui/tabs/Tabs";
-import {
-  Users,
-  UserPlus,
-  Clock,
-  Settings,
-  BarChart2,
-  Calendar,
-} from "lucide-react";
+import { Users, UserPlus, Clock, Settings, BarChart2, Calendar, Shield } from "lucide-react";
 import OperatorOnboarding from "./OperatorOnboarding";
 import OperatorManagement from "./OperatorManagement";
+import ManagerManagement from "./ManagerManagement";
 import ShiftManagement from "./ShiftManagement";
 import StaffSettings from "./StaffSettings";
 import { useNavigate } from "react-router-dom";
@@ -37,7 +31,7 @@ const ShiftStaffDashboard: React.FC = () => {
 
       {/* Tabs */}
       <Tabs defaultValue="dashboard">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="dashboard" className="flex items-center gap-2">
             <BarChart2 className="h-4 w-4" />
             <span className="hidden sm:inline">Dashboard</span>
@@ -45,6 +39,10 @@ const ShiftStaffDashboard: React.FC = () => {
           <TabsTrigger value="operators" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
             <span className="hidden sm:inline">Operators</span>
+          </TabsTrigger>
+          <TabsTrigger value="managers" className="flex items-center gap-2">
+            <Shield className="h-4 w-4" />
+            <span className="hidden sm:inline">Managers</span>
           </TabsTrigger>
           <TabsTrigger value="onboarding" className="flex items-center gap-2">
             <UserPlus className="h-4 w-4" />
@@ -130,6 +128,11 @@ const ShiftStaffDashboard: React.FC = () => {
         {/* Operators Tab */}
         <TabsContent value="operators" className="space-y-6">
           <OperatorManagement />
+        </TabsContent>
+
+        {/* Managers Tab */}
+        <TabsContent value="managers" className="space-y-6">
+          <ManagerManagement />
         </TabsContent>
 
         {/* Onboarding Tab */}
