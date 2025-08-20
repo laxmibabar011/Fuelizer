@@ -60,10 +60,14 @@ export class CreditRepository {
   }
 
   // Update credit limit for a credit account
-  async updateCreditLimit(partnerId, creditLimit) {
+  async updateCreditLimit(partnerId, creditLimit, utilisedBod, adhocAddition) {
     const account = await this.models.CreditAccount.findByPk(partnerId);
     if (!account) return null;
-    await account.update({ creditLimit });
+    await account.update({ 
+      creditLimit: creditLimit || account.creditLimit,
+      utilisedBod: utilisedBod !== undefined ? utilisedBod : account.utilisedBod,
+      adhocAddition: adhocAddition !== undefined ? adhocAddition : account.adhocAddition
+    });
     return account;
   }
 }

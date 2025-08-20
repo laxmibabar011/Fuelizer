@@ -8,6 +8,8 @@ export const initCreditModels = (sequelize) => {
     contactEmail: { type: DataTypes.STRING, unique: true, allowNull: false },
     contactPhone: { type: DataTypes.STRING, unique: true, allowNull: false },
     creditLimit: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
+    utilisedBod: { type: DataTypes.DECIMAL(10, 2), allowNull: false, defaultValue: 0 },
+    adhocAddition: { type: DataTypes.DECIMAL(10, 2), allowNull: false, defaultValue: 0 },
     status: {
       type: DataTypes.STRING,
       allowNull: false,

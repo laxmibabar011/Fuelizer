@@ -117,20 +117,33 @@ export default class CreditController {
   static async updateCreditLimit(req, res) {
     try {
       const { id } = req.params;
-      const { creditLimit } = req.body;
-      if (creditLimit === undefined || creditLimit === null || Number.isNaN(Number(creditLimit))) {
+      const { creditLimit, utilisedBod, adhocAddition } = req.body;
+      
+      // Validate creditLimit
+      if (creditLimit !== undefined && (creditLimit === null || Number.isNaN(Number(creditLimit)))) {
         return sendResponse(res, { success: false, error: 'Invalid creditLimit', message: 'creditLimit must be a number', status: 400 });
       }
+      
+      // Validate utilisedBod
+      if (utilisedBod !== undefined && (utilisedBod === null || Number.isNaN(Number(utilisedBod)))) {
+        return sendResponse(res, { success: false, error: 'Invalid utilisedBod', message: 'utilisedBod must be a number', status: 400 });
+      }
+      
+      // Validate adhocAddition
+      if (adhocAddition !== undefined && (adhocAddition === null || Number.isNaN(Number(adhocAddition)))) {
+        return sendResponse(res, { success: false, error: 'Invalid adhocAddition', message: 'adhocAddition must be a number', status: 400 });
+      }
+      
       const { tenantSequelize } = req;
       const creditRepo = new CreditRepository(tenantSequelize);
-      const updated = await creditRepo.updateCreditLimit(id, creditLimit);
+      const updated = await creditRepo.updateCreditLimit(id, creditLimit, utilisedBod, adhocAddition);
       if (!updated) {
         return sendResponse(res, { success: false, error: 'Partner not found', message: 'Not found', status: 404 });
       }
-      return sendResponse(res, { data: updated, message: 'Credit limit updated successfully', status: 200 });
+      return sendResponse(res, { data: updated, message: 'Credit information updated successfully', status: 200 });
     } catch (err) {
       logger.error(`[CreditController]-[updateCreditLimit]: ${err.message}`);
-      return sendResponse(res, { success: false, error: err.message, message: 'Failed to update credit limit', status: 500 });
+      return sendResponse(res, { success: false, error: err.message, message: 'Failed to update credit information', status: 500 });
     }
   }
 

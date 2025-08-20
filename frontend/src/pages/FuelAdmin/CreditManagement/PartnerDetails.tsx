@@ -23,6 +23,8 @@ interface Partner {
   contactEmail: string;
   contactPhone: string;
   creditLimit: number;
+  utilisedBod?: number;
+  adhocAddition?: number;
   currentBalance?: number;
   availableCredit?: number;
   status?: "Active" | "Inactive" | "Suspended";
@@ -66,10 +68,11 @@ const PartnerDetails: React.FC = () => {
       setError("");
       try {
         const res = await creditService.getPartnerById(id || "");
-        if (res.data.success && res.data.data) {
-          setPartner(res.data.data);
-          setDisplayUtilised(Number(res.data.data.currentBalance || 0));
-        } else {
+                 if (res.data.success && res.data.data) {
+           setPartner(res.data.data);
+           setDisplayUtilised(Number(res.data.data.utilisedBod || 0));
+           setDisplayAdhoc(Number(res.data.data.adhocAddition || 0));
+         } else {
           setError(res.data.message || "Partner not found");
         }
       } catch (err: any) {
@@ -121,8 +124,8 @@ const PartnerDetails: React.FC = () => {
   const getCreditUtilizationPercentage = () => {
     if (!partner) return 0;
     const sanctioned = Number(partner.creditLimit || 0);
-    const utilised = Number(displayUtilised || 0);
-    const adhoc = Number(displayAdhoc || 0);
+    const utilised = Number(partner.utilisedBod || 0);
+    const adhoc = Number(partner.adhocAddition || 0);
     const denominator = sanctioned + adhoc;
     if (denominator <= 0) return 0;
     return Math.round((utilised / denominator) * 100);
@@ -519,7 +522,7 @@ const PartnerDetails: React.FC = () => {
                      Utilised (BOD)
                    </label>
                    <p className="text-2xl font-bold text-red-600 dark:text-red-400">
-                     ₹{Number(displayUtilised || partner.currentBalance || 0).toLocaleString("en-IN")}
+                     ₹{Number(partner.utilisedBod || 0).toLocaleString("en-IN")}
                    </p>
                  </div>
                  <div>
@@ -527,7 +530,7 @@ const PartnerDetails: React.FC = () => {
                      Adhoc (Today)
                    </label>
                    <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                     ₹{Number(displayAdhoc || 0).toLocaleString("en-IN")}
+                     ₹{Number(partner.adhocAddition || 0).toLocaleString("en-IN")}
                    </p>
                  </div>
                  <div>
@@ -536,7 +539,7 @@ const PartnerDetails: React.FC = () => {
                    </label>
                    <p className="text-2xl font-bold text-green-600 dark:text-green-400">
                      ₹{(
-                       Number(partner.creditLimit || 0) - Number(displayUtilised || partner.currentBalance || 0) + Number(displayAdhoc || 0)
+                       Number(partner.creditLimit || 0) - Number(partner.utilisedBod || 0) + Number(partner.adhocAddition || 0)
                      ).toLocaleString("en-IN")}
                    </p>
                  </div>
@@ -859,8 +862,8 @@ const PartnerDetails: React.FC = () => {
               <button onClick={() => {
                 setAdjustError("");
                 setNewCreditLimit(partner?.creditLimit ? String(partner.creditLimit) : "");
-                setAdhocAddition("");
-                setUtilisedBod(partner?.currentBalance ? String(partner.currentBalance) : "");
+                setAdhocAddition(partner?.adhocAddition ? String(partner.adhocAddition) : "");
+                setUtilisedBod(partner?.utilisedBod ? String(partner.utilisedBod) : "");
                 setShowAdjustLimit(true);
               }} className="w-full group relative overflow-hidden rounded-lg bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 border border-gray-200 dark:border-gray-600 hover:from-brand-50 hover:to-brand-100 dark:hover:from-brand-900/20 dark:hover:to-brand-800/20 hover:border-brand-200 dark:hover:border-brand-700 transition-all duration-200 ease-in-out transform hover:scale-[1.02] active:scale-[0.98] shadow-sm hover:shadow-md">
                 <div className="flex items-center p-3">
@@ -1263,10 +1266,20 @@ const PartnerDetails: React.FC = () => {
                   setAdjustLoading(false);
                   return;
                 }
-                // Update sanctioned credit limit
-                await creditService.updateCreditLimit(partner.id, limitNum);
+                // Update all credit information
+                await creditService.updateCreditLimit(
+                  partner.id, 
+                  limitNum, 
+                  Number(utilisedBod || 0), 
+                  Number(adhocAddition || 0)
+                );
                 // Locally update state & display metrics
-                setPartner({ ...partner, creditLimit: limitNum });
+                setPartner({ 
+                  ...partner, 
+                  creditLimit: limitNum,
+                  utilisedBod: Number(utilisedBod || 0),
+                  adhocAddition: Number(adhocAddition || 0)
+                });
                 setDisplayAdhoc(Number(adhocAddition || 0));
                 setDisplayUtilised(Number(utilisedBod || 0));
                 setShowAdjustLimit(false);
