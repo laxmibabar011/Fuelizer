@@ -3,6 +3,7 @@ import React, { useState, createContext, useContext } from "react";
 interface TabsContextType {
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  onChange?: (tab: string) => void;
 }
 
 const TabsContext = createContext<TabsContextType | undefined>(undefined);
@@ -11,6 +12,7 @@ interface TabsProps {
   defaultValue: string;
   children: React.ReactNode;
   className?: string;
+  onValueChange?: (value: string) => void;
 }
 
 interface TabsListProps {
@@ -35,11 +37,12 @@ export const Tabs: React.FC<TabsProps> = ({
   defaultValue,
   children,
   className = "",
+  onValueChange,
 }) => {
   const [activeTab, setActiveTab] = useState(defaultValue);
 
   return (
-    <TabsContext.Provider value={{ activeTab, setActiveTab }}>
+    <TabsContext.Provider value={{ activeTab, setActiveTab, onChange: onValueChange }}>
       <div className={className}>{children}</div>
     </TabsContext.Provider>
   );
@@ -69,7 +72,7 @@ export const TabsTrigger: React.FC<TabsTriggerProps> = ({
     throw new Error("TabsTrigger must be used within a Tabs component");
   }
 
-  const { activeTab, setActiveTab } = context;
+  const { activeTab, setActiveTab, onChange } = context;
   const isActive = activeTab === value;
 
   return (
@@ -79,7 +82,11 @@ export const TabsTrigger: React.FC<TabsTriggerProps> = ({
           ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
           : "hover:bg-white/50 dark:hover:bg-gray-700/50"
       } ${className}`}
-      onClick={() => !disabled && setActiveTab(value)}
+      onClick={() => {
+        if (disabled) return;
+        setActiveTab(value);
+        if (onChange) onChange(value);
+      }}
       disabled={disabled}
       type="button"
     >

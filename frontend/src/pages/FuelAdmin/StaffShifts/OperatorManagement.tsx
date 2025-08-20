@@ -51,6 +51,11 @@ const OperatorManagement: React.FC = () => {
   // NEW: duty update state
   const [selectedDuty, setSelectedDuty] = useState<string>("attendant");
   const [savingDuty, setSavingDuty] = useState<boolean>(false);
+  // NEW: worker shifts for assignment (tomorrow)
+  const [workerShiftOptions, setWorkerShiftOptions] = useState<{ id: string; label: string }[]>([]);
+  const [selectedShiftId, setSelectedShiftId] = useState<string>("");
+  const [currentAssignmentId, setCurrentAssignmentId] = useState<string | null>(null);
+  const [loadingShifts, setLoadingShifts] = useState<boolean>(false);
 
   // NEW: operators state loaded from API
   const [operators, setOperators] = useState<Operator[]>([]);
@@ -80,6 +85,9 @@ const OperatorManagement: React.FC = () => {
         // duty from backend
         // @ts-ignore
         duty: op.duty,
+        // include underlying user id for shift assignments
+        // @ts-ignore
+        userId: String(op.user_id || op.User?.user_id || ""),
       }));
       setOperators(mapped);
       setLoadError(null);
@@ -102,6 +110,41 @@ const OperatorManagement: React.FC = () => {
       setSelectedDuty(
         ((selectedOperator as any).duty as string) || "attendant"
       );
+      // Load worker shifts and tomorrow's assignment
+      const loadWorkerShiftsAndAssignment = async () => {
+        try {
+          setLoadingShifts(true);
+          const res = await staffshiftService.listShifts();
+          const shifts = (res.data?.data || []) as any[];
+          const opts = shifts
+            .filter((s: any) => s.shift_type === "WORKER")
+            .map((s: any) => ({
+              id: String(s.id),
+              label: `${s.name} (${String(s.start_time).slice(0,5)} - ${String(s.end_time).slice(0,5)})`,
+            }));
+          setWorkerShiftOptions(opts);
+
+          // Find tomorrow's assignment for this operator
+          const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000)
+            .toISOString()
+            .slice(0, 10);
+          let foundAssignmentId: string | null = null;
+          let foundShiftId: string | null = null;
+          // Query once using date only, filter by user
+          const aRes = await staffshiftService.listShiftAssignments(tomorrow);
+          const list = (aRes.data?.data || []) as any[];
+          const match = list.find((a: any) => String(a.user_id) === String((selectedOperator as any).userId || selectedOperator.id));
+          if (match) {
+            foundAssignmentId = String(match.id);
+            foundShiftId = String(match.shift_id);
+          }
+          setCurrentAssignmentId(foundAssignmentId);
+          setSelectedShiftId(foundShiftId || "");
+        } finally {
+          setLoadingShifts(false);
+        }
+      };
+      void loadWorkerShiftsAndAssignment();
     }
   }, [showShiftBoothModal, selectedOperator]);
 
@@ -169,7 +212,28 @@ const OperatorManagement: React.FC = () => {
       setActionError(null);
       const pk = Number(selectedOperator.id);
       if (Number.isNaN(pk)) throw new Error("Invalid operator id");
+      // Save duty
       await staffshiftService.updateOperator(pk, { duty: selectedDuty });
+
+      // Apply shift assignment for tomorrow
+      const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000)
+        .toISOString()
+        .slice(0, 10);
+      // If there is a current assignment and selection cleared or changed, delete it
+      if (currentAssignmentId && (!selectedShiftId || selectedShiftId !== "")) {
+        // If changed, we'll delete and recreate below; if cleared, delete only
+        await staffshiftService.deleteShiftAssignment(currentAssignmentId);
+        setCurrentAssignmentId(null);
+      }
+      // Create if a shift is selected (non-empty)
+      if (selectedShiftId) {
+        await staffshiftService.createShiftAssignment({
+          date: tomorrow,
+          shift_id: selectedShiftId,
+          user_id: String((selectedOperator as any).userId || selectedOperator.id),
+        });
+      }
+
       await fetchOperators(showArchived);
       setShowShiftBoothModal(false);
     } catch (e: any) {
@@ -484,7 +548,7 @@ const OperatorManagement: React.FC = () => {
                   }}
                 >
                   <Clock className="h-4 w-4 mr-2" />
-                  Edit Shift & Pump
+                  Edit Shift & Duty
                 </Button>
               </div>
             </div>
@@ -541,18 +605,21 @@ const OperatorManagement: React.FC = () => {
                   <span>Shift & Booth Management</span>
                 </h3>
 
-                {/* Shift Selection */}
+                {/* Shift Selection (tomorrow) */}
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Shift
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Shift</label>
                   <select
-                    defaultValue={selectedOperator.shift}
+                    value={selectedShiftId}
+                    onChange={(e) => setSelectedShiftId(e.target.value)}
+                    disabled={loadingShifts}
                     className="w-full px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
                   >
-                    <option value="Morning">Morning Shift</option>
-                    <option value="Afternoon">Afternoon Shift</option>
-                    <option value="Night">Night Shift</option>
+                    <option value="">Unassigned</option>
+                    {workerShiftOptions.map((opt) => (
+                      <option key={opt.id} value={opt.id}>
+                        {opt.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
 

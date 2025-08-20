@@ -19,6 +19,7 @@ import {
 import staffshiftService from "../../../services/staffshiftService";
 import { Modal } from "../../../components/ui/modal";
 import Input from "../../../components/form/input/InputField";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../components/ui/tabs/Tabs";
 import Label from "../../../components/form/Label";
 
 interface UiShift {
@@ -30,6 +31,7 @@ interface UiShift {
   operatorCount: number;
   maxOperators: number;
   handoverNotes?: string;
+  shiftType?: "MANAGER" | "WORKER";
 }
 
 const ShiftManagement: React.FC = () => {
@@ -42,12 +44,14 @@ const ShiftManagement: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"MANAGER" | "WORKER">("MANAGER");
   const [form, setForm] = useState({
     name: "",
     start_time: "06:00",
     end_time: "14:00",
     max_operators: 5,
     description: "",
+    shift_type: "MANAGER" as "MANAGER" | "WORKER",
   });
 
   // Edit shift modal state
@@ -61,6 +65,7 @@ const ShiftManagement: React.FC = () => {
     end_time: "14:00",
     max_operators: 5,
     description: "",
+    shift_type: "MANAGER" as "MANAGER" | "WORKER",
   });
 
   const getStatusIcon = (status: string) => {
@@ -95,7 +100,9 @@ const ShiftManagement: React.FC = () => {
       setLoading(true);
       const res = await staffshiftService.listShifts();
       const apiShifts = (res.data?.data || []) as any[];
-      const mapped: UiShift[] = apiShifts.map((s: any) => ({
+      const mapped: UiShift[] = apiShifts
+        .filter((s: any) => (activeTab === "MANAGER" ? s.shift_type === "MANAGER" : s.shift_type === "WORKER"))
+        .map((s: any) => ({
         id: String(s.id),
         name: s.name,
         timeRange: `${s.start_time?.slice(0, 5)} - ${s.end_time?.slice(0, 5)}`,
@@ -104,6 +111,7 @@ const ShiftManagement: React.FC = () => {
         operatorCount: 0,
         maxOperators: Number(s.max_operators) || 0,
         handoverNotes: s.description || undefined,
+        shiftType: s.shift_type,
       }));
       setShifts(mapped);
       setLoadError(null);
@@ -118,7 +126,8 @@ const ShiftManagement: React.FC = () => {
 
   useEffect(() => {
     fetchShifts();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeTab]);
 
   const handleCreateShift = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -131,6 +140,7 @@ const ShiftManagement: React.FC = () => {
         end_time: form.end_time,
         max_operators: Number(form.max_operators),
         description: form.description || undefined,
+        shift_type: form.shift_type,
       });
       setShowCreateModal(false);
       setForm({
@@ -139,6 +149,7 @@ const ShiftManagement: React.FC = () => {
         end_time: "14:00",
         max_operators: 5,
         description: "",
+        shift_type: activeTab,
       });
       await fetchShifts();
     } catch (e: any) {
@@ -160,6 +171,7 @@ const ShiftManagement: React.FC = () => {
       end_time: s.timeRange.split(" - ")[1],
       max_operators: s.maxOperators,
       description: s.handoverNotes || "",
+      shift_type: s.shiftType || "MANAGER",
     });
     setShowEditModal(true);
   };
@@ -169,13 +181,16 @@ const ShiftManagement: React.FC = () => {
     try {
       setUpdating(true);
       setUpdateError(null);
-      await staffshiftService.updateShift(editForm.id, {
+      const payload: any = {
         name: editForm.name,
         start_time: editForm.start_time,
         end_time: editForm.end_time,
-        max_operators: Number(editForm.max_operators),
         description: editForm.description || undefined,
-      });
+      };
+      if (editForm.shift_type === "WORKER") {
+        payload.max_operators = Number(editForm.max_operators);
+      }
+      await staffshiftService.updateShift(editForm.id, payload);
       setShowEditModal(false);
       await fetchShifts();
     } catch (e: any) {
@@ -196,26 +211,30 @@ const ShiftManagement: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Shift Management System
-          </h2>
-          <p className="text-gray-600 dark:text-gray-400">
-            Manage operator shifts and assignments
-          </p>
+      {/* Header + Tabs */}
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+              Shift Management System
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400">
+              Manage manager and worker shifts
+            </p>
+          </div>
+          <div className="flex space-x-3">
+            <Button variant="outline" onClick={() => setShowCreateModal(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Create New Shift
+            </Button>
+          </div>
         </div>
-        <div className="flex space-x-3">
-          <Button variant="outline" onClick={() => setShowCreateModal(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Create New Shift
-          </Button>
-          <Button className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600">
-            <Edit className="h-4 w-4 mr-2" />
-            Modify Shift
-          </Button>
-        </div>
+        <Tabs defaultValue={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+          <TabsList className="w-full grid grid-cols-2">
+            <TabsTrigger value="MANAGER">Manager Shifts</TabsTrigger>
+            <TabsTrigger value="WORKER">Worker Shifts</TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
 
       {/* Shift Timeline */}
@@ -322,7 +341,7 @@ const ShiftManagement: React.FC = () => {
                 {/* Handover Notes */}
                 {shift.handoverNotes && (
                   <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
-                    <div className="text-xs font-medium text-blue-800 dark:text-blue-300 mb-1">
+                    <div className="text-xs font-medium text-blue-800 dark;text-blue-300 mb-1">
                       Handover Notes:
                     </div>
                     <div className="text-sm text-blue-700 dark:text-blue-200">
@@ -345,6 +364,25 @@ const ShiftManagement: React.FC = () => {
         >
           <div className="p-6 space-y-4">
             <h3 className="text-lg font-semibold">Create New Shift</h3>
+            <div>
+              <Label>Shift Type</Label>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <Button
+                  type="button"
+                  variant={form.shift_type === "MANAGER" ? undefined : "outline"}
+                  onClick={() => setForm({ ...form, shift_type: "MANAGER" })}
+                >
+                  Manager
+                </Button>
+                <Button
+                  type="button"
+                  variant={form.shift_type === "WORKER" ? undefined : "outline"}
+                  onClick={() => setForm({ ...form, shift_type: "WORKER" })}
+                >
+                  Worker
+                </Button>
+              </div>
+            </div>
             <form onSubmit={handleCreateShift} className="space-y-4">
               <div>
                 <Label htmlFor="name">Shift Name</Label>
@@ -383,22 +421,24 @@ const ShiftManagement: React.FC = () => {
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label htmlFor="max_operators">Max Operators</Label>
-                  <Input
-                    id="max_operators"
-                    name="max_operators"
-                    type="number"
-                    min={1 as unknown as string}
-                    value={String(form.max_operators)}
-                    onChange={(e) =>
-                      setForm({
-                        ...form,
-                        max_operators: Number(e.target.value),
-                      })
-                    }
-                  />
-                </div>
+                {form.shift_type === "WORKER" && (
+                  <div>
+                    <Label htmlFor="max_operators">Max Operators</Label>
+                    <Input
+                      id="max_operators"
+                      name="max_operators"
+                      type="number"
+                      min={1 as unknown as string}
+                      value={String(form.max_operators)}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          max_operators: Number(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                )}
                 <div>
                   <Label htmlFor="description">Description</Label>
                   <Input
@@ -457,6 +497,12 @@ const ShiftManagement: React.FC = () => {
                   }
                 />
               </div>
+              <div>
+                <Label>Shift Type</Label>
+                <div className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                  {editForm.shift_type}
+                </div>
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label htmlFor="edit_start_time">Start Time</Label>
@@ -483,7 +529,7 @@ const ShiftManagement: React.FC = () => {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              {editForm.shift_type === "WORKER" && (
                 <div>
                   <Label htmlFor="edit_max_operators">Max Operators</Label>
                   <Input
@@ -500,17 +546,17 @@ const ShiftManagement: React.FC = () => {
                     }
                   />
                 </div>
-                <div>
-                  <Label htmlFor="edit_description">Description</Label>
-                  <Input
-                    id="edit_description"
-                    name="edit_description"
-                    value={editForm.description}
-                    onChange={(e) =>
-                      setEditForm({ ...editForm, description: e.target.value })
-                    }
-                  />
-                </div>
+              )}
+              <div>
+                <Label htmlFor="edit_description">Description</Label>
+                <Input
+                  id="edit_description"
+                  name="edit_description"
+                  value={editForm.description}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, description: e.target.value })
+                  }
+                />
               </div>
               {updateError && (
                 <div className="text-sm text-red-600">{updateError}</div>

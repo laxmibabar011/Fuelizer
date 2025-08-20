@@ -26,6 +26,12 @@ export const initTenantModels = (sequelize) => {
     gstin: { type: DataTypes.STRING, allowNull: true }
   });
 
+  const OperatorGroup = sequelize.define('OperatorGroup', {
+    id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+    name: { type: DataTypes.STRING, allowNull: false }, // e.g., "Frontage Cash Counter"
+    cashier_id: { type: DataTypes.STRING(50), allowNull: false, references: { model: 'Users', key: 'user_id' } }
+});
+
   const RefreshToken = sequelize.define('RefreshToken', {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
     user_id: { type: DataTypes.STRING(50), allowNull: false, references: { model: 'Users', key: 'user_id' } },
@@ -43,6 +49,12 @@ export const initTenantModels = (sequelize) => {
   UserDetails.belongsTo(User, { foreignKey: 'user_id' });
   User.hasMany(RefreshToken, { foreignKey: 'user_id' });
   RefreshToken.belongsTo(User, { foreignKey: 'user_id' });
+  // Operator Group
+  // Cashier (one) owns an OperatorGroup
+  OperatorGroup.belongsTo(User, { foreignKey: 'cashier_id', targetKey: 'user_id', as: 'Cashier' });
+  // Operators (many) belong to an OperatorGroup via operator_group_id on User
+  User.belongsTo(OperatorGroup, { foreignKey: 'operator_group_id', as: 'OperatorGroup', allowNull: true });
+  OperatorGroup.hasMany(User, { foreignKey: 'operator_group_id', as: 'Operators' });
 
-  return { User, Role, UserDetails, RefreshToken };
+  return { User, Role, UserDetails, RefreshToken, OperatorGroup };
 };
