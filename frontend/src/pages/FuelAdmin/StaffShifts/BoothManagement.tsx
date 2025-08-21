@@ -21,6 +21,8 @@ import {
 import { Operator, OperatorStatus, Booth, Nozzle } from "../../../types/common";
 import { useEffect } from "react";
 import StationService from "../../../services/stationService";
+import StaffShiftService from "../../../services/staffshiftService";
+import MultiSelect from "../../../components/form/MultiSelect";
 
 const BoothManagement: React.FC = () => {
   const [selectedBooth, setSelectedBooth] = useState<Booth | null>(null);
@@ -31,10 +33,33 @@ const BoothManagement: React.FC = () => {
     null
   );
 
+  // New: Team assignment modal state
+  const [showTeamModal, setShowTeamModal] = useState(false);
+  const [teamBooth, setTeamBooth] = useState<Booth | null>(null);
+  const [selectedCashierId, setSelectedCashierId] = useState<string>("");
+  const [selectedAttendantIds, setSelectedAttendantIds] = useState<string[]>(
+    []
+  );
+
   // Load booths from Station Setup APIs
   const [booths, setBooths] = useState<Booth[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+
+  // New: managers (cashiers) and attendants for assignment UI
+  const [managers, setManagers] = useState<any[]>([]);
+  const [attendants, setAttendants] = useState<any[]>([]);
+
+  // Local in-memory assignment view until backend endpoints are added
+  const [boothAssignments, setBoothAssignments] = useState<
+    Record<
+      string,
+      {
+        cashier?: { id: string; name: string };
+        attendants: { id: string; name: string }[];
+      }
+    >
+  >({});
 
   useEffect(() => {
     let mounted = true;
@@ -70,6 +95,51 @@ const BoothManagement: React.FC = () => {
       }
     };
     load();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // Load cashiers (operators with duty=cashier) and attendants (duty=attendant)
+  useEffect(() => {
+    let mounted = true;
+    const loadPeople = async () => {
+      try {
+        const opsRes = await StaffShiftService.listOperators({
+          includeInactive: false,
+        });
+        const allOps = ((opsRes as any)?.data?.data || []) as any[];
+        const cashiers = allOps
+          .filter((o: any) => (o.duty || "attendant") === "cashier")
+          .map((o: any) => ({
+            id: o.user_id || o.User?.user_id || o.id,
+            name:
+              o.UserDetails?.full_name ||
+              o.User?.UserDetails?.full_name ||
+              o.User?.email ||
+              o.email ||
+              o.operator_id,
+          }));
+        const atts = allOps
+          .filter((o: any) => (o.duty || "attendant") === "attendant")
+          .map((o: any) => ({
+            id: o.user_id || o.User?.user_id || o.id,
+            name:
+              o.UserDetails?.full_name ||
+              o.User?.UserDetails?.full_name ||
+              o.User?.email ||
+              o.email ||
+              o.operator_id,
+          }));
+        if (mounted) {
+          setManagers(cashiers);
+          setAttendants(atts);
+        }
+      } catch (e) {
+        // best-effort; keep UI usable
+      }
+    };
+    loadPeople();
     return () => {
       mounted = false;
     };
@@ -168,10 +238,11 @@ const BoothManagement: React.FC = () => {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Booth & Nozzle Management
+            Booth & Team Assignment
           </h2>
           <p className="text-gray-600 dark:text-gray-400">
-            Manage booth assignments and nozzle configurations
+            Assign a cashier and attendants to each booth; nozzle configuration
+            stays visible below
           </p>
         </div>
         <Button className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600">
@@ -252,10 +323,11 @@ const BoothManagement: React.FC = () => {
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <MapPin className="h-5 w-5" />
-            <span>Booth & Nozzle Assignment</span>
+            <span>Booth & Team Assignment</span>
           </CardTitle>
           <div className="text-sm text-gray-600 dark:text-gray-400">
-            Click on any nozzle to assign an operator to it
+            Click Assign Team on a booth to choose a cashier and attendants for
+            it
           </div>
         </CardHeader>
         <CardContent>
@@ -265,7 +337,19 @@ const BoothManagement: React.FC = () => {
               {booths.map((booth) => (
                 <div
                   key={booth.id}
-                  className="border-2 border-gray-200 dark:border-gray-700 rounded-xl p-6 bg-gradient-to-br from-gray-50 to-white dark:from-gray-900/50 dark:to-gray-800/50 shadow-sm h-full"
+                  className="border-2 border-gray-200 dark:border-gray-700 rounded-xl p-6 bg-gradient-to-br from-gray-50 to-white dark:from-gray-900/50 dark:to-gray-800/50 shadow-sm h-full cursor-pointer hover:border-blue-300"
+                  onClick={() => {
+                    setTeamBooth(booth);
+                    setSelectedCashierId(
+                      boothAssignments[booth.id]?.cashier?.id || ""
+                    );
+                    setSelectedAttendantIds(
+                      boothAssignments[booth.id]?.attendants?.map(
+                        (a) => a.id
+                      ) || []
+                    );
+                    setShowTeamModal(true);
+                  }}
                 >
                   {/* Booth Header */}
                   <div className="flex items-center justify-between mb-6">
@@ -300,6 +384,33 @@ const BoothManagement: React.FC = () => {
                         </div>
                       </div>
                     </div>
+                    <div className="flex items-center gap-3">
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        {boothAssignments[booth.id]?.cashier?.name
+                          ? `Cashier: ${boothAssignments[booth.id]?.cashier?.name}`
+                          : "Cashier: Unassigned"}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        {`Attendants: ${boothAssignments[booth.id]?.attendants?.length || 0}`}
+                      </div>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setTeamBooth(booth);
+                          setSelectedCashierId(
+                            boothAssignments[booth.id]?.cashier?.id || ""
+                          );
+                          setSelectedAttendantIds(
+                            boothAssignments[booth.id]?.attendants?.map(
+                              (a) => a.id
+                            ) || []
+                          );
+                          setShowTeamModal(true);
+                        }}
+                      >
+                        Assign Team
+                      </Button>
+                    </div>
                   </div>
 
                   {/* Nozzles Section */}
@@ -320,12 +431,7 @@ const BoothManagement: React.FC = () => {
                               ? "border-blue-300 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20"
                               : "border-gray-200 bg-gradient-to-br from-gray-50 to-white dark:from-gray-800 dark:to-gray-700 hover:border-green-300"
                           }`}
-                          onClick={() => {
-                            setSelectedBooth(booth);
-                            setSelectedNozzle(nozzle);
-                            setSelectedOperator(null);
-                            setShowBoothAssignmentModal(true);
-                          }}
+                          onClick={() => {}}
                         >
                           {/* Nozzle Icon */}
                           <div className="absolute top-2 right-2">
@@ -563,6 +669,100 @@ const BoothManagement: React.FC = () => {
                   {selectedNozzle.assignedOperator ? "Reassign" : "Assign"}
                 </Button>
               </div>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {showTeamModal && teamBooth && (
+        <Modal
+          isOpen={showTeamModal}
+          onClose={() => {
+            setShowTeamModal(false);
+            setTeamBooth(null);
+            setSelectedCashierId("");
+            setSelectedAttendantIds([]);
+          }}
+          className="max-w-lg mx-4"
+        >
+          <div className="p-5 space-y-5">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Assign Team for {teamBooth.name}
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Choose a cashier and attendants for this booth
+              </p>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Cashier
+              </label>
+              <select
+                className="w-full h-11 rounded-lg border border-gray-300 px-3 text-sm dark:border-gray-700 dark:bg-gray-900"
+                value={selectedCashierId}
+                onChange={(e) => {
+                  setSelectedCashierId(e.target.value);
+                  setSelectedAttendantIds([]);
+                }}
+              >
+                <option value="">Select cashier</option>
+                {managers.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <MultiSelect
+              label="Attendants"
+              options={attendants.map((a) => ({ value: a.id, text: a.name }))}
+              defaultSelected={selectedAttendantIds}
+              onChange={(ids) => setSelectedAttendantIds(ids)}
+              disabled={!selectedCashierId}
+            />
+
+            <div className="flex justify-end gap-3 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowTeamModal(false);
+                  setTeamBooth(null);
+                  setSelectedCashierId("");
+                  setSelectedAttendantIds([]);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                disabled={
+                  !selectedCashierId || selectedAttendantIds.length === 0
+                }
+                onClick={() => {
+                  if (!teamBooth) return;
+                  const cashier = managers.find(
+                    (m) => m.id === selectedCashierId
+                  );
+                  const atts = attendants.filter((a) =>
+                    selectedAttendantIds.includes(a.id)
+                  );
+                  setBoothAssignments((prev) => ({
+                    ...prev,
+                    [teamBooth.id]: {
+                      cashier: cashier
+                        ? { id: cashier.id, name: cashier.name }
+                        : undefined,
+                      attendants: atts.map((a) => ({ id: a.id, name: a.name })),
+                    },
+                  }));
+                  setShowTeamModal(false);
+                  setTeamBooth(null);
+                }}
+              >
+                Save Assignment
+              </Button>
             </div>
           </div>
         </Modal>
