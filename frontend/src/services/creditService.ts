@@ -30,6 +30,14 @@ class CreditService {
     });
   }
 
+  async updateCreditLimit(id: string | number, creditLimit: number, utilisedBod?: number, adhocAddition?: number) {
+    return apiClient.patch(`api/tenant/credit/partners/${id}/credit-limit`, {
+      creditLimit,
+      utilisedBod,
+      adhocAddition,
+    });
+  }
+
   async addVehicles(partnerId: string, vehicles: any[]) {
     return apiClient.post(`api/tenant/credit/partners/${partnerId}/vehicles`, {
       vehicles,

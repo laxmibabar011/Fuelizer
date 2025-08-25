@@ -222,8 +222,8 @@ const CreditLimitsManagement: React.FC<CreditLimitsManagementProps> = ({
                         </Badge>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                        <Button variant="outline" size="sm">
-                          Edit Limit
+                        <Button variant="outline" size="sm" onClick={() => navigate(`/fuel-admin/credit-partners/${partner.id}`)}>
+                          Adjust Limit
                         </Button>
                       </td>
                     </tr>

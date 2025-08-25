@@ -121,6 +121,21 @@ export default class ProductMasterController {
       return sendResponse(res, { success: false, error: err.message, message: 'Failed to delete product', status: 500 })
     }
   }
+
+  static async restoreProduct(req, res) {
+    try {
+      const repo = new ProductMasterRepository(req.tenantSequelize)
+      const p = await repo.getProductById(req.params.id)
+      if (!p) return sendResponse(res, { success: false, error: 'Not found', status: 404 })
+      if (p.status === 'active') {
+        return sendResponse(res, { success: false, error: 'Already active', status: 409 })
+      }
+      const restored = await repo.setProductStatus(req.params.id, 'active')
+      return sendResponse(res, { data: restored, message: 'Product restored' })
+    } catch (err) {
+      return sendResponse(res, { success: false, error: err.message, message: 'Failed to restore product', status: 500 })
+    }
+  }
 }
 
 

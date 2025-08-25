@@ -81,6 +81,9 @@ const ProductMasterService = {
   deleteProduct(id: string) {
     return api.delete(`/api/tenant/product-master/products/${id}`);
   },
+  restoreProduct(id: string) {
+    return api.patch(`/api/tenant/product-master/products/${id}/restore`);
+  },
 };
 
 export default ProductMasterService;

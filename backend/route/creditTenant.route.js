@@ -17,6 +17,9 @@ router.get('/credit/partners/:id', authenticate, tenantDbMiddleware, authorizeRo
 // Update credit partner status
 router.patch('/credit/partners/:id/status', authenticate, tenantDbMiddleware, authorizeRoles('fuel-admin'), CreditController.updatePartnerStatus);
 
+// Update credit limit for a partner
+router.patch('/credit/partners/:id/credit-limit', authenticate, tenantDbMiddleware, authorizeRoles('fuel-admin'), CreditController.updateCreditLimit);
+
 // List vehicles for a partner
 router.get('/credit/partners/:partnerId/vehicles', authenticate, tenantDbMiddleware, authorizeRoles('fuel-admin'), CreditController.getVehiclesByPartnerId);
 
