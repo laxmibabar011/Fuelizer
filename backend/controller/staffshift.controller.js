@@ -403,19 +403,19 @@ export default class StaffShiftController {
   // ===== OPERATOR GROUP ENDPOINTS =====
   static async createOperatorGroup(req, res) {
     try {
-      const { name, cashierId } = req.body;
+      const { name, cashierId, shiftId } = req.body;
       
-      if (!name || !cashierId) {
+      if (!name || !cashierId || !shiftId) {
         return sendResponse(res, { 
           success: false, 
-          error: 'Name and cashier ID are required', 
+          error: 'Name, cashier ID and shift ID are required', 
           message: 'Validation error', 
           status: 400 
         });
       }
 
       const repo = new StaffShiftRepository(req.tenantSequelize);
-      const group = await repo.createOperatorGroup({ name, cashier_id: cashierId });
+      const group = await repo.createOperatorGroup({ name, cashier_id: cashierId, shift_id: shiftId });
       return sendResponse(res, { data: group, message: 'Operator group created successfully', status: 201 });
     } catch (err) {
       return sendResponse(res, { success: false, error: err.message, message: 'Failed to create operator group', status: 500 });
@@ -424,8 +424,9 @@ export default class StaffShiftController {
 
   static async getAllOperatorGroups(req, res) {
     try {
+      const { shiftId } = req.query;
       const repo = new StaffShiftRepository(req.tenantSequelize);
-      const groups = await repo.getAllOperatorGroups();
+      const groups = await repo.getAllOperatorGroups(shiftId);
       return sendResponse(res, { data: groups, message: 'Operator groups fetched successfully' });
     } catch (err) {
       return sendResponse(res, { success: false, error: err.message, message: 'Failed to fetch operator groups', status: 500 });
@@ -467,6 +468,62 @@ export default class StaffShiftController {
       return sendResponse(res, { data: {}, message: 'Operator group deleted successfully' });
     } catch (err) {
       return sendResponse(res, { success: false, error: err.message, message: 'Failed to delete operator group', status: 500 });
+    }
+  }
+
+  static async setGroupAttendants(req, res) {
+    try {
+      const { groupId } = req.params;
+      const { userIds } = req.body;
+      
+      if (!userIds || !Array.isArray(userIds)) {
+        return sendResponse(res, { 
+          success: false, 
+          error: 'User IDs array is required', 
+          message: 'Validation error', 
+          status: 400 
+        });
+      }
+
+      const repo = new StaffShiftRepository(req.tenantSequelize);
+      const result = await repo.setGroupAttendants(groupId, userIds);
+      return sendResponse(res, { data: result, message: 'Group attendants updated successfully' });
+    } catch (err) {
+      return sendResponse(res, { success: false, error: err.message, message: 'Failed to update group attendants', status: 500 });
+    }
+  }
+
+  static async getGroupAttendants(req, res) {
+    try {
+      const { groupId } = req.params;
+      const repo = new StaffShiftRepository(req.tenantSequelize);
+      const attendants = await repo.getGroupAttendants(groupId);
+      return sendResponse(res, { data: attendants, message: 'Group attendants fetched successfully' });
+    } catch (err) {
+      return sendResponse(res, { success: false, error: err.message, message: 'Failed to fetch group attendants', status: 500 });
+    }
+  }
+
+  // ===== NEW: Get operators assigned to a specific shift =====
+  static async getOperatorsByShift(req, res) {
+    try {
+      const { shiftId } = req.params;
+      const { date } = req.query;
+      
+      if (!shiftId) {
+        return sendResponse(res, { 
+          success: false, 
+          error: 'Shift ID is required', 
+          message: 'Validation error', 
+          status: 400 
+        });
+      }
+
+      const repo = new StaffShiftRepository(req.tenantSequelize);
+      const operators = await repo.getOperatorsByShift(shiftId, date);
+      return sendResponse(res, { data: operators, message: 'Operators for shift fetched successfully' });
+    } catch (err) {
+      return sendResponse(res, { success: false, error: err.message, message: 'Failed to fetch operators for shift', status: 500 });
     }
   }
 } 
