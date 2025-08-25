@@ -7,6 +7,7 @@ export class StaffShiftRepository {
     this.User = sequelize.models.User;
     this.UserDetails = sequelize.models.UserDetails;
     this.OperatorGroup = sequelize.models.OperatorGroup;
+    this.OperatorGroupMember = sequelize.models.OperatorGroupMember;
   }
 
   // ===== OPERATOR METHODS =====
@@ -93,14 +94,36 @@ export class StaffShiftRepository {
     return this.OperatorGroup.create(groupData);
   }
 
-  async getAllOperatorGroups() {
+  async getAllOperatorGroups(shiftId = null) {
+    const where = {};
+    if (shiftId) where.shift_id = shiftId;
+
     return this.OperatorGroup.findAll({
+      where,
       include: [
         { 
           model: this.User, 
           as: 'Cashier', 
           attributes: ['user_id', 'email'],
           include: [{ model: this.UserDetails, as: 'UserDetails', attributes: ['full_name', 'phone'] }]
+        },
+        {
+          model: this.OperatorGroupMember,
+          as: 'Members',
+          where: { is_active: true },
+          include: [
+            {
+              model: this.User,
+              as: 'User',
+              attributes: ['user_id', 'email'],
+              include: [{ model: this.UserDetails, as: 'UserDetails', attributes: ['full_name', 'phone'] }]
+            }
+          ]
+        },
+        {
+          model: this.Shift,
+          as: 'Shift',
+          attributes: ['id', 'name', 'start_time', 'end_time', 'shift_type']
         }
       ],
       order: [['name', 'ASC']]
@@ -117,10 +140,17 @@ export class StaffShiftRepository {
           include: [{ model: this.UserDetails, as: 'UserDetails', attributes: ['full_name', 'phone'] }]
         },
         {
-          model: this.User,
-          as: 'Operators',
-          attributes: ['user_id', 'email'],
-          include: [{ model: this.UserDetails, as: 'UserDetails', attributes: ['full_name', 'phone'] }]
+          model: this.OperatorGroupMember,
+          as: 'Members',
+          where: { is_active: true },
+          include: [
+            {
+              model: this.User,
+              as: 'User',
+              attributes: ['user_id', 'email'],
+              include: [{ model: this.UserDetails, as: 'UserDetails', attributes: ['full_name', 'phone'] }]
+            }
+          ]
         }
       ]
     });
@@ -136,6 +166,84 @@ export class StaffShiftRepository {
     const group = await this.OperatorGroup.findByPk(id);
     if (!group) throw new Error('Operator group not found');
     return await group.destroy();
+  }
+
+  async setGroupAttendants(groupId, userIds) {
+    const transaction = await this.sequelize.transaction();
+    try {
+      // First, remove all users from this group
+      await this.OperatorGroupMember.destroy(
+        { 
+          where: { operator_group_id: groupId },
+          transaction 
+        }
+      );
+
+      // Then, add the specified users to this group
+      if (userIds.length > 0) {
+        await this.OperatorGroupMember.bulkCreate(
+          userIds.map(userId => ({ operator_group_id: groupId, user_id: userId })),
+          { transaction }
+        );
+      }
+
+      await transaction.commit();
+      return { updatedCount: userIds.length };
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
+    }
+  }
+
+  async getGroupAttendants(groupId) {
+    return this.OperatorGroupMember.findAll({
+      where: { operator_group_id: groupId, is_active: true },
+      include: [
+        {
+          model: this.User,
+          as: 'User',
+          attributes: ['user_id', 'email'],
+          include: [{ model: this.UserDetails, as: 'UserDetails', attributes: ['full_name', 'phone'] }]
+        }
+      ],
+      order: [['created_at', 'ASC']]
+    });
+  }
+
+  async listGroups(shiftId = null) {
+    const where = {};
+    if (shiftId) where.shift_id = shiftId;
+
+    return this.OperatorGroup.findAll({
+      where,
+      include: [
+        { 
+          model: this.User, 
+          as: 'Cashier', 
+          attributes: ['user_id', 'email'],
+          include: [{ model: this.UserDetails, as: 'UserDetails', attributes: ['full_name', 'phone'] }]
+        },
+        {
+          model: this.OperatorGroupMember,
+          as: 'Members',
+          where: { is_active: true },
+          include: [
+            {
+              model: this.User,
+              as: 'User',
+              attributes: ['user_id', 'email'],
+              include: [{ model: this.UserDetails, as: 'UserDetails', attributes: ['full_name', 'phone'] }]
+            }
+          ]
+        },
+        {
+          model: this.Shift,
+          as: 'Shift',
+          attributes: ['id', 'name', 'start_time', 'end_time', 'shift_type']
+        }
+      ],
+      order: [['name', 'ASC']]
+    });
   }
 
   // ===== SHIFT ASSIGNMENT METHODS =====
@@ -227,6 +335,47 @@ export class StaffShiftRepository {
         }
       }
     );
+  }
+
+  // ===== NEW: Get operators assigned to a specific shift =====
+  async getOperatorsByShift(shiftId, date = null) {
+    const where = { shift_id: shiftId };
+    if (date) where.date = date;
+    
+    const assignments = await this.ShiftAssignment.findAll({
+      where,
+      include: [
+        { 
+          model: this.User, 
+          as: 'User', 
+          attributes: ['user_id', 'email'],
+          include: [{ model: this.UserDetails, as: 'UserDetails', attributes: ['full_name', 'phone'] }]
+        },
+        { model: this.Shift, as: 'Shift', attributes: ['name', 'start_time', 'end_time', 'shift_type'] }
+      ],
+      order: [['created_at', 'ASC']]
+    });
+
+    // Get operator details for each assigned user
+    const operators = [];
+    for (const assignment of assignments) {
+      const operator = await this.Operator.findOne({
+        where: { user_id: assignment.user_id, is_active: true },
+        include: [
+          { model: this.User, as: 'User', attributes: ['user_id', 'email'] },
+          { model: this.UserDetails, as: 'UserDetails', attributes: ['full_name', 'phone'] }
+        ]
+      });
+      
+      if (operator) {
+        operators.push({
+          ...operator.toJSON(),
+          shift_assignment: assignment
+        });
+      }
+    }
+
+    return operators;
   }
 }
  

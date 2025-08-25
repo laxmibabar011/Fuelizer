@@ -29,8 +29,19 @@ export const initTenantModels = (sequelize) => {
   const OperatorGroup = sequelize.define('OperatorGroup', {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
     name: { type: DataTypes.STRING, allowNull: false }, // e.g., "Frontage Cash Counter"
-    cashier_id: { type: DataTypes.STRING(50), allowNull: false, references: { model: 'Users', key: 'user_id' } }
-});
+    cashier_id: { type: DataTypes.STRING(50), allowNull: false },
+    // New: tie a group to a specific WORKER shift template
+    shift_id: { type: DataTypes.INTEGER, allowNull: false },
+    created_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+    updated_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW }
+  }, {
+    indexes: [
+      {
+        unique: true,
+        fields: ['cashier_id', 'shift_id']
+      }
+    ]
+  });
 
   const RefreshToken = sequelize.define('RefreshToken', {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
@@ -52,9 +63,14 @@ export const initTenantModels = (sequelize) => {
   // Operator Group
   // Cashier (one) owns an OperatorGroup
   OperatorGroup.belongsTo(User, { foreignKey: 'cashier_id', targetKey: 'user_id', as: 'Cashier' });
-  // Operators (many) belong to an OperatorGroup via operator_group_id on User
-  User.belongsTo(OperatorGroup, { foreignKey: 'operator_group_id', as: 'OperatorGroup', allowNull: true });
-  OperatorGroup.hasMany(User, { foreignKey: 'operator_group_id', as: 'Operators' });
+  // Group belongs to a Shift (WORKER shift template)
+  if (sequelize.models.Shift) {
+    OperatorGroup.belongsTo(sequelize.models.Shift, { foreignKey: 'shift_id', as: 'Shift' });
+  }
+  // Group has many members through junction table
+  if (sequelize.models.OperatorGroupMember) {
+    OperatorGroup.hasMany(sequelize.models.OperatorGroupMember, { foreignKey: 'operator_group_id', as: 'Members' });
+  }
 
   return { User, Role, UserDetails, RefreshToken, OperatorGroup };
 };

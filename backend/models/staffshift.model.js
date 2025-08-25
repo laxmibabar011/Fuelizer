@@ -32,8 +32,8 @@ export const initStaffShiftModels = (sequelize) => {
   const ShiftAssignment = sequelize.define('ShiftAssignment', {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
     date: { type: DataTypes.DATEONLY, allowNull: false }, // YYYY-MM-DD
-    shift_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'Shifts', key: 'id' } },
-    user_id: { type: DataTypes.STRING(50), allowNull: false, references: { model: 'Users', key: 'user_id' } }, // user assigned to shift
+    shift_id: { type: DataTypes.INTEGER, allowNull: false },
+    user_id: { type: DataTypes.STRING(50), allowNull: false },
     assigned_by: { type: DataTypes.STRING(50), allowNull: true }, // user_id of who made assignment
     status: { type: DataTypes.ENUM('assigned', 'checked-in', 'checked-out', 'absent'), defaultValue: 'assigned' },
     check_in_time: { type: DataTypes.DATE, allowNull: true },
@@ -41,6 +41,40 @@ export const initStaffShiftModels = (sequelize) => {
     notes: { type: DataTypes.TEXT, allowNull: true },
     created_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
     updated_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW }
+  });
+
+  // Operator Group Booth model
+  const OperatorGroupBooth = sequelize.define('OperatorGroupBooth', {
+    id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+    operator_group_id: { type: DataTypes.INTEGER, allowNull: false },
+    booth_id: { type: DataTypes.INTEGER, allowNull: false },
+    is_active: { type: DataTypes.BOOLEAN, defaultValue: true },
+    created_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+    updated_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW }
+  }, {
+    indexes: [
+      {
+        unique: true,
+        fields: ['operator_group_id', 'booth_id']
+      }
+    ]
+  });
+
+  // Operator Group Member model (junction table for User-OperatorGroup many-to-many)
+  const OperatorGroupMember = sequelize.define('OperatorGroupMember', {
+    id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+    operator_group_id: { type: DataTypes.INTEGER, allowNull: false },
+    user_id: { type: DataTypes.STRING(50), allowNull: false },
+    is_active: { type: DataTypes.BOOLEAN, defaultValue: true },
+    created_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+    updated_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW }
+  }, {
+    indexes: [
+      {
+        unique: true,
+        fields: ['operator_group_id', 'user_id']
+      }
+    ]
   });
 
   // Associations
@@ -53,5 +87,14 @@ export const initStaffShiftModels = (sequelize) => {
   ShiftAssignment.belongsTo(sequelize.models.User, { foreignKey: 'user_id', targetKey: 'user_id', as: 'User' });
   ShiftAssignment.belongsTo(sequelize.models.UserDetails, { foreignKey: 'user_id', targetKey: 'user_id', as: 'UserDetails' });
 
-  return { Operator, Shift, ShiftAssignment };
+  // OperatorGroupBooth associations
+  OperatorGroupBooth.belongsTo(sequelize.models.OperatorGroup, { foreignKey: 'operator_group_id', as: 'OperatorGroup' });
+  OperatorGroupBooth.belongsTo(sequelize.models.Booth, { foreignKey: 'booth_id', as: 'Booth' });
+
+  // OperatorGroupMember associations (many-to-many between User and OperatorGroup)
+  OperatorGroupMember.belongsTo(sequelize.models.OperatorGroup, { foreignKey: 'operator_group_id', as: 'OperatorGroup' });
+  OperatorGroupMember.belongsTo(sequelize.models.User, { foreignKey: 'user_id', targetKey: 'user_id', as: 'User' });
+  OperatorGroupMember.belongsTo(sequelize.models.UserDetails, { foreignKey: 'user_id', targetKey: 'user_id', as: 'UserDetails' });
+
+  return { Operator, Shift, ShiftAssignment, OperatorGroupBooth, OperatorGroupMember };
 }; 

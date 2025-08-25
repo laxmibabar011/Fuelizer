@@ -5,12 +5,19 @@ import {
   TabsTrigger,
   TabsContent,
 } from "../../../components/ui/tabs/Tabs";
-import { Users, UserPlus, Clock, Settings, BarChart2, Calendar, Shield } from "lucide-react";
+import {
+  Users,
+  UserPlus,
+  Clock,
+  BarChart2,
+  Calendar,
+  Shield,
+} from "lucide-react";
 import OperatorOnboarding from "./OperatorOnboarding";
 import OperatorManagement from "./OperatorManagement";
 import ManagerManagement from "./ManagerManagement";
 import ShiftManagement from "./ShiftManagement";
-import StaffSettings from "./StaffSettings";
+import OperatorGroups from "./OperatorGroups";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../../../components/ui/button";
 import { Card } from "../../../components/ui/card";
@@ -52,9 +59,9 @@ const ShiftStaffDashboard: React.FC = () => {
             <Clock className="h-4 w-4" />
             <span className="hidden sm:inline">Shifts</span>
           </TabsTrigger>
-          <TabsTrigger value="settings" className="flex items-center gap-2">
-            <Settings className="h-4 w-4" />
-            <span className="hidden sm:inline">Settings</span>
+          <TabsTrigger value="groups" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            <span className="hidden sm:inline">Groups</span>
           </TabsTrigger>
         </TabsList>
 
@@ -153,9 +160,9 @@ const ShiftStaffDashboard: React.FC = () => {
           <ShiftManagement />
         </TabsContent>
 
-        {/* Settings Tab */}
-        <TabsContent value="settings" className="space-y-6">
-          <StaffSettings />
+        {/* Groups Tab */}
+        <TabsContent value="groups" className="space-y-6">
+          <OperatorGroups />
         </TabsContent>
       </Tabs>
 

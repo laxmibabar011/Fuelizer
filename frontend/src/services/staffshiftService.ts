@@ -35,12 +35,24 @@ class StaffShiftService {
     return apiClient.get("api/tenant/staffshift/manager-shifts/available");
   }
 
-  async assignManagerShift(payload: { user_id: string; shift_id: string | number }) {
-    return apiClient.post("api/tenant/staffshift/manager-shifts/assign", payload);
+  async assignManagerShift(payload: {
+    user_id: string;
+    shift_id: string | number;
+  }) {
+    return apiClient.post(
+      "api/tenant/staffshift/manager-shifts/assign",
+      payload
+    );
   }
 
-  async unassignManagerShift(payload: { user_id: string; shift_id: string | number }) {
-    return apiClient.post("api/tenant/staffshift/manager-shifts/unassign", payload);
+  async unassignManagerShift(payload: {
+    user_id: string;
+    shift_id: string | number;
+  }) {
+    return apiClient.post(
+      "api/tenant/staffshift/manager-shifts/unassign",
+      payload
+    );
   }
 
   async listAvailableOperators() {
@@ -107,6 +119,61 @@ class StaffShiftService {
 
   async deleteShiftAssignment(id: number | string) {
     return apiClient.delete(`api/tenant/staffshift/shift-assignments/${id}`);
+  }
+
+  async getOperatorsByShift(shiftId: string | number, date?: string) {
+    const url = date
+      ? `api/tenant/staffshift/shifts/${shiftId}/operators?date=${date}`
+      : `api/tenant/staffshift/shifts/${shiftId}/operators`;
+    return apiClient.get(url);
+  }
+
+  // ===== GROUPS & SCHEDULING (stubs to be wired to backend) =====
+  async listGroups(shiftId?: string | number) {
+    const url = shiftId
+      ? `api/tenant/staffshift/operator-groups?shiftId=${shiftId}`
+      : "api/tenant/staffshift/operator-groups";
+    return apiClient.get(url);
+  }
+
+  async createGroup(payload: {
+    name: string;
+    cashierId: string;
+    shiftId: string;
+  }) {
+    return apiClient.post("api/tenant/staffshift/operator-groups", payload);
+  }
+
+  async setGroupAttendants(groupId: string | number, userIds: string[]) {
+    return apiClient.post(
+      `api/tenant/staffshift/operator-groups/${groupId}/attendants`,
+      { userIds }
+    );
+  }
+
+  async getGroupAttendants(groupId: string | number) {
+    return apiClient.get(
+      `api/tenant/staffshift/operator-groups/${groupId}/attendants`
+    );
+  }
+
+  async mapGroupToBooths(groupId: string | number, boothIds: number[]) {
+    return apiClient.post(
+      `api/tenant/staffshift/operator-groups/${groupId}/booths`,
+      { boothIds }
+    );
+  }
+
+  async getGroupBooths(groupId: string | number) {
+    return apiClient.get(
+      `api/tenant/staffshift/operator-groups/${groupId}/booths`
+    );
+  }
+
+  async listBoothAssignments(shiftId: string | number) {
+    return apiClient.get(`api/tenant/staffshift/booth-assignments`, {
+      params: { shiftId },
+    });
   }
 }
 

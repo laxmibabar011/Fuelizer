@@ -30,10 +30,11 @@ export async function getTenantDbModels(dbName) {
     // Authenticate once when establishing the connection
     await tenantSequelize.authenticate();
     
+    // Initialize models in correct order to avoid foreign key issues
     const { User, Role, UserDetails, RefreshToken, OperatorGroup } = initTenantModels(tenantSequelize);
     const { CreditAccount, Vehicle } = initCreditModels(tenantSequelize);
     const { Booth, Nozzle} = initStationModels(tenantSequelize);
-    const { Operator, Shift, ShiftAssignment } = initStaffShiftModels(tenantSequelize);
+    const { Operator, Shift, ShiftAssignment, OperatorGroupBooth, OperatorGroupMember } = initStaffShiftModels(tenantSequelize);
     const { ProductCategory, ProductMaster } = initProductMasterModels(tenantSequelize);
     const { OperationalDay, ShiftLedger } = initOperationModels(tenantSequelize);
     const { MeterReading } = initMeterReadingModel(tenantSequelize);
@@ -41,7 +42,13 @@ export async function getTenantDbModels(dbName) {
 
     // Optional, one-time sync for agile development
     if (process.env.DB_SYNC_ALTER === 'true' && !tenantSyncDone.has(dbName)) {
-      await tenantSequelize.sync({ alter: true });
+      try {
+        await tenantSequelize.sync({ alter: true });
+        console.log(`[tenantDb.helper]: Database sync completed for ${dbName}`);
+      } catch (syncError) {
+        console.error(`[tenantDb.helper]: Database sync failed for ${dbName}:`, syncError);
+        // Continue without sync for now
+      }
       tenantSyncDone.add(dbName);
     }
 
@@ -50,7 +57,7 @@ export async function getTenantDbModels(dbName) {
       User, Role, UserDetails, RefreshToken, OperatorGroup, 
       CreditAccount, Vehicle, 
       Booth, Nozzle, 
-      Operator, Shift, ShiftAssignment, 
+      Operator, Shift, ShiftAssignment, OperatorGroupBooth, OperatorGroupMember, 
       ProductCategory, ProductMaster,
       OperationalDay, ShiftLedger,
       MeterReading,

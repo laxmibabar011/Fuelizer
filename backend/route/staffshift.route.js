@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { authenticate, authorizeRoles } from '../middleware/auth.middleware.js';
 import { tenantDbMiddleware } from '../middleware/tenant.middleware.js';
 import StaffShiftController from '../controller/staffshift.controller.js';
+import GroupBoothController from '../controller/groupBooth.controller.js';
 
 const router = Router();
 
@@ -35,11 +36,24 @@ router.get('/staffshift/shift-assignments', StaffShiftController.getShiftAssignm
 router.put('/staffshift/shift-assignments/:id', StaffShiftController.updateShiftAssignment);
 router.delete('/staffshift/shift-assignments/:id', StaffShiftController.deleteShiftAssignment);
 
+// ===== NEW: Get operators by shift =====
+router.get('/staffshift/shifts/:shiftId/operators', StaffShiftController.getOperatorsByShift);
+
 // ===== OPERATOR GROUP ROUTES =====
 router.post('/staffshift/operator-groups', StaffShiftController.createOperatorGroup);
 router.get('/staffshift/operator-groups', StaffShiftController.getAllOperatorGroups);
 router.get('/staffshift/operator-groups/:id', StaffShiftController.getOperatorGroupById);
 router.put('/staffshift/operator-groups/:id', StaffShiftController.updateOperatorGroup);
 router.delete('/staffshift/operator-groups/:id', StaffShiftController.deleteOperatorGroup);
+
+// New: Operator Group Attendants
+router.post('/staffshift/operator-groups/:groupId/attendants', StaffShiftController.setGroupAttendants);
+router.get('/staffshift/operator-groups/:groupId/attendants', StaffShiftController.getGroupAttendants);
+
+// ===== GROUP ↔ BOOTH MAPPING =====
+router.post('/staffshift/operator-groups/:groupId/booths', GroupBoothController.mapGroupToBooths);
+router.get('/staffshift/operator-groups/:groupId/booths', GroupBoothController.getGroupBooths);
+router.delete('/staffshift/operator-groups/:groupId/booths/:boothId', GroupBoothController.unmapGroupFromBooth);
+router.get('/staffshift/booth-assignments', GroupBoothController.listBoothAssignmentsByShift);
 
 export default router; 
