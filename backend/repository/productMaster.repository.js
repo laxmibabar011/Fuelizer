@@ -71,6 +71,13 @@ export class ProductMasterRepository {
     await p.update({ status: 'inactive' })
     return 1
   }
+
+  async setProductStatus(id, status) {
+    const p = await this.getProductById(id)
+    if (!p) return null
+    await p.update({ status })
+    return p
+  }
 }
 
 

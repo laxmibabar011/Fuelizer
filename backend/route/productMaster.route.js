@@ -21,6 +21,7 @@ router.get('/product-master/products', ProductMasterController.listProducts)
 router.get('/product-master/products/:id', ProductMasterController.getProduct)
 router.put('/product-master/products/:id', uploadSingle('image'), ProductMasterController.updateProduct)
 router.delete('/product-master/products/:id', ProductMasterController.deleteProduct)
+router.patch('/product-master/products/:id/restore', ProductMasterController.restoreProduct)
 
 export default router
 
