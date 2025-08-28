@@ -171,6 +171,30 @@ const AppSidebar: React.FC = () => {
     },
   ];
 
+  // Role-based menu for operator
+  const operatorMenu: NavItem[] = [
+    {
+      icon: <GridIcon />,
+      name: "Dashboard",
+      path: "/operator",
+    },
+    {
+      icon: <ReportIcon />,
+      name: "Transactions",
+      path: "/operator/transactions",
+    },
+    {
+      icon: <UserCircleIcon />,
+      name: "Profile",
+      path: "/operator/profile",
+    },
+    {
+      icon: <PlugInIcon />,
+      name: "Logout",
+      onClick: logout,
+    },
+  ];
+
   const menuToShow =
     authUser?.role === "super_admin"
       ? superAdminMenu
@@ -178,7 +202,9 @@ const AppSidebar: React.FC = () => {
         ? fuelAdminMenu
         : authUser?.role === "partner"
           ? partnerMenu
-          : [];
+          : authUser?.role === "operator"
+            ? operatorMenu
+            : [];
 
   const isActive = (path: string) => location.pathname === path;
   const isSubItemActive = (subItems?: NavItem["subItems"]) => {
@@ -310,7 +336,9 @@ const AppSidebar: React.FC = () => {
                 ? "/fuel-admin-dashboard"
                 : authUser?.role === "partner"
                   ? "/partner-dashboard"
-                  : "/"
+                  : authUser?.role === "operator"
+                    ? "/operator"
+                    : "/"
           }
         >
           {isExpanded || isHovered || isMobileOpen ? (

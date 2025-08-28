@@ -163,9 +163,32 @@ export class StaffShiftRepository {
   }
 
   async deleteOperatorGroup(id) {
-    const group = await this.OperatorGroup.findByPk(id);
-    if (!group) throw new Error('Operator group not found');
-    return await group.destroy();
+    const transaction = await this.sequelize.transaction();
+    try {
+      const group = await this.OperatorGroup.findByPk(id);
+      if (!group) throw new Error('Operator group not found');
+      
+      // First, delete all booth assignments for this group
+      await this.sequelize.models.OperatorGroupBooth.destroy({
+        where: { operator_group_id: id },
+        transaction
+      });
+      
+      // Then, delete all group members
+      await this.OperatorGroupMember.destroy({
+        where: { operator_group_id: id },
+        transaction
+      });
+      
+      // Finally, delete the group itself
+      await group.destroy({ transaction });
+      
+      await transaction.commit();
+      return { deleted: true };
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
+    }
   }
 
   async setGroupAttendants(groupId, userIds) {
@@ -339,43 +362,90 @@ export class StaffShiftRepository {
 
   // ===== NEW: Get operators assigned to a specific shift =====
   async getOperatorsByShift(shiftId, date = null) {
-    const where = { shift_id: shiftId };
-    if (date) where.date = date;
-    
-    const assignments = await this.ShiftAssignment.findAll({
-      where,
-      include: [
-        { 
-          model: this.User, 
-          as: 'User', 
-          attributes: ['user_id', 'email'],
-          include: [{ model: this.UserDetails, as: 'UserDetails', attributes: ['full_name', 'phone'] }]
-        },
-        { model: this.Shift, as: 'Shift', attributes: ['name', 'start_time', 'end_time', 'shift_type'] }
-      ],
-      order: [['created_at', 'ASC']]
-    });
-
-    // Get operator details for each assigned user
-    const operators = [];
-    for (const assignment of assignments) {
-      const operator = await this.Operator.findOne({
-        where: { user_id: assignment.user_id, is_active: true },
-        include: [
-          { model: this.User, as: 'User', attributes: ['user_id', 'email'] },
-          { model: this.UserDetails, as: 'UserDetails', attributes: ['full_name', 'phone'] }
-        ]
-      });
+    // If date is provided, get operators currently assigned to this shift on that date
+    if (date) {
+      const where = { shift_id: shiftId, date: date };
       
-      if (operator) {
-        operators.push({
-          ...operator.toJSON(),
-          shift_assignment: assignment
-        });
-      }
-    }
+      const assignments = await this.ShiftAssignment.findAll({
+        where,
+        include: [
+          { 
+            model: this.User, 
+            as: 'User', 
+            attributes: ['user_id', 'email'],
+            include: [{ model: this.UserDetails, as: 'UserDetails', attributes: ['full_name', 'phone'] }]
+          },
+          { model: this.Shift, as: 'Shift', attributes: ['name', 'start_time', 'end_time', 'shift_type'] }
+        ],
+        order: [['created_at', 'ASC']]
+      });
 
-    return operators;
+      // Get operator details for each assigned user
+      const operators = [];
+      for (const assignment of assignments) {
+        const operator = await this.Operator.findOne({
+          where: { user_id: assignment.user_id, is_active: true },
+          include: [
+            { model: this.User, as: 'User', attributes: ['user_id', 'email'] },
+            { model: this.UserDetails, as: 'UserDetails', attributes: ['full_name', 'phone'] }
+          ]
+        });
+        
+        if (operator) {
+          operators.push({
+            ...operator.toJSON(),
+            shift_assignment: assignment
+          });
+        }
+      }
+
+      return operators;
+    } else {
+      // For grouping purposes (no date provided), get operators assigned to this shift
+      // for the current day or next day (typical assignment pattern)
+      const today = new Date().toISOString().split('T')[0];
+      const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      
+      const where = { 
+        shift_id: shiftId, 
+        date: [today, tomorrow] // Check both today and tomorrow
+      };
+      
+      const assignments = await this.ShiftAssignment.findAll({
+        where,
+        include: [
+          { 
+            model: this.User, 
+            as: 'User', 
+            attributes: ['user_id', 'email'],
+            include: [{ model: this.UserDetails, as: 'UserDetails', attributes: ['full_name', 'phone'] }]
+          },
+          { model: this.Shift, as: 'Shift', attributes: ['name', 'start_time', 'end_time', 'shift_type'] }
+        ],
+        order: [['created_at', 'ASC']]
+      });
+
+      // Get operator details for each assigned user
+      const operators = [];
+      for (const assignment of assignments) {
+        const operator = await this.Operator.findOne({
+          where: { user_id: assignment.user_id, is_active: true },
+          include: [
+            { model: this.User, as: 'User', attributes: ['user_id', 'email'] },
+            { model: this.UserDetails, as: 'UserDetails', attributes: ['full_name', 'phone'] }
+          ]
+        });
+        
+        if (operator) {
+          operators.push({
+            ...operator.toJSON(),
+            shift_assignment: assignment
+          });
+        }
+      }
+
+      return operators;
+    }
   }
 }
  

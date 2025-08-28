@@ -48,6 +48,10 @@ import EndOfDay from "./pages/FuelAdmin/BODEOD/EndOfDay";
 // New Reports page
 import ReportsDashboard from "./pages/FuelAdmin/Reports/ReportsDashboard";
 
+// Operator pages
+import OperatorDashboard from "./pages/Dashboard/OperatorDashboard";
+import Transactions from "./pages/Operator/Transactions";
+
 export default function App() {
   return (
     <Router>
@@ -180,6 +184,19 @@ export default function App() {
               element={<RequestHistory />}
             />
             <Route path="/partner/profile" element={<UserProfiles />} />
+          </Route>
+
+          {/* Operator Protected Routes */}
+          <Route
+            element={
+              <PrivateRoute allowedRoles={["operator"]}>
+                <AppLayout />
+              </PrivateRoute>
+            }
+          >
+            <Route path="/operator" element={<OperatorDashboard />} />
+            <Route path="/operator/transactions" element={<Transactions />} />
+            <Route path="/operator/profile" element={<UserProfiles />} />
           </Route>
 
           {/* Forms */}

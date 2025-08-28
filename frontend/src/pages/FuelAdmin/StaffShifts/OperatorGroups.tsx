@@ -13,6 +13,7 @@ const OperatorGroups: React.FC = () => {
   const [cashiers, setCashiers] = useState<SimpleUser[]>([]);
   const [attendants, setAttendants] = useState<SimpleUser[]>([]);
   const [loading, setLoading] = useState(false);
+  const [deletingGroupId, setDeletingGroupId] = useState<string | null>(null);
 
   const [showModal, setShowModal] = useState(false);
   const [groupName, setGroupName] = useState("");
@@ -141,6 +142,27 @@ const OperatorGroups: React.FC = () => {
     }
   };
 
+  const onDeleteGroup = async (groupId: string) => {
+    if (!confirm('Are you sure you want to delete this group? This action cannot be undone.')) {
+      return;
+    }
+    
+    setDeletingGroupId(groupId);
+    try {
+      await StaffShiftService.deleteGroup(groupId);
+      // Refresh the groups list
+      const listRes = await StaffShiftService.listGroups().catch(
+        () => ({ data: { data: [] } }) as any
+      );
+      setGroups((listRes as any)?.data?.data || []);
+    } catch (error) {
+      console.error('Error deleting group:', error);
+      alert('Failed to delete group. Please try again.');
+    } finally {
+      setDeletingGroupId(null);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -176,6 +198,7 @@ const OperatorGroups: React.FC = () => {
                   <th className="py-2 pr-4">Shift</th>
                   <th className="py-2 pr-4">Cashier</th>
                   <th className="py-2 pr-4">Attendants</th>
+                  <th className="py-2 pr-4">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -194,6 +217,16 @@ const OperatorGroups: React.FC = () => {
                         g.cashier_id}
                     </td>
                     <td className="py-2 pr-4">{g.Members?.length || 0}</td>
+                    <td className="py-2 pr-4">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onDeleteGroup(g.id)}
+                        disabled={deletingGroupId === g.id}
+                      >
+                        {deletingGroupId === g.id ? 'Deleting...' : 'Delete'}
+                      </Button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -206,7 +239,7 @@ const OperatorGroups: React.FC = () => {
         <Modal
           isOpen={showModal}
           onClose={() => setShowModal(false)}
-          className="max-w-lg w-full"
+          className="max-w-lg w-full overflow-visible"
         >
           <div className="p-5 space-y-5">
             <h3 className="text-lg font-semibold">Create Group</h3>

@@ -50,6 +50,8 @@ export default function SignInForm() {
           navigate("/fuel-admin-dashboard");
         } else if (userRole === "partner") {
           navigate("/partner-dashboard");
+        } else if (userRole === "operator") {
+          navigate("/operator");
         } else {
           navigate("/");
         }

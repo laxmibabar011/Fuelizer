@@ -11,6 +11,7 @@ import { initProductMasterModels } from '../../models/productMaster.model.js';
 import { initOperationModels } from '../../models/operations.model.js';
 import { initMeterReadingModel } from '../../models/meterReading.model.js';
 import { initTransactionModels } from '../../models/transaction.model.js';
+import { setupAssociations } from '../../models/associations.js';
 
 // simple in-memory cache of initialized models per dbName
 const tenantModelCache = new Map();
@@ -39,6 +40,19 @@ export async function getTenantDbModels(dbName) {
     const { OperationalDay, ShiftLedger } = initOperationModels(tenantSequelize);
     const { MeterReading } = initMeterReadingModel(tenantSequelize);
     const { Transaction, PaymentMethod } = initTransactionModels(tenantSequelize);
+
+    // Set up cross-model associations after all models are initialized
+    setupAssociations({
+      User,
+      UserDetails,
+      OperatorGroup,
+      Shift,
+      OperatorGroupMember,
+      OperatorGroupBooth,
+      Booth,
+      Operator,
+      ShiftAssignment
+    });
 
     // Optional, one-time sync for agile development
     if (process.env.DB_SYNC_ALTER === 'true' && !tenantSyncDone.has(dbName)) {

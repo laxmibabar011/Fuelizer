@@ -77,24 +77,8 @@ export const initStaffShiftModels = (sequelize) => {
     ]
   });
 
-  // Associations
-  Operator.belongsTo(sequelize.models.User, { foreignKey: 'user_id', targetKey: 'user_id', as: 'User' });
-  Operator.belongsTo(sequelize.models.UserDetails, { foreignKey: 'user_id', targetKey: 'user_id', as: 'UserDetails' });
-  
-  Shift.hasMany(ShiftAssignment, { foreignKey: 'shift_id', as: 'Assignments' });
-  ShiftAssignment.belongsTo(Shift, { foreignKey: 'shift_id', as: 'Shift' });
-  // ShiftAssignment links to User, not Operator, via user_id
-  ShiftAssignment.belongsTo(sequelize.models.User, { foreignKey: 'user_id', targetKey: 'user_id', as: 'User' });
-  ShiftAssignment.belongsTo(sequelize.models.UserDetails, { foreignKey: 'user_id', targetKey: 'user_id', as: 'UserDetails' });
-
-  // OperatorGroupBooth associations
-  OperatorGroupBooth.belongsTo(sequelize.models.OperatorGroup, { foreignKey: 'operator_group_id', as: 'OperatorGroup' });
-  OperatorGroupBooth.belongsTo(sequelize.models.Booth, { foreignKey: 'booth_id', as: 'Booth' });
-
-  // OperatorGroupMember associations (many-to-many between User and OperatorGroup)
-  OperatorGroupMember.belongsTo(sequelize.models.OperatorGroup, { foreignKey: 'operator_group_id', as: 'OperatorGroup' });
-  OperatorGroupMember.belongsTo(sequelize.models.User, { foreignKey: 'user_id', targetKey: 'user_id', as: 'User' });
-  OperatorGroupMember.belongsTo(sequelize.models.UserDetails, { foreignKey: 'user_id', targetKey: 'user_id', as: 'UserDetails' });
+  // Note: All associations are set up centrally in models/associations.js
+  // after all models are initialized to ensure proper association creation
 
   return { Operator, Shift, ShiftAssignment, OperatorGroupBooth, OperatorGroupMember };
 }; 

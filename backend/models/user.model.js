@@ -63,14 +63,8 @@ export const initTenantModels = (sequelize) => {
   // Operator Group
   // Cashier (one) owns an OperatorGroup
   OperatorGroup.belongsTo(User, { foreignKey: 'cashier_id', targetKey: 'user_id', as: 'Cashier' });
-  // Group belongs to a Shift (WORKER shift template)
-  if (sequelize.models.Shift) {
-    OperatorGroup.belongsTo(sequelize.models.Shift, { foreignKey: 'shift_id', as: 'Shift' });
-  }
-  // Group has many members through junction table
-  if (sequelize.models.OperatorGroupMember) {
-    OperatorGroup.hasMany(sequelize.models.OperatorGroupMember, { foreignKey: 'operator_group_id', as: 'Members' });
-  }
+  // Note: Cross-model associations are set up centrally in models/associations.js
+  // after all models are initialized to ensure proper association creation
 
   return { User, Role, UserDetails, RefreshToken, OperatorGroup };
 };

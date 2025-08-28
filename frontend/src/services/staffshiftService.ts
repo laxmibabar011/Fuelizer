@@ -144,6 +144,10 @@ class StaffShiftService {
     return apiClient.post("api/tenant/staffshift/operator-groups", payload);
   }
 
+  async deleteGroup(groupId: string | number) {
+    return apiClient.delete(`api/tenant/staffshift/operator-groups/${groupId}`);
+  }
+
   async setGroupAttendants(groupId: string | number, userIds: string[]) {
     return apiClient.post(
       `api/tenant/staffshift/operator-groups/${groupId}/attendants`,
