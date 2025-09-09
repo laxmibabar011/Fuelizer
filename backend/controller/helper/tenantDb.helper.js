@@ -51,7 +51,10 @@ export async function getTenantDbModels(dbName) {
       OperatorGroupBooth,
       Booth,
       Operator,
-      ShiftAssignment
+      ShiftAssignment,
+      MeterReading,
+      ShiftLedger,
+      Nozzle
     });
 
     // Optional, one-time sync for agile development

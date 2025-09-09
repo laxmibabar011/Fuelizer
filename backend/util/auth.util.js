@@ -70,16 +70,16 @@ export const verifyToken = (token) => {
 
 export const verifyRefreshToken = (token) => {
   try {
-    logger.info(`[auth.util]-[verifyRefreshToken]: Verifying token: ${token}`);
-    logger.info(`[auth.util]-[verifyRefreshToken]: JWT_REFRESH_SECRET: ${process.env.JWT_REFRESH_SECRET ? 'Defined' : 'Undefined'}`);
+    //logger.info(`[auth.util]-[verifyRefreshToken]: Verifying token: ${token}`);
+    //logger.info(`[auth.util]-[verifyRefreshToken]: JWT_REFRESH_SECRET: ${process.env.JWT_REFRESH_SECRET ? 'Defined' : 'Undefined'}`);
     if (!token) {
       throw new Error('No token provided');
     }
     const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
-    logger.info(`[auth.util]-[verifyRefreshToken]: Decoded: ${JSON.stringify(decoded)}`);
+    //logger.info(`[auth.util]-[verifyRefreshToken]: Decoded: ${JSON.stringify(decoded)}`);
     return decoded;
   } catch (error) {
-    logger.error(`[auth.util]-[verifyRefreshToken]: ${error.message}`);
+    //logger.error(`[auth.util]-[verifyRefreshToken]: ${error.message}`);
     throw error;
   }
 };

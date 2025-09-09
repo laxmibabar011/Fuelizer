@@ -1,3 +1,5 @@
+import DateUtil from '../util/date.util.js';
+
 export class StaffShiftRepository {
   constructor(sequelize) {
     this.sequelize = sequelize;
@@ -21,7 +23,8 @@ export class StaffShiftRepository {
       where: finalWhere,
       include: [
         { model: this.User, as: 'User', attributes: ['user_id', 'email'] },
-        { model: this.UserDetails, as: 'UserDetails', attributes: ['full_name', 'phone'] }
+        { model: this.UserDetails, as: 'UserDetails', attributes: ['full_name', 'phone'] },
+        { model: this.Shift, as: 'DefaultShift', attributes: ['id', 'name', 'start_time', 'end_time', 'shift_type'] }
       ],
       order: [['operator_id', 'ASC']]
     });
@@ -271,7 +274,16 @@ export class StaffShiftRepository {
 
   // ===== SHIFT ASSIGNMENT METHODS =====
   async createShiftAssignment(assignmentData) {
-    return this.ShiftAssignment.create(assignmentData);
+    // Best-effort denormalization of operator name for PG admin visibility
+    let operatorName = assignmentData.operator_name;
+    if (!operatorName && assignmentData.user_id) {
+      const op = await this.Operator.findOne({
+        where: { user_id: assignmentData.user_id },
+        attributes: ['operator_name'],
+      });
+      operatorName = op?.operator_name || null;
+    }
+    return this.ShiftAssignment.create({ ...assignmentData, operator_name: operatorName });
   }
 
   async getShiftAssignments(date, shiftId = null) {
@@ -316,7 +328,7 @@ export class StaffShiftRepository {
 
   // ===== SHIFT MANAGEMENT METHODS =====
   async getUserCurrentShift(userId) {
-    const today = new Date().toISOString().split('T')[0];
+    const today = DateUtil.today();
     
     return this.ShiftAssignment.findOne({
       where: {
@@ -401,48 +413,16 @@ export class StaffShiftRepository {
 
       return operators;
     } else {
-      // For grouping purposes (no date provided), get operators assigned to this shift
-      // for the current day or next day (typical assignment pattern)
-      const today = new Date().toISOString().split('T')[0];
-      const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-      
-      const where = { 
-        shift_id: shiftId, 
-        date: [today, tomorrow] // Check both today and tomorrow
-      };
-      
-      const assignments = await this.ShiftAssignment.findAll({
-        where,
+      // Permanent mapping: return operators whose DefaultShift matches shiftId
+      const operators = await this.Operator.findAll({
+        where: { default_shift_id: shiftId, is_active: true },
         include: [
-          { 
-            model: this.User, 
-            as: 'User', 
-            attributes: ['user_id', 'email'],
-            include: [{ model: this.UserDetails, as: 'UserDetails', attributes: ['full_name', 'phone'] }]
-          },
-          { model: this.Shift, as: 'Shift', attributes: ['name', 'start_time', 'end_time', 'shift_type'] }
+          { model: this.User, as: 'User', attributes: ['user_id', 'email'] },
+          { model: this.UserDetails, as: 'UserDetails', attributes: ['full_name', 'phone'] },
+          { model: this.Shift, as: 'DefaultShift', attributes: ['id', 'name', 'start_time', 'end_time', 'shift_type'] }
         ],
-        order: [['created_at', 'ASC']]
+        order: [['operator_id', 'ASC']]
       });
-
-      // Get operator details for each assigned user
-      const operators = [];
-      for (const assignment of assignments) {
-        const operator = await this.Operator.findOne({
-          where: { user_id: assignment.user_id, is_active: true },
-          include: [
-            { model: this.User, as: 'User', attributes: ['user_id', 'email'] },
-            { model: this.UserDetails, as: 'UserDetails', attributes: ['full_name', 'phone'] }
-          ]
-        });
-        
-        if (operator) {
-          operators.push({
-            ...operator.toJSON(),
-            shift_assignment: assignment
-          });
-        }
-      }
 
       return operators;
     }

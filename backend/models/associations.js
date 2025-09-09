@@ -12,7 +12,10 @@ export const setupAssociations = (models) => {
     OperatorGroupBooth,
     Booth,
     Operator,
-    ShiftAssignment
+    ShiftAssignment,
+    MeterReading,
+    ShiftLedger,
+    Nozzle
   } = models;
 
   // ===== OPERATOR GROUP ASSOCIATIONS =====
@@ -55,6 +58,19 @@ export const setupAssociations = (models) => {
     Operator.belongsTo(UserDetails, { foreignKey: 'user_id', targetKey: 'user_id', as: 'UserDetails' });
   }
 
+  // Permanent default WORKER shift for operator
+  if (Operator && Shift) {
+    Operator.belongsTo(Shift, { foreignKey: 'default_shift_id', as: 'DefaultShift' });
+    // Optional: enable reverse lookup
+    Shift.hasMany(Operator, { foreignKey: 'default_shift_id', as: 'DefaultShiftOperators' });
+  }
+
+  // Permanent default MANAGER shift for user (fuel-admin)
+  if (User && Shift) {
+    User.belongsTo(Shift, { foreignKey: 'default_manager_shift_id', as: 'DefaultManagerShift' });
+    Shift.hasMany(User, { foreignKey: 'default_manager_shift_id', as: 'DefaultManagerUsers' });
+  }
+
   // ===== SHIFT ASSIGNMENT ASSOCIATIONS =====
   if (Shift && ShiftAssignment) {
     Shift.hasMany(ShiftAssignment, { foreignKey: 'shift_id', as: 'Assignments' });
@@ -70,6 +86,17 @@ export const setupAssociations = (models) => {
   
   if (ShiftAssignment && UserDetails) {
     ShiftAssignment.belongsTo(UserDetails, { foreignKey: 'user_id', targetKey: 'user_id', as: 'UserDetails' });
+  }
+
+  // ===== METER READING ASSOCIATIONS =====
+  if (MeterReading && ShiftLedger) {
+    MeterReading.belongsTo(ShiftLedger, { foreignKey: 'shift_ledger_id' });
+    ShiftLedger.hasMany(MeterReading, { foreignKey: 'shift_ledger_id' });
+  }
+  
+  if (MeterReading && Nozzle) {
+    MeterReading.belongsTo(Nozzle, { foreignKey: 'nozzle_id' });
+    Nozzle.hasMany(MeterReading, { foreignKey: 'nozzle_id' });
   }
 
   console.log('[associations.js]: Cross-model associations set up successfully');

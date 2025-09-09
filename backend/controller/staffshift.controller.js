@@ -1,4 +1,5 @@
 import { sendResponse } from '../util/response.util.js';
+import DateUtil from '../util/date.util.js';
 import { StaffShiftRepository } from '../repository/staffshift.repository.js';
 import { hashPassword } from '../util/auth.util.js';
 import { randomUUID } from 'crypto';
@@ -61,10 +62,13 @@ export default class StaffShiftController {
       if (!role) {
         return sendResponse(res, { data: [], message: 'No managers found' });
       }
-      const { User, UserDetails } = req.tenantModels;
+      const { User, UserDetails, Shift } = req.tenantModels;
       const admins = await User.findAll({
         where: { role_id: role.id },
-        include: [{ model: UserDetails, as: 'UserDetails' }],
+        include: [
+          { model: UserDetails, as: 'UserDetails' },
+          { model: Shift, as: 'DefaultManagerShift', attributes: ['id','name','start_time','end_time','shift_type'] }
+        ],
         order: [['email', 'ASC']]
       });
       return sendResponse(res, { data: admins, message: 'Managers fetched' });
@@ -77,17 +81,12 @@ export default class StaffShiftController {
   static async listAvailableManagerShifts(req, res) {
     try {
       const { tenantSequelize } = req;
-      const { Shift, ShiftAssignment } = tenantSequelize.models;
-      const today = new Date().toISOString().slice(0, 10);
-      // Find MANAGER shifts
+      const { Shift, User } = tenantSequelize.models;
+      // Find MANAGER shifts and exclude those taken via permanent mapping
       const managerShifts = await Shift.findAll({ where: { shift_type: 'MANAGER', is_active: true } });
-      const shiftIds = managerShifts.map((s) => s.id);
-      // Assignments for today
-      const todaysAssignments = await ShiftAssignment.findAll({
-        where: { date: today, shift_id: shiftIds },
-      });
-      const assignedSet = new Set(todaysAssignments.map((a) => a.shift_id));
-      const available = managerShifts.filter((s) => !assignedSet.has(s.id));
+      const taken = await User.findAll({ where: { default_manager_shift_id: managerShifts.map((s) => s.id) }, attributes: ['default_manager_shift_id'] });
+      const takenSet = new Set(taken.map((u) => u.default_manager_shift_id));
+      const available = managerShifts.filter((s) => !takenSet.has(s.id));
       return sendResponse(res, { data: available, message: 'Available manager shifts for today' });
     } catch (err) {
       return sendResponse(res, { success: false, error: err.message, message: 'Failed to fetch available shifts', status: 500 });
@@ -102,38 +101,23 @@ export default class StaffShiftController {
         return sendResponse(res, { success: false, error: 'user_id and shift_id are required', message: 'Validation error', status: 400 });
       }
       const { tenantSequelize } = req;
-      const { Shift, ShiftAssignment } = tenantSequelize.models;
+      const { Shift, User } = tenantSequelize.models;
       const shift = await Shift.findByPk(shift_id);
       if (!shift || shift.shift_type !== 'MANAGER' || shift.is_active === false) {
         return sendResponse(res, { success: false, error: 'Invalid manager shift', message: 'Cannot assign', status: 400 });
       }
-      const now = new Date();
-      const todayStr = now.toISOString().slice(0, 10);
-      // Build today start/end Date objects in local timezone
-      const [sh, sm] = String(shift.start_time).split(':').map(Number);
-      const [eh, em] = String(shift.end_time).split(':').map(Number);
-      const start = new Date(now);
-      start.setHours(sh ?? 0, sm ?? 0, 0, 0);
-      const end = new Date(now);
-      end.setHours(eh ?? 0, em ?? 0, 0, 0);
-      let effectiveDate = todayStr;
-      // If we are within shift hours today, do not allow same-day changes; schedule for tomorrow
-      if (now >= start && now <= end) {
-        const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-        effectiveDate = tomorrow.toISOString().slice(0, 10);
+      // Permanent manager mapping: set default_manager_shift_id on the user
+      const user = await User.findByPk(user_id);
+      if (!user) {
+        return sendResponse(res, { success: false, error: 'User not found', message: 'Cannot assign', status: 404 });
       }
-      // Ensure not already assigned for effective date
-      const existing = await ShiftAssignment.findOne({ where: { date: effectiveDate, shift_id } });
-      if (existing) {
-        return sendResponse(res, { success: false, error: 'Shift already assigned for the effective date', message: 'Conflict', status: 409 });
+      // Ensure no other user has this shift
+      const conflict = await User.findOne({ where: { default_manager_shift_id: shift_id } });
+      if (conflict && conflict.user_id !== user_id) {
+        return sendResponse(res, { success: false, error: 'Shift already assigned permanently', message: 'Conflict', status: 409 });
       }
-      const assignment = await ShiftAssignment.create({
-        date: effectiveDate,
-        shift_id,
-        user_id,
-        status: 'assigned',
-      });
-      return sendResponse(res, { data: assignment, message: `Assigned for ${effectiveDate}`, status: 201 });
+      await user.update({ default_manager_shift_id: shift_id });
+      return sendResponse(res, { data: { user_id, default_manager_shift_id: shift_id }, message: 'Manager default shift assigned', status: 201 });
     } catch (err) {
       return sendResponse(res, { success: false, error: err.message, message: 'Failed to assign shift', status: 500 });
     }
@@ -147,18 +131,13 @@ export default class StaffShiftController {
         return sendResponse(res, { success: false, error: 'user_id and shift_id are required', message: 'Validation error', status: 400 });
       }
       const { tenantSequelize } = req;
-      const { Shift, ShiftAssignment } = tenantSequelize.models;
-      const now = new Date();
-      const todayStr = now.toISOString().slice(0, 10);
-      // Find upcoming or today's assignment where not checked-in
-      const assignment = await ShiftAssignment.findOne({
-        where: { user_id, shift_id, date: todayStr, status: 'assigned' },
-      });
-      if (!assignment) {
-        return sendResponse(res, { success: false, error: 'No unassignable assignment found for today', message: 'Nothing to unassign', status: 404 });
+      const { User } = tenantSequelize.models;
+      const user = await User.findByPk(user_id);
+      if (!user || user.default_manager_shift_id !== Number(shift_id)) {
+        return sendResponse(res, { success: false, error: 'No permanent assignment found', message: 'Nothing to unassign', status: 404 });
       }
-      await assignment.destroy();
-      return sendResponse(res, { data: {}, message: 'Unassigned successfully' });
+      await user.update({ default_manager_shift_id: null });
+      return sendResponse(res, { data: {}, message: 'Manager default shift unassigned' });
     } catch (err) {
       return sendResponse(res, { success: false, error: err.message, message: 'Failed to unassign shift', status: 500 });
     }
@@ -210,9 +189,10 @@ export default class StaffShiftController {
         const operator = await staffRepo.createOperator({
           operator_id: operatorCode,
           user_id: user.user_id,
+          operator_name: name,
           duty: 'attendant',
           status: 'available',
-          join_date: new Date(),
+          join_date: DateUtil.nowDate(),
         }, { transaction: t });
 
         return { operator, user, details };

@@ -1,10 +1,5 @@
 import React, { useEffect, useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "../../../components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 import Button from "../../../components/ui/button/Button";
 import Input from "../../../components/form/input/InputField";
 import {
@@ -12,7 +7,6 @@ import {
   BoltIcon,
   ClockIcon,
   DollarLineIcon,
-  PlusIcon,
   CalenderIcon,
   BuildingIcon,
 } from "../../../icons";
@@ -20,9 +14,8 @@ import StationService, {
   BoothDTO,
   NozzleDTO,
 } from "../../../services/stationService";
-import ProductMasterService, {
-  ProductMasterDTO,
-} from "../../../services/productMasterService";
+import OperationsService from "../../../services/operationsService";
+import ProductMasterService from "../../../services/productMasterService";
 
 interface MeterReading {
   nozzleId: number;
@@ -42,6 +35,7 @@ interface ProductInfo {
   id: string;
   name: string;
   category_type: string;
+  sale_price?: string;
 }
 
 const OpeningMeter: React.FC = () => {
@@ -51,14 +45,75 @@ const OpeningMeter: React.FC = () => {
   const [meterReadings, setMeterReadings] = useState<
     Record<number, MeterReading>
   >({});
-  const [yesterdayReadings, setYesterdayReadings] = useState<any[]>([]);
+  const [yesterdayReadings] = useState<any[]>([]);
   const [products, setProducts] = useState<ProductInfo[]>([]);
+  const [ended, setEnded] = useState<boolean>(false);
+  const [shiftStatus, setShiftStatus] = useState<any>(null);
 
   // Load booth and nozzle data
   useEffect(() => {
-    loadBoothData();
-    loadYesterdayReadings();
+    const initializeData = async () => {
+      await loadBoothData();
+      await loadUserShiftStatus();
+      // loadTodayPrefills will be called after shiftStatus is updated
+    };
+    initializeData();
   }, []);
+
+  // Load prefills after shift status is loaded
+  useEffect(() => {
+    if (shiftStatus !== null) {
+      loadTodayPrefills();
+    }
+  }, [shiftStatus]);
+
+
+  // Add a periodic refresh to catch shifts started after component mount
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Only refresh if we don't have opening readings yet AND shift hasn't ended
+      const hasOpeningReadings = Object.values(meterReadings).some(r => r.opening && r.opening !== '');
+      if (!hasOpeningReadings && !ended) {
+        console.log('Auto-refreshing prefills - no opening readings found');
+        loadUserShiftStatus(); // This will trigger loadTodayPrefills via useEffect
+      }
+    }, 10000); // Check every 10 seconds (reduced frequency)
+
+    return () => clearInterval(interval);
+  }, [meterReadings, ended]);
+
+  // Refresh prefills when component becomes visible (e.g., when switching tabs)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        loadUserShiftStatus(); // This will trigger loadTodayPrefills via useEffect
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
+  // Refresh prefills when needed (e.g., after starting a shift)
+  const refreshPrefills = async () => {
+    await loadUserShiftStatus(); // This will trigger loadTodayPrefills via useEffect
+  };
+
+  const loadUserShiftStatus = async () => {
+    try {
+      const res = await OperationsService.getUserShiftStatus();
+      const status = res.data?.data;
+      setShiftStatus(status);
+      
+      // If user has an ended shift today, set the UI to ended state
+      if (status?.hasEndedShift) {
+        setEnded(true);
+        console.log('User has ended shift today - setting UI to ended state');
+      }
+    } catch (err) {
+      console.error('Failed to load user shift status:', err);
+    }
+  };
 
   const loadBoothData = async () => {
     try {
@@ -74,9 +129,14 @@ const OpeningMeter: React.FC = () => {
 
       const booths = boothsRes.data?.data || [];
       const nozzles = nozzlesRes.data?.data || [];
-      const fuelProducts = productsRes.data?.data || [];
+      const fuelProducts = (productsRes.data?.data || []).map((p: any) => ({
+        id: String(p.id),
+        name: p.name,
+        category_type: p.category_type,
+        sale_price: p.sale_price,
+      }));
 
-      setProducts(fuelProducts);
+      setProducts(fuelProducts as ProductInfo[]);
 
       // Group nozzles by booth
       const groupedBooths: BoothGroup[] = booths
@@ -89,7 +149,7 @@ const OpeningMeter: React.FC = () => {
               nozzle.boothId === booth.id?.toString()
           ),
         }))
-        .filter((group) => group.nozzles.length > 0);
+        .filter((group: BoothGroup) => group.nozzles.length > 0);
 
       setBoothGroups(groupedBooths);
 
@@ -118,92 +178,171 @@ const OpeningMeter: React.FC = () => {
     }
   };
 
-  const loadYesterdayReadings = async () => {
+  const loadTodayPrefills = async () => {
     try {
-      // Mock data for yesterday's readings - replace with actual API call
-      const mockYesterdayReadings = [
-        {
-          nozzleId: 1,
-          opening: 1250.5,
-          closing: 1450.75,
-          sales: 200.25,
-          amount: 19368.18,
-        },
-        {
-          nozzleId: 2,
-          opening: 2100.0,
-          closing: 2350.25,
-          sales: 250.25,
-          amount: 22398.88,
-        },
-        {
-          nozzleId: 3,
-          opening: 800.0,
-          closing: 950.5,
-          sales: 150.5,
-          amount: 14562.36,
-        },
-      ];
-      setYesterdayReadings(mockYesterdayReadings);
+      console.log('Loading today prefills...');
+      
+      // First check if user has ended shift today - if so, load those readings
+      if (shiftStatus?.hasEndedShift && shiftStatus?.endedShift) {
+        console.log('User has ended shift today, loading ended shift readings');
+        const rRes = await OperationsService.getMeterReadings(shiftStatus.endedShift.id);
+        const rows = rRes.data?.data || [];
+        console.log('Ended shift meter readings:', rows);
+        
+        setMeterReadings((prev) => {
+          const next = { ...prev } as Record<number, MeterReading>;
+          rows.forEach((r: any) => {
+            const id = Number(r.nozzle_id);
+            const sales = Number(r.calculated_sales_litres ?? 0);
+            const price = getProductPriceByNozzle(id);
+            const amount = sales * price;
+            
+            next[id] = {
+              nozzleId: id,
+              opening: String(r.opening_reading ?? ''),
+              test: String(r.test_litres ?? '5'),
+              closing: String(r.closing_reading ?? ''),
+              sales: sales,
+              amount: amount,
+            };
+          });
+          console.log('Updated meter readings from ended shift:', next);
+          return next;
+        });
+        return;
+      }
+      
+      // Get current operational day + active shift ledger
+      const dayRes = await OperationsService.getCurrentOperationalDay();
+      console.log('Operational day response:', dayRes.data);
+      
+      const ledger = dayRes.data?.data?.shiftLedgers?.find((l: any) => l.status === 'ACTIVE');
+      console.log('Active ledger:', ledger);
+      
+      if (!ledger) {
+        console.log('No active ledger found');
+        return;
+      }
+      
+      // Pull meter readings for this ledger (prefilled by backend)
+      const rRes = await OperationsService.getMeterReadings(ledger.id);
+      console.log('Full API response:', rRes);
+      const rows = rRes.data?.data || [];
+      console.log('Meter readings from backend:', rows);
+      
+      // Log each reading individually
+      rows.forEach((r: any, index: number) => {
+        console.log(`Reading ${index}:`, {
+          nozzle_id: r.nozzle_id,
+          opening_reading: r.opening_reading,
+          test_litres: r.test_litres,
+          closing_reading: r.closing_reading,
+          calculated_sales_litres: r.calculated_sales_litres
+        });
+      });
+      
+      setMeterReadings((prev) => {
+        const next = { ...prev } as Record<number, MeterReading>;
+        rows.forEach((r: any) => {
+          const id = Number(r.nozzle_id);
+          next[id] = {
+            nozzleId: id,
+            opening: String(r.opening_reading ?? ''),
+            test: String(r.test_litres ?? '5'),
+            closing: String(r.closing_reading ?? ''),
+            sales: Number(r.calculated_sales_litres ?? 0),
+            amount: 0,
+          };
+        });
+        console.log('Updated meter readings state:', next);
+        console.log('Sample reading values:', {
+          'nozzle 1': next[1]?.opening,
+          'nozzle 2': next[2]?.opening,
+          'nozzle 3': next[3]?.opening,
+          'nozzle 4': next[4]?.opening
+        });
+        return next;
+      });
     } catch (err) {
-      console.error("Failed to load yesterday readings:", err);
+      console.error('Error loading today prefills:', err);
+      // silently ignore; UI will still allow entry
     }
   };
+
 
   const handleMeterReadingChange = (
     nozzleId: number,
     field: keyof MeterReading,
     value: string
   ) => {
-    setMeterReadings((prev) => ({
-      ...prev,
-      [nozzleId]: {
-        ...prev[nozzleId],
-        [field]: value,
-      },
-    }));
+    setMeterReadings((prev) => {
+      const current = prev[nozzleId] || { nozzleId, opening: "0", test: "0", closing: "", sales: 0, amount: 0 };
+      const next: MeterReading = { ...current, [field]: value } as any;
+      // Recalculate sales and amount
+      const price = getProductPriceByNozzle(nozzleId);
+      const sales = calculateSales(next.opening, next.closing, next.test);
+      const amount = sales * price;
+      next.sales = sales;
+      next.amount = amount;
+      return { ...prev, [nozzleId]: next };
+    });
   };
 
-  const calculateSales = (opening: string, closing: string): number => {
+  const calculateSales = (opening: string, closing: string, test: string): number => {
     const open = parseFloat(opening) || 0;
     const close = parseFloat(closing) || 0;
-    return Math.max(0, close - open);
+    const t = parseFloat(test) || 0;
+    return Math.max(0, close - open - t);
   };
 
-  const saveMeterReading = async (nozzleId: number) => {
+  const endShiftAndSaveAll = async () => {
+    if (ended) return;
+    // Confirm
+    const proceed = window.confirm("End shift and save all readings? You won't be able to edit after this.");
+    if (!proceed) return;
+    // Build payload
+    const readings = Object.values(meterReadings)
+      .map((r) => ({
+        nozzle_id: r.nozzleId,
+        closing_reading: parseFloat(r.closing),
+        test_litres: parseFloat(r.test) || 0,
+        _open: r.opening,
+      }))
+      .filter((r) => !Number.isNaN(r.closing_reading) && r._open !== undefined && r._open !== null);
+    if (readings.length === 0) {
+      alert("Please enter closing readings before ending shift.");
+      return;
+    }
     try {
-      const reading = meterReadings[nozzleId];
-      if (!reading) return;
-
-      // Validate required fields
-      if (!reading.opening || !reading.closing) {
-        alert("Please enter both opening and closing readings");
+      // Attempt to end directly; if operational day missing, start shift automatically
+      const end = async () => OperationsService.endManagerShift({ closingReadings: readings });
+      try {
+        await end();
+      } catch (e: any) {
+        const msg = e?.response?.data?.message || e?.message || '';
+        if (String(msg).includes('No operational day')) {
+          // Try to start manager shift automatically using current user's mapped shift
+          // We don't have the shiftId in UI; load current shift status from backend or ask user.
+          alert('No operational day found. Please start your manager shift first from the shift start endpoint.');
         return;
       }
-
-      // Calculate sales
-      const sales = calculateSales(reading.opening, reading.closing);
-
-      // Update local state
-      setMeterReadings((prev) => ({
-        ...prev,
-        [nozzleId]: {
-          ...prev[nozzleId],
-          sales,
-          amount: sales * 100, // Mock calculation - replace with actual fuel rate
-        },
-      }));
-
-      // TODO: Save to backend API
-      console.log("Saving meter reading:", {
-        nozzleId,
-        reading: { ...reading, sales, amount: sales * 100 },
+        throw e;
+      }
+      setEnded(true);
+      alert("Shift ended and readings saved. You cannot modify these readings anymore.");
+      
+      // Don't clear readings - keep them visible but disabled
+      // Mark all readings as ended so they show in disabled state
+      setMeterReadings(prev => {
+        const updated = { ...prev };
+        // Keep the readings but they'll be disabled due to ended=true
+        return updated;
       });
-
-      alert("Meter reading saved successfully!");
-    } catch (err) {
-      console.error("Failed to save meter reading:", err);
-      alert("Failed to save meter reading");
+      
+      // Also refresh user shift status
+      await loadUserShiftStatus();
+    } catch (e) {
+      alert("Failed to end shift. Please try again.");
     }
   };
 
@@ -213,11 +352,19 @@ const OpeningMeter: React.FC = () => {
     return product ? product.name : `Product ID: ${productId}`;
   };
 
-  const getProductCategory = (productId: number | string | null): string => {
-    if (!productId) return "";
-    const product = products.find((p) => p.id === productId.toString());
-    return product ? product.category_type : "";
+  const getProductPriceByNozzle = (nozzleId: number): number => {
+    const nozzle = boothGroups.flatMap((g) => g.nozzles).find((n) => Number(n.id) === Number(nozzleId));
+    const productId = nozzle?.productId;
+    if (!productId) return 0;
+    const product = products.find((p) => p.id === String(productId));
+    return product && product.sale_price != null ? parseFloat(String(product.sale_price)) || 0 : 0;
   };
+
+  // const getProductCategory = (productId: number | string | null): string => {
+  //   if (!productId) return "";
+  //   const product = products.find((p) => p.id === productId.toString());
+  //   return product ? product.category_type : "";
+  // };
 
   const getTotalNozzles = () =>
     boothGroups.reduce((total, group) => total + group.nozzles.length, 0);
@@ -281,14 +428,49 @@ const OpeningMeter: React.FC = () => {
               </p>
             </div>
           </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={refreshPrefills}
+              className="px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors"
+            >
+              Refresh Readings
+            </button>
           <div className="flex items-center gap-2 text-sm text-gray-500">
             <CalenderIcon className="h-4 w-4" />
             {new Date().toLocaleDateString()}
+            </div>
           </div>
         </div>
       </CardHeader>
       <CardContent>
+        <div>
         <div className="space-y-6">
+              {/* Info Alert */}
+              {Object.values(meterReadings).some(r => !r.opening) && !ended && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-center gap-2">
+                    <div className="text-blue-600">ℹ️</div>
+                    <div className="text-sm text-blue-800">
+                      <strong>Opening readings not loaded:</strong> If you just started a shift, click "Refresh Readings" above. 
+                      Opening readings are automatically populated from the previous shift's closing readings.
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Shift Ended Alert */}
+              {ended && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <div className="flex items-center gap-2">
+                    <div className="text-green-600">✅</div>
+                    <div className="text-sm text-green-800">
+                      <strong>Shift Completed:</strong> Your shift has been ended and all readings have been saved. 
+                      These readings are now readonly and cannot be modified.
+                    </div>
+                  </div>
+                </div>
+              )}
+              
           {/* Meter Readings Dashboard */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="p-4 border rounded-lg bg-blue-50 dark:bg-blue-900/20">
@@ -341,9 +523,8 @@ const OpeningMeter: React.FC = () => {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold">Today's Meter Readings</h3>
-              <Button size="sm" variant="outline">
-                <PlusIcon className="h-4 w-4 mr-2" />
-                Add Reading
+              <Button size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={endShiftAndSaveAll} disabled={ended}>
+                {ended ? "Shift Ended" : "End Shift & Save"}
               </Button>
             </div>
 
@@ -395,9 +576,6 @@ const OpeningMeter: React.FC = () => {
                           <th className="px-4 py-2 text-left text-sm font-medium border-b">
                             Amount (₹)
                           </th>
-                          <th className="px-4 py-2 text-left text-sm font-medium border-b">
-                            Actions
-                          </th>
                         </tr>
                       </thead>
                       <tbody>
@@ -422,7 +600,7 @@ const OpeningMeter: React.FC = () => {
                                     {nozzle.code}
                                   </div>
                                   <div className="text-xs text-gray-500">
-                                    {getProductName(nozzle.productId)}
+                                    {getProductName(nozzle.productId as any)}
                                   </div>
                                 </div>
                               </td>
@@ -430,17 +608,16 @@ const OpeningMeter: React.FC = () => {
                                 <Input
                                   type="number"
                                   step={0.01}
-                                  className="w-20 h-8 text-sm"
-                                  placeholder="0.00"
+                                  className={`w-20 h-8 text-sm ${!reading.opening ? 'border-orange-300 bg-orange-50' : ''}`}
+                                  placeholder={!reading.opening ? "Loading..." : "0.00"}
                                   value={reading.opening}
-                                  onChange={(e) =>
-                                    handleMeterReadingChange(
-                                      Number(nozzle.id),
-                                      "opening",
-                                      e.target.value
-                                    )
-                                  }
+                                  disabled
                                 />
+                                {!reading.opening && (
+                                  <div className="text-xs text-orange-600 mt-1">
+                                    No opening reading found
+                                  </div>
+                                )}
                               </td>
                               <td className="px-4 py-3">
                                 <Input
@@ -456,6 +633,7 @@ const OpeningMeter: React.FC = () => {
                                       e.target.value
                                     )
                                   }
+                                  disabled={ended}
                                 />
                               </td>
                               <td className="px-4 py-3">
@@ -472,6 +650,7 @@ const OpeningMeter: React.FC = () => {
                                       e.target.value
                                     )
                                   }
+                                  disabled={ended}
                                 />
                               </td>
                               <td className="px-4 py-3">
@@ -484,18 +663,7 @@ const OpeningMeter: React.FC = () => {
                                   ₹{reading.amount.toFixed(2)}
                                 </span>
                               </td>
-                              <td className="px-4 py-3">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-8"
-                                  onClick={() =>
-                                    saveMeterReading(Number(nozzle.id))
-                                  }
-                                >
-                                  Save
-                                </Button>
-                              </td>
+                              {/* No per-row save after moving to single end-shift save */}
                             </tr>
                           );
                         })}
@@ -507,74 +675,7 @@ const OpeningMeter: React.FC = () => {
             )}
           </div>
 
-          {/* Yesterday's Readings History */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <GridIcon className="h-6 w-6 text-purple-600" />
-                <div>
-                  <CardTitle>Yesterday's Readings History</CardTitle>
-                  <p className="text-sm text-gray-600">
-                    Reference for today's readings
-                  </p>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse border border-gray-200 dark:border-gray-700">
-                  <thead>
-                    <tr className="bg-gray-50 dark:bg-gray-800">
-                      <th className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-left text-sm font-medium">
-                        Pump
-                      </th>
-                      <th className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-left text-sm font-medium">
-                        Opening
-                      </th>
-                      <th className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-left text-sm font-medium">
-                        Closing
-                      </th>
-                      <th className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-left text-sm font-medium">
-                        Sales (L)
-                      </th>
-                      <th className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-left text-sm font-medium">
-                        Amount (₹)
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {yesterdayReadings.map((reading) => (
-                      <tr
-                        key={reading.nozzleId}
-                        className="border-b border-gray-200 dark:border-gray-700"
-                      >
-                        <td className="border border-gray-200 dark:border-gray-700 px-4 py-2">
-                          <div>
-                            <div className="font-medium">
-                              NO{reading.nozzleId}
-                            </div>
-                            <div className="text-xs text-gray-500">Fuel</div>
-                          </div>
-                        </td>
-                        <td className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-sm">
-                          {reading.opening.toLocaleString()}
-                        </td>
-                        <td className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-sm">
-                          {reading.closing.toLocaleString()}
-                        </td>
-                        <td className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-sm font-medium">
-                          {reading.sales.toFixed(2)}
-                        </td>
-                        <td className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-sm font-medium">
-                          ₹{reading.amount.toLocaleString()}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+            </div>
         </div>
       </CardContent>
     </Card>

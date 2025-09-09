@@ -11,9 +11,8 @@ export const initMeterReadingModel = (sequelize) => {
     calculated_sales_litres: { type: DataTypes.DECIMAL(12, 2), allowNull: true },
   });
 
-  // Bind associations immediately so includes work without calling associate later
-  MeterReading.belongsTo(sequelize.models.ShiftLedger, { foreignKey: 'shift_ledger_id' });
-  MeterReading.belongsTo(sequelize.models.Nozzle, { foreignKey: 'nozzle_id' });
+  // Set up associations after models are defined
+  // These will be set up in the model initialization process
 
   return { MeterReading };
 };
