@@ -1,14 +1,5 @@
 import React, { useEffect, useState } from "react";
-<<<<<<< HEAD
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
-=======
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "../../../components/ui/card";
->>>>>>> 52e4f6d39917e6fef1c276af0061ae6f77ef93c5
 import Button from "../../../components/ui/button/Button";
 import Input from "../../../components/form/input/InputField";
 import {
@@ -16,10 +7,6 @@ import {
   BoltIcon,
   ClockIcon,
   DollarLineIcon,
-<<<<<<< HEAD
-=======
-  PlusIcon,
->>>>>>> 52e4f6d39917e6fef1c276af0061ae6f77ef93c5
   CalenderIcon,
   BuildingIcon,
 } from "../../../icons";
@@ -27,14 +14,8 @@ import StationService, {
   BoothDTO,
   NozzleDTO,
 } from "../../../services/stationService";
-<<<<<<< HEAD
 import OperationsService from "../../../services/operationsService";
 import ProductMasterService from "../../../services/productMasterService";
-=======
-import ProductMasterService, {
-  ProductMasterDTO,
-} from "../../../services/productMasterService";
->>>>>>> 52e4f6d39917e6fef1c276af0061ae6f77ef93c5
 
 interface MeterReading {
   nozzleId: number;
@@ -54,10 +35,7 @@ interface ProductInfo {
   id: string;
   name: string;
   category_type: string;
-<<<<<<< HEAD
   sale_price?: string;
-=======
->>>>>>> 52e4f6d39917e6fef1c276af0061ae6f77ef93c5
 }
 
 const OpeningMeter: React.FC = () => {
@@ -67,7 +45,6 @@ const OpeningMeter: React.FC = () => {
   const [meterReadings, setMeterReadings] = useState<
     Record<number, MeterReading>
   >({});
-<<<<<<< HEAD
   const [yesterdayReadings] = useState<any[]>([]);
   const [products, setProducts] = useState<ProductInfo[]>([]);
   const [ended, setEnded] = useState<boolean>(false);
@@ -138,17 +115,6 @@ const OpeningMeter: React.FC = () => {
     }
   };
 
-=======
-  const [yesterdayReadings, setYesterdayReadings] = useState<any[]>([]);
-  const [products, setProducts] = useState<ProductInfo[]>([]);
-
-  // Load booth and nozzle data
-  useEffect(() => {
-    loadBoothData();
-    loadYesterdayReadings();
-  }, []);
-
->>>>>>> 52e4f6d39917e6fef1c276af0061ae6f77ef93c5
   const loadBoothData = async () => {
     try {
       setLoading(true);
@@ -163,7 +129,6 @@ const OpeningMeter: React.FC = () => {
 
       const booths = boothsRes.data?.data || [];
       const nozzles = nozzlesRes.data?.data || [];
-<<<<<<< HEAD
       const fuelProducts = (productsRes.data?.data || []).map((p: any) => ({
         id: String(p.id),
         name: p.name,
@@ -172,11 +137,6 @@ const OpeningMeter: React.FC = () => {
       }));
 
       setProducts(fuelProducts as ProductInfo[]);
-=======
-      const fuelProducts = productsRes.data?.data || [];
-
-      setProducts(fuelProducts);
->>>>>>> 52e4f6d39917e6fef1c276af0061ae6f77ef93c5
 
       // Group nozzles by booth
       const groupedBooths: BoothGroup[] = booths
@@ -189,11 +149,7 @@ const OpeningMeter: React.FC = () => {
               nozzle.boothId === booth.id?.toString()
           ),
         }))
-<<<<<<< HEAD
         .filter((group: BoothGroup) => group.nozzles.length > 0);
-=======
-        .filter((group) => group.nozzles.length > 0);
->>>>>>> 52e4f6d39917e6fef1c276af0061ae6f77ef93c5
 
       setBoothGroups(groupedBooths);
 
@@ -222,7 +178,6 @@ const OpeningMeter: React.FC = () => {
     }
   };
 
-<<<<<<< HEAD
   const loadTodayPrefills = async () => {
     try {
       console.log('Loading today prefills...');
@@ -315,46 +270,11 @@ const OpeningMeter: React.FC = () => {
   };
 
 
-=======
-  const loadYesterdayReadings = async () => {
-    try {
-      // Mock data for yesterday's readings - replace with actual API call
-      const mockYesterdayReadings = [
-        {
-          nozzleId: 1,
-          opening: 1250.5,
-          closing: 1450.75,
-          sales: 200.25,
-          amount: 19368.18,
-        },
-        {
-          nozzleId: 2,
-          opening: 2100.0,
-          closing: 2350.25,
-          sales: 250.25,
-          amount: 22398.88,
-        },
-        {
-          nozzleId: 3,
-          opening: 800.0,
-          closing: 950.5,
-          sales: 150.5,
-          amount: 14562.36,
-        },
-      ];
-      setYesterdayReadings(mockYesterdayReadings);
-    } catch (err) {
-      console.error("Failed to load yesterday readings:", err);
-    }
-  };
-
->>>>>>> 52e4f6d39917e6fef1c276af0061ae6f77ef93c5
   const handleMeterReadingChange = (
     nozzleId: number,
     field: keyof MeterReading,
     value: string
   ) => {
-<<<<<<< HEAD
     setMeterReadings((prev) => {
       const current = prev[nozzleId] || { nozzleId, opening: "0", test: "0", closing: "", sales: 0, amount: 0 };
       const next: MeterReading = { ...current, [field]: value } as any;
@@ -423,57 +343,6 @@ const OpeningMeter: React.FC = () => {
       await loadUserShiftStatus();
     } catch (e) {
       alert("Failed to end shift. Please try again.");
-=======
-    setMeterReadings((prev) => ({
-      ...prev,
-      [nozzleId]: {
-        ...prev[nozzleId],
-        [field]: value,
-      },
-    }));
-  };
-
-  const calculateSales = (opening: string, closing: string): number => {
-    const open = parseFloat(opening) || 0;
-    const close = parseFloat(closing) || 0;
-    return Math.max(0, close - open);
-  };
-
-  const saveMeterReading = async (nozzleId: number) => {
-    try {
-      const reading = meterReadings[nozzleId];
-      if (!reading) return;
-
-      // Validate required fields
-      if (!reading.opening || !reading.closing) {
-        alert("Please enter both opening and closing readings");
-        return;
-      }
-
-      // Calculate sales
-      const sales = calculateSales(reading.opening, reading.closing);
-
-      // Update local state
-      setMeterReadings((prev) => ({
-        ...prev,
-        [nozzleId]: {
-          ...prev[nozzleId],
-          sales,
-          amount: sales * 100, // Mock calculation - replace with actual fuel rate
-        },
-      }));
-
-      // TODO: Save to backend API
-      console.log("Saving meter reading:", {
-        nozzleId,
-        reading: { ...reading, sales, amount: sales * 100 },
-      });
-
-      alert("Meter reading saved successfully!");
-    } catch (err) {
-      console.error("Failed to save meter reading:", err);
-      alert("Failed to save meter reading");
->>>>>>> 52e4f6d39917e6fef1c276af0061ae6f77ef93c5
     }
   };
 
@@ -483,7 +352,6 @@ const OpeningMeter: React.FC = () => {
     return product ? product.name : `Product ID: ${productId}`;
   };
 
-<<<<<<< HEAD
   const getProductPriceByNozzle = (nozzleId: number): number => {
     const nozzle = boothGroups.flatMap((g) => g.nozzles).find((n) => Number(n.id) === Number(nozzleId));
     const productId = nozzle?.productId;
@@ -498,14 +366,6 @@ const OpeningMeter: React.FC = () => {
   //   return product ? product.category_type : "";
   // };
 
-=======
-  const getProductCategory = (productId: number | string | null): string => {
-    if (!productId) return "";
-    const product = products.find((p) => p.id === productId.toString());
-    return product ? product.category_type : "";
-  };
-
->>>>>>> 52e4f6d39917e6fef1c276af0061ae6f77ef93c5
   const getTotalNozzles = () =>
     boothGroups.reduce((total, group) => total + group.nozzles.length, 0);
 
@@ -716,12 +576,6 @@ const OpeningMeter: React.FC = () => {
                           <th className="px-4 py-2 text-left text-sm font-medium border-b">
                             Amount (₹)
                           </th>
-<<<<<<< HEAD
-=======
-                          <th className="px-4 py-2 text-left text-sm font-medium border-b">
-                            Actions
-                          </th>
->>>>>>> 52e4f6d39917e6fef1c276af0061ae6f77ef93c5
                         </tr>
                       </thead>
                       <tbody>
@@ -746,11 +600,7 @@ const OpeningMeter: React.FC = () => {
                                     {nozzle.code}
                                   </div>
                                   <div className="text-xs text-gray-500">
-<<<<<<< HEAD
                                     {getProductName(nozzle.productId as any)}
-=======
-                                    {getProductName(nozzle.productId)}
->>>>>>> 52e4f6d39917e6fef1c276af0061ae6f77ef93c5
                                   </div>
                                 </div>
                               </td>
@@ -758,7 +608,6 @@ const OpeningMeter: React.FC = () => {
                                 <Input
                                   type="number"
                                   step={0.01}
-<<<<<<< HEAD
                                   className={`w-20 h-8 text-sm ${!reading.opening ? 'border-orange-300 bg-orange-50' : ''}`}
                                   placeholder={!reading.opening ? "Loading..." : "0.00"}
                                   value={reading.opening}
@@ -769,19 +618,6 @@ const OpeningMeter: React.FC = () => {
                                     No opening reading found
                                   </div>
                                 )}
-=======
-                                  className="w-20 h-8 text-sm"
-                                  placeholder="0.00"
-                                  value={reading.opening}
-                                  onChange={(e) =>
-                                    handleMeterReadingChange(
-                                      Number(nozzle.id),
-                                      "opening",
-                                      e.target.value
-                                    )
-                                  }
-                                />
->>>>>>> 52e4f6d39917e6fef1c276af0061ae6f77ef93c5
                               </td>
                               <td className="px-4 py-3">
                                 <Input
@@ -797,10 +633,7 @@ const OpeningMeter: React.FC = () => {
                                       e.target.value
                                     )
                                   }
-<<<<<<< HEAD
                                   disabled={ended}
-=======
->>>>>>> 52e4f6d39917e6fef1c276af0061ae6f77ef93c5
                                 />
                               </td>
                               <td className="px-4 py-3">
@@ -817,10 +650,7 @@ const OpeningMeter: React.FC = () => {
                                       e.target.value
                                     )
                                   }
-<<<<<<< HEAD
                                   disabled={ended}
-=======
->>>>>>> 52e4f6d39917e6fef1c276af0061ae6f77ef93c5
                                 />
                               </td>
                               <td className="px-4 py-3">
@@ -833,22 +663,7 @@ const OpeningMeter: React.FC = () => {
                                   ₹{reading.amount.toFixed(2)}
                                 </span>
                               </td>
-<<<<<<< HEAD
                               {/* No per-row save after moving to single end-shift save */}
-=======
-                              <td className="px-4 py-3">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-8"
-                                  onClick={() =>
-                                    saveMeterReading(Number(nozzle.id))
-                                  }
-                                >
-                                  Save
-                                </Button>
-                              </td>
->>>>>>> 52e4f6d39917e6fef1c276af0061ae6f77ef93c5
                             </tr>
                           );
                         })}
@@ -860,78 +675,7 @@ const OpeningMeter: React.FC = () => {
             )}
           </div>
 
-<<<<<<< HEAD
             </div>
-=======
-          {/* Yesterday's Readings History */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <GridIcon className="h-6 w-6 text-purple-600" />
-                <div>
-                  <CardTitle>Yesterday's Readings History</CardTitle>
-                  <p className="text-sm text-gray-600">
-                    Reference for today's readings
-                  </p>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse border border-gray-200 dark:border-gray-700">
-                  <thead>
-                    <tr className="bg-gray-50 dark:bg-gray-800">
-                      <th className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-left text-sm font-medium">
-                        Pump
-                      </th>
-                      <th className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-left text-sm font-medium">
-                        Opening
-                      </th>
-                      <th className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-left text-sm font-medium">
-                        Closing
-                      </th>
-                      <th className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-left text-sm font-medium">
-                        Sales (L)
-                      </th>
-                      <th className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-left text-sm font-medium">
-                        Amount (₹)
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {yesterdayReadings.map((reading) => (
-                      <tr
-                        key={reading.nozzleId}
-                        className="border-b border-gray-200 dark:border-gray-700"
-                      >
-                        <td className="border border-gray-200 dark:border-gray-700 px-4 py-2">
-                          <div>
-                            <div className="font-medium">
-                              NO{reading.nozzleId}
-                            </div>
-                            <div className="text-xs text-gray-500">Fuel</div>
-                          </div>
-                        </td>
-                        <td className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-sm">
-                          {reading.opening.toLocaleString()}
-                        </td>
-                        <td className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-sm">
-                          {reading.closing.toLocaleString()}
-                        </td>
-                        <td className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-sm font-medium">
-                          {reading.sales.toFixed(2)}
-                        </td>
-                        <td className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-sm font-medium">
-                          ₹{reading.amount.toLocaleString()}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
->>>>>>> 52e4f6d39917e6fef1c276af0061ae6f77ef93c5
         </div>
       </CardContent>
     </Card>
