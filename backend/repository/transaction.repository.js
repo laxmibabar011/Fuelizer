@@ -1,3 +1,5 @@
+import { Op } from 'sequelize';
+
 export class TransactionRepository {
   constructor(sequelize) {
     this.sequelize = sequelize;
@@ -74,7 +76,7 @@ export class TransactionRepository {
     
     if (dateRange) {
       where.transaction_time = {
-        [this.sequelize.Op.between]: [dateRange.start, dateRange.end]
+        [Op.between]: [dateRange.start, dateRange.end]
       };
     }
 
@@ -94,7 +96,7 @@ export class TransactionRepository {
     return await this.Transaction.findAll({
       where: {
         transaction_time: {
-          [this.sequelize.Op.between]: [startDate, endDate]
+          [Op.between]: [startDate, endDate]
         }
       },
       include: [

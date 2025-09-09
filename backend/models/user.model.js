@@ -5,7 +5,9 @@ export const initTenantModels = (sequelize) => {
     user_id: { type: DataTypes.STRING(50), primaryKey: true },
     email: { type: DataTypes.STRING, unique: true, allowNull: false },
     password_hash: { type: DataTypes.STRING(255), allowNull: false },
-    role_id: { type: DataTypes.INTEGER, allowNull: false }
+    role_id: { type: DataTypes.INTEGER, allowNull: false },
+    // Permanent default MANAGER shift assignment for fuel-admin users
+    default_manager_shift_id: { type: DataTypes.INTEGER, allowNull: true }
   });
 
   const Role = sequelize.define('Role', {

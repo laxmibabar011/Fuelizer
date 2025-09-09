@@ -1,4 +1,5 @@
 import { sendResponse } from '../util/response.util.js';
+import DateUtil from '../util/date.util.js';
 import { TransactionRepository } from '../repository/transaction.repository.js';
 import { StaffShiftRepository } from '../repository/staffshift.repository.js';
 
@@ -155,7 +156,7 @@ export default class TransactionController {
         ...transactionData,
         operator_id: userId,
         total_amount: totalAmount,
-        transaction_time: new Date()
+        transaction_time: DateUtil.nowDate()
       });
 
       return sendResponse(res, { 
@@ -315,7 +316,7 @@ export default class TransactionController {
       const transaction = await transactionRepo.recordTransactionByCashier(cashierId, {
         ...transactionData,
         total_amount: totalAmount,
-        transaction_time: new Date()
+        transaction_time: DateUtil.nowDate()
       });
 
       return sendResponse(res, { 

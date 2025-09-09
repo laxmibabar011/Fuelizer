@@ -5,6 +5,7 @@ export type NozzleDTO = {
   code: string;
   productId?: number | null;
   status?: "active" | "inactive";
+  boothId?: number | string;
 };
 
 export type BoothDTO = {
@@ -34,6 +35,9 @@ const StationService = {
   listNozzles() {
     return api.get("/api/tenant/station/nozzles");
   },
+  listNozzlesByBooth(boothId: string | number) {
+    return api.get(`/api/tenant/station/booths/${boothId}/nozzles`);
+  },
   createNozzle(nozzle: NozzleDTO & { boothId: string | number }) {
     return api.post("/api/tenant/station/nozzles", nozzle);
   },
@@ -46,5 +50,3 @@ const StationService = {
 };
 
 export default StationService;
-
-
