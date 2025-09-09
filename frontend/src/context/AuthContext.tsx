@@ -11,9 +11,19 @@ import api from "../services/apiClient"; // Import the central api instance
 
 export interface AuthUser {
   id: number;
+  userId: string; // This is the user_id from database
   email: string;
   role: string;
   bunk_id?: number | null;
+  details?: {
+    full_name?: string;
+    phone?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    postal_code?: string;
+    gstin?: string;
+  };
 }
 
 interface AuthContextType {

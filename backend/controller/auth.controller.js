@@ -3,6 +3,7 @@ import { getTenantDbModels } from '../controller/helper/tenantDb.helper.js';
 import { MasterRepository } from '../repository/master.repository.js';
 import { comparePassword, generateAccessToken, generateRefreshToken, hashPassword ,verifyRefreshToken } from '../util/auth.util.js';
 import { sendResponse } from '../util/response.util.js';
+import DateUtil from '../util/date.util.js';
 import { logger } from '../util/logger.util.js';
 import { sendOtpEmail } from '../util/mailer.util.js';
 import { Sequelize } from 'sequelize';
@@ -41,7 +42,7 @@ export default class AuthController {
       await RefreshToken.create({
         user_id: user.user_id,
         token: refreshToken,
-        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+        expires_at: DateUtil.nowPlusMs(7 * 24 * 60 * 60 * 1000), // 7 days
         bunk_id: bunkId
       });
  
@@ -96,7 +97,7 @@ export default class AuthController {
       logger.info(`[AuthController]-[superAdminLogin]: Generated refreshToken: ${refreshToken}`);
       await masterRepo.updateSuperAdminRefreshToken(superAdmin.id, {
         refresh_token: refreshToken,
-        refresh_token_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        refresh_token_expires_at: DateUtil.nowPlusMs(7 * 24 * 60 * 60 * 1000),
         refresh_token_revoked: false
       });
       res.cookie('refreshToken', refreshToken, {
@@ -124,7 +125,7 @@ export default class AuthController {
   static async refresh(req, res) {
     try {
       const refreshToken = req.cookies?.refreshToken;
-      logger.info(`[AuthController]-[refresh]: Received refreshToken: ${refreshToken}`);
+      //logger.info(`[AuthController]-[refresh]: Received refreshToken: ${refreshToken}`);
       if (!refreshToken) {
         return sendResponse(res, { success: false, error: 'Refresh token required', message: 'Token refresh failed', status: 400 });
       }
@@ -156,7 +157,7 @@ export default class AuthController {
           return sendResponse(res, { success: false, error: 'Database connection failed', message: 'Token refresh failed', status: 500 });
         }
         const tokenRecord = await RefreshToken.findOne({
-          where: { token: refreshToken, user_id: payload.userId, revoked: false, expires_at: { [Op.gt]: new Date() } }
+          where: { token: refreshToken, user_id: payload.userId, revoked: false, expires_at: { [Op.gt]: DateUtil.nowDate() } }
         });
         if (!tokenRecord) {
           return sendResponse(res, { success: false, error: 'Invalid or revoked refresh token', message: 'Token refresh failed', status: 401 });
@@ -185,13 +186,13 @@ export default class AuthController {
         await RefreshToken.create({
           user_id: user.user_id,
           token: newRefreshToken,
-          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          expires_at: DateUtil.nowPlusMs(7 * 24 * 60 * 60 * 1000),
           bunk_id: payload.bunkId
         });
       } else {
         // Super-admin
         const superAdmin = await masterRepo.getSuperAdminById(payload.userId);
-        if (!superAdmin || superAdmin.refresh_token !== refreshToken || superAdmin.refresh_token_revoked || superAdmin.refresh_token_expires_at < new Date()) {
+        if (!superAdmin || superAdmin.refresh_token !== refreshToken || superAdmin.refresh_token_revoked || superAdmin.refresh_token_expires_at < DateUtil.nowDate()) {
           return sendResponse(res, { success: false, error: 'Invalid or revoked refresh token', message: 'Token refresh failed', status: 401 });
         }
         user = superAdmin;
@@ -199,7 +200,7 @@ export default class AuthController {
         newRefreshToken = generateRefreshToken({ userId: user.id, email: user.email });
         await masterRepo.updateSuperAdminRefreshToken(user.id, {
           refresh_token: newRefreshToken,
-          refresh_token_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          refresh_token_expires_at: DateUtil.nowPlusMs(7 * 24 * 60 * 60 * 1000),
           refresh_token_revoked: false
         });
       }
@@ -225,7 +226,7 @@ export default class AuthController {
   static async logout(req, res) {
     try {
       const refreshToken = req.cookies?.refreshToken;
-      logger.info(`[AuthController]-[logout]: Received refreshToken: ${refreshToken}`);
+      //logger.info(`[AuthController]-[logout]: Received refreshToken: ${refreshToken}`);
       if (!refreshToken) {
         return sendResponse(res, { success: false, error: 'Refresh token required', message: 'Logout failed', status: 400 });
       }
@@ -243,7 +244,7 @@ export default class AuthController {
         }
         const { tenantSequelize, RefreshToken } = await getTenantDbModels(client.db_name);
         await RefreshToken.update({ revoked: true }, {
-          where: { token: refreshToken, user_id: payload.userId, expires_at: { [Op.gt]: new Date() } }
+          where: { token: refreshToken, user_id: payload.userId, expires_at: { [Op.gt]: DateUtil.nowDate() } }
         });
       } else {
         await masterRepo.updateSuperAdminRefreshToken(payload.userId, {
@@ -350,7 +351,7 @@ export default class AuthController {
       }
 
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      const expires_at = new Date(Date.now() + 10 * 60 * 1000); // 10 min
+      const expires_at = DateUtil.nowPlusMs(10 * 60 * 1000); // 10 min
       await masterRepo.createPasswordReset({ user_id: userId, bunk_id: targetClientId, otp, expires_at });
       await sendOtpEmail(email, otp);
 

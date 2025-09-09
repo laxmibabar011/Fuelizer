@@ -51,10 +51,9 @@ const OperatorManagement: React.FC = () => {
   // NEW: duty update state
   const [selectedDuty, setSelectedDuty] = useState<string>("attendant");
   const [savingDuty, setSavingDuty] = useState<boolean>(false);
-  // NEW: worker shifts for assignment (tomorrow)
+  // NEW: worker shifts for permanent default assignment
   const [workerShiftOptions, setWorkerShiftOptions] = useState<{ id: string; label: string }[]>([]);
   const [selectedShiftId, setSelectedShiftId] = useState<string>("");
-  const [currentAssignmentId, setCurrentAssignmentId] = useState<string | null>(null);
   const [loadingShifts, setLoadingShifts] = useState<boolean>(false);
 
   // NEW: operators state loaded from API
@@ -71,7 +70,7 @@ const OperatorManagement: React.FC = () => {
       const apiOperators = (res.data?.data || []) as any[];
       const mapped: Operator[] = apiOperators.map((op: any) => ({
         id: String(op.id || op.operator_id),
-        name: op.UserDetails?.full_name || op.User?.email || op.operator_id,
+        name: op.operator_name || op.UserDetails?.full_name || op.User?.email || op.operator_id,
         email: op.User?.email || "",
         phone: op.UserDetails?.phone || "",
         status: (op.status as OperatorStatus) || OperatorStatus.AVAILABLE,
@@ -88,6 +87,11 @@ const OperatorManagement: React.FC = () => {
         // include underlying user id for shift assignments
         // @ts-ignore
         userId: String(op.user_id || op.User?.user_id || ""),
+        // NEW: permanent default shift mapping
+        // @ts-ignore
+        defaultShiftId: op.DefaultShift?.id ? String(op.DefaultShift.id) : "",
+        // @ts-ignore
+        defaultShift: op.DefaultShift || null,
       }));
       setOperators(mapped);
       setLoadError(null);
@@ -104,13 +108,13 @@ const OperatorManagement: React.FC = () => {
     fetchOperators(showArchived);
   }, [showArchived]);
 
-  // Initialize duty when opening edit modal/operator changes
+  // Initialize duty/default shift when opening edit modal/operator changes
   useEffect(() => {
     if (showShiftBoothModal && selectedOperator) {
       setSelectedDuty(
         ((selectedOperator as any).duty as string) || "attendant"
       );
-      // Load worker shifts and tomorrow's assignment
+      // Load worker shifts and preload current default shift
       const loadWorkerShiftsAndAssignment = async () => {
         try {
           setLoadingShifts(true);
@@ -123,23 +127,9 @@ const OperatorManagement: React.FC = () => {
               label: `${s.name} (${String(s.start_time).slice(0,5)} - ${String(s.end_time).slice(0,5)})`,
             }));
           setWorkerShiftOptions(opts);
-
-          // Find tomorrow's assignment for this operator
-          const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000)
-            .toISOString()
-            .slice(0, 10);
-          let foundAssignmentId: string | null = null;
-          let foundShiftId: string | null = null;
-          // Query once using date only, filter by user
-          const aRes = await staffshiftService.listShiftAssignments(tomorrow);
-          const list = (aRes.data?.data || []) as any[];
-          const match = list.find((a: any) => String(a.user_id) === String((selectedOperator as any).userId || selectedOperator.id));
-          if (match) {
-            foundAssignmentId = String(match.id);
-            foundShiftId = String(match.shift_id);
-          }
-          setCurrentAssignmentId(foundAssignmentId);
-          setSelectedShiftId(foundShiftId || "");
+          // Preselect current default shift if present
+          const currentDefault = (selectedOperator as any).defaultShiftId || "";
+          setSelectedShiftId(currentDefault);
         } finally {
           setLoadingShifts(false);
         }
@@ -212,27 +202,8 @@ const OperatorManagement: React.FC = () => {
       setActionError(null);
       const pk = Number(selectedOperator.id);
       if (Number.isNaN(pk)) throw new Error("Invalid operator id");
-      // Save duty
-      await staffshiftService.updateOperator(pk, { duty: selectedDuty });
-
-      // Apply shift assignment for tomorrow
-      const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000)
-        .toISOString()
-        .slice(0, 10);
-      // If there is a current assignment and selection cleared or changed, delete it
-      if (currentAssignmentId && (!selectedShiftId || selectedShiftId !== "")) {
-        // If changed, we'll delete and recreate below; if cleared, delete only
-        await staffshiftService.deleteShiftAssignment(currentAssignmentId);
-        setCurrentAssignmentId(null);
-      }
-      // Create if a shift is selected (non-empty)
-      if (selectedShiftId) {
-        await staffshiftService.createShiftAssignment({
-          date: tomorrow,
-          shift_id: selectedShiftId,
-          user_id: String((selectedOperator as any).userId || selectedOperator.id),
-        });
-      }
+      // Save duty and permanent default shift id
+      await staffshiftService.updateOperator(pk, { duty: selectedDuty, default_shift_id: selectedShiftId || null });
 
       await fetchOperators(showArchived);
       setShowShiftBoothModal(false);
@@ -641,18 +612,26 @@ const OperatorManagement: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Current Assignment Info */}
+                {/* Current Assignment Info (Permanent default shift) */}
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Current Assignment
+                    Current Default Shift
                   </label>
                   <div className="bg-gray-50 dark:bg-gray-900/20 p-2 rounded-lg">
-                    <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                      No Current Assignment
-                    </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-500">
-                      Available for assignment
-                    </div>
+                    {(selectedOperator as any)?.defaultShift ? (
+                      <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {(selectedOperator as any).defaultShift.name} ({String((selectedOperator as any).defaultShift.start_time).slice(0,5)} - {String((selectedOperator as any).defaultShift.end_time).slice(0,5)})
+                      </div>
+                    ) : (
+                      <>
+                        <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                          Not Assigned
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-500">
+                          Select a default shift above
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>

@@ -9,7 +9,6 @@ import {
   ClockIcon,
   FuelIcon,
   DollarLineIcon,
-  PlusIcon,
   CalenderIcon,
 } from "../../../icons";
 import {
@@ -21,6 +20,8 @@ import {
 import { useLocation } from "react-router-dom";
 import BoothManagement from "../StaffShifts/BoothManagement";
 import { Badge } from "../../../components/ui/badge";
+import OperationsService from "../../../services/operationsService";
+import staffshiftService from "../../../services/staffshiftService";
 import OpeningMeter from "./OpeningMeter";
 
 interface FuelProduct {
@@ -39,6 +40,7 @@ interface FuelRate {
 }
 
 const TodaySetup: React.FC = () => {
+  // Note: In future, auto-detect current user's assigned manager shift from auth context
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const initialTab = searchParams.get("tab") || "fuel-rates";
@@ -54,11 +56,22 @@ const TodaySetup: React.FC = () => {
     todayRate: "",
     yesterdayRate: 0,
   });
+  const [userShiftStatus, setUserShiftStatus] = useState<any>(null);
 
   // Load fuel products and rates
   useEffect(() => {
     loadFuelData();
+    loadUserShiftStatus();
   }, []);
+
+  const loadUserShiftStatus = async () => {
+    try {
+      const res = await OperationsService.getUserShiftStatus();
+      setUserShiftStatus(res.data?.data);
+    } catch (err) {
+      console.error('Failed to load user shift status:', err);
+    }
+  };
 
   const loadFuelData = async () => {
     setLoading(true);
@@ -165,10 +178,68 @@ const TodaySetup: React.FC = () => {
             Beginning of Day checklist and setup
           </p>
         </div>
-        <Button className="bg-green-600 hover:bg-green-700">
-          <GridIcon className="h-4 w-4 mr-2" />
-          Complete Setup
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button className="bg-green-600 hover:bg-green-700">
+            <GridIcon className="h-4 w-4 mr-2" />
+            Complete Setup
+          </Button>
+          <Button
+            className={
+              userShiftStatus?.hasActiveShift 
+                ? "bg-green-600 hover:bg-green-700" 
+                : userShiftStatus?.hasEndedShift 
+                  ? "bg-gray-600 cursor-not-allowed" 
+                  : "bg-blue-600 hover:bg-blue-700"
+            }
+            disabled={userShiftStatus?.hasEndedShift}
+            onClick={async () => {
+              if (userShiftStatus?.hasActiveShift) {
+                alert('You already have an active shift running today.');
+                return;
+              }
+              if (userShiftStatus?.hasEndedShift) {
+                alert('You have already completed a shift today. Cannot start another shift.');
+                return;
+              }
+
+              try {
+                // Try auto-start first (uses user's assigned shift and current time)
+                await OperationsService.autoStartManagerShift({});
+                alert('Manager shift started successfully using your assigned shift.');
+                // Refresh shift status
+                await loadUserShiftStatus();
+              } catch (e: any) {
+                // Fallback to manual shift selection if auto-start fails
+                const errorMsg = e?.response?.data?.error || e?.response?.data?.message || e?.message || 'Failed to start manager shift';
+                if (errorMsg.includes('No manager shift assigned') || errorMsg.includes('Outside shift window')) {
+                  alert(`${errorMsg}\n\nPlease assign a manager shift first or check if current time is within shift window.`);
+                } else {
+                  // Try manual shift selection as fallback
+                  let autoShiftId: string | null = null;
+                  try {
+                    const res = await staffshiftService.listManagers();
+                    const mgrs = (res.data?.data || []) as any[];
+                    const withDefault = mgrs.filter((m: any) => m.DefaultManagerShift?.id);
+                    if (withDefault.length === 1) autoShiftId = String(withDefault[0].DefaultManagerShift.id);
+                  } catch (_) { /* ignore */ }
+                  let shiftId = autoShiftId || window.prompt('Enter your Manager Shift ID to start the shift') || '';
+                  if (!shiftId) return;
+                  await OperationsService.startManagerShift({ shiftId });
+                  alert('Manager shift started successfully.');
+                  // Refresh shift status
+                  await loadUserShiftStatus();
+                }
+              }
+            }}
+          >
+            {userShiftStatus?.hasActiveShift 
+              ? "Shift Active" 
+              : userShiftStatus?.hasEndedShift 
+                ? "Shift Completed Today" 
+                : "Start Manager Shift"
+            }
+          </Button>
+        </div>
       </div>
 
       {/* Tabbed BOD Workflow */}

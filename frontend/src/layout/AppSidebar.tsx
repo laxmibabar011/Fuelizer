@@ -29,6 +29,7 @@ interface NavItem {
   path?: string;
   onClick?: () => void;
   subItems?: { name: string; path: string; icon?: React.ReactNode }[];
+  className?: string; // Custom styling for special items like POS mode
 }
 
 const AppSidebar: React.FC = () => {
@@ -96,6 +97,11 @@ const AppSidebar: React.FC = () => {
           name: "Staff & Shifts",
           path: "/fuel-admin/configuration/staff-shifts",
           icon: <UsersIcon />,
+        },
+        {
+          name: "Payment Methods",
+          path: "/fuel-admin/configuration/payment-methods",
+          icon: <CreditCardIcon />,
         },
       ],
     },
@@ -177,6 +183,13 @@ const AppSidebar: React.FC = () => {
       icon: <GridIcon />,
       name: "Dashboard",
       path: "/operator",
+    },
+    {
+      icon: <CogIcon />,
+      name: "POS Mode",
+      path: "/operator/pos",
+      className:
+        "bg-blue-50 hover:bg-blue-100 text-blue-700 border-l-4 border-blue-500",
     },
     {
       icon: <ReportIcon />,
@@ -263,7 +276,7 @@ const AppSidebar: React.FC = () => {
             to={item.path}
             className={`menu-item group ${
               isActive(item.path) ? "menu-item-active" : "menu-item-inactive"
-            }`}
+            } ${item.className || ""}`}
           >
             <span className="menu-item-icon-size">{item.icon}</span>
             {(isExpanded || isHovered || isMobileOpen) && (

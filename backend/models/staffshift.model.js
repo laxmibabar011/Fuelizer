@@ -6,6 +6,8 @@ export const initStaffShiftModels = (sequelize) => {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
     operator_id: { type: DataTypes.STRING(10), allowNull: false, unique: true }, // e.g., "OP001"
     user_id: { type: DataTypes.STRING(50), allowNull: false }, // Link to User table
+    operator_name: { type: DataTypes.STRING(120), allowNull: true }, // Denormalized display name for PG admin
+    default_shift_id: { type: DataTypes.INTEGER, allowNull: true }, // Permanent default WORKER shift assignment
     duty: { type: DataTypes.ENUM('cashier', 'attendant'), allowNull: false, defaultValue: 'attendant' },
     status: { type: DataTypes.ENUM('available', 'assigned', 'unavailable'), defaultValue: 'available' },
     join_date: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
@@ -34,6 +36,7 @@ export const initStaffShiftModels = (sequelize) => {
     date: { type: DataTypes.DATEONLY, allowNull: false }, // YYYY-MM-DD
     shift_id: { type: DataTypes.INTEGER, allowNull: false },
     user_id: { type: DataTypes.STRING(50), allowNull: false },
+    operator_name: { type: DataTypes.STRING(120), allowNull: true },
     assigned_by: { type: DataTypes.STRING(50), allowNull: true }, // user_id of who made assignment
     status: { type: DataTypes.ENUM('assigned', 'checked-in', 'checked-out', 'absent'), defaultValue: 'assigned' },
     check_in_time: { type: DataTypes.DATE, allowNull: true },

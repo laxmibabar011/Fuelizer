@@ -10,6 +10,7 @@ router.use( authenticate, tenantDbMiddleware );
 
 // ===== SHIFT MANAGEMENT ROUTES =====
 router.post('/shifts/start', OperationsController.startManagerShift);
+router.post('/shifts/auto-start', OperationsController.autoStartManagerShift);
 router.post('/shifts/end', OperationsController.endManagerShift);
 
 // ===== METER READINGS ROUTES =====
@@ -18,9 +19,10 @@ router.put('/meter-readings/:readingId', OperationsController.updateMeterReading
 
 // ===== DAILY OPERATIONS ROUTES =====
 router.get('/operational-day/current', OperationsController.getCurrentOperationalDay);
-router.get('/daily-summary/:date', OperationsController.getDailySummary);
 
 // ===== SHIFT STATUS ROUTES =====
+router.get('/shifts/status', OperationsController.getCurrentShiftStatus);
+router.get('/shifts/user-status', OperationsController.getUserShiftStatus);
 router.get('/shifts/current', OperationsController.getUserCurrentShift);
 router.post('/shifts/check-in', OperationsController.checkInShift);
 router.post('/shifts/check-out', OperationsController.checkOutShift);

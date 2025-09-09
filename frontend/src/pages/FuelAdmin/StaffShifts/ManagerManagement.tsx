@@ -12,6 +12,8 @@ interface ManagerItem {
   email: string;
   phone?: string;
   isSelf?: boolean;
+  // Optional: backend includes DefaultManagerShift
+  DefaultManagerShift?: { id: number; name: string; start_time: string; end_time: string; shift_type: string } | null;
 }
 
 const ManagerManagement: React.FC = () => {
@@ -35,6 +37,7 @@ const ManagerManagement: React.FC = () => {
         name: u.UserDetails?.full_name || u.email,
         email: u.email,
         phone: u.UserDetails?.phone,
+        DefaultManagerShift: u.DefaultManagerShift || null,
       }));
       setManagers(mapped);
       setError(null);
@@ -61,21 +64,16 @@ const ManagerManagement: React.FC = () => {
   };
 
   const loadTomorrowAssignments = async (opts?: { id: string; label: string }[]) => {
-    const tomorrow = new Date(Date.now() + 24*60*60*1000).toISOString().slice(0,10);
-    const mapping: Record<string, { id: string; shift_id: string }> = {};
-    const list = opts ?? shiftOptions;
-    for (const opt of list) {
-      const resp = await staffshiftService.listShiftAssignments(tomorrow, opt.id);
-      const list = (resp.data?.data || []) as any[];
-      list.forEach((a: any) => {
-        if (a.user_id) mapping[String(a.user_id)] = { id: String(a.id), shift_id: String(a.shift_id) };
-      });
-    }
-    setCurrentAssignments(mapping);
-    // Initialize selection from current mapping
+    // Deprecated: daily assignments no longer used for managers
+    setCurrentAssignments({});
+    // Initialize selection from permanent mapping exposed by backend
     setSelection(prev => {
       const next: Record<string,string> = { ...prev };
-      managers.forEach(m => { next[m.id] = mapping[m.id]?.shift_id || ""; });
+      managers.forEach((m: any) => {
+        // @ts-ignore: backend now includes DefaultManagerShift
+        const dm = (m as any).DefaultManagerShift?.id || '';
+        next[m.id] = dm ? String(dm) : '';
+      });
       return next;
     });
   };
@@ -93,19 +91,14 @@ const ManagerManagement: React.FC = () => {
     try {
       setAssigning(true);
       setAssignError(null);
-      const tomorrow = new Date(Date.now() + 24*60*60*1000).toISOString().slice(0,10);
-      // For each manager, reconcile selection vs currentAssignments
+      // Permanently set/clear default_manager_shift_id by calling new endpoints
       for (const m of managers) {
         const selectedShiftId = selection[m.id] || "";
-        const current = currentAssignments[m.id];
-        if (current && !selectedShiftId) {
-          // unassign
-          await staffshiftService.deleteShiftAssignment(current.id);
-        } else if (!current && selectedShiftId) {
-          await staffshiftService.createShiftAssignment({ date: tomorrow, shift_id: selectedShiftId, user_id: m.id });
-        } else if (current && selectedShiftId && current.shift_id !== selectedShiftId) {
-          await staffshiftService.deleteShiftAssignment(current.id);
-          await staffshiftService.createShiftAssignment({ date: tomorrow, shift_id: selectedShiftId, user_id: m.id });
+        if (selectedShiftId) {
+          await staffshiftService.assignManagerShift({ user_id: m.id, shift_id: selectedShiftId });
+        } else {
+          // Unassign
+          await staffshiftService.unassignManagerShift({ user_id: m.id, shift_id: 0 });
         }
       }
       setIsEditing(false);
@@ -164,7 +157,10 @@ const ManagerManagement: React.FC = () => {
                   )}
                   {!isEditing ? (
                     <div className="mt-2 text-xs text-gray-500">
-                      Assigned: {currentAssignments[m.id]?.shift_id ? (shiftOptions.find(o => o.id === currentAssignments[m.id]?.shift_id)?.label || currentAssignments[m.id]?.shift_id) : 'Unassigned'}
+                      Assigned: {m.DefaultManagerShift?.id
+                        ? (shiftOptions.find(o => o.id === String(m.DefaultManagerShift?.id))?.label
+                          || `${m.DefaultManagerShift?.name} (${String(m.DefaultManagerShift?.start_time).slice(0,5)} - ${String(m.DefaultManagerShift?.end_time).slice(0,5)})`)
+                        : 'Unassigned'}
                     </div>
                   ) : (
                     <div className="mt-2">

@@ -14,6 +14,15 @@
   .menu-item {
     @apply relative flex items-center w-full gap-3 px-3 py-2 font-medium rounded-lg text-theme-sm;
   }
+  
+  /* POS Fullscreen Styles */
+  .pos-fullscreen {
+    @apply fixed inset-0 z-50 overflow-hidden;
+  }
+  
+  .pos-fullscreen * {
+    @apply select-none; /* Prevent text selection in POS mode */
+  }
   .menu-item-active {
     @apply bg-brand-50 text-brand-500 dark:bg-brand-500/[0.12] dark:text-brand-400;
   }

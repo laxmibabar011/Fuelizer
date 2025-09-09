@@ -1,4 +1,4 @@
-import { DataTypes } from 'sequelize';
+import { Op } from 'sequelize';
 
 export class GroupBoothRepository {
   constructor(sequelize) {
@@ -9,19 +9,28 @@ export class GroupBoothRepository {
     this.User = sequelize.models.User;
     this.UserDetails = sequelize.models.UserDetails;
     this.Shift = sequelize.models.Shift;
+    this.OperatorGroupMember = sequelize.models.OperatorGroupMember;
   }
 
   async mapGroupToBooths(groupId, boothIds) {
     const transaction = await this.sequelize.transaction();
     try {
       // Remove existing mappings for this group not in the new list
-      await this.OperatorGroupBooth.destroy({
-        where: {
-          operator_group_id: groupId,
-          booth_id: { [this.sequelize.Op.notIn]: boothIds }
-        },
-        transaction
-      });
+      if (Array.isArray(boothIds) && boothIds.length > 0) {
+        await this.OperatorGroupBooth.destroy({
+          where: {
+            operator_group_id: groupId,
+            booth_id: { [Op.notIn]: boothIds }
+          },
+          transaction
+        });
+      } else {
+        // If no boothIds provided, clear all mappings for this group
+        await this.OperatorGroupBooth.destroy({
+          where: { operator_group_id: groupId },
+          transaction
+        });
+      }
 
       // Create or update new mappings
       const results = await Promise.all(boothIds.map(boothId =>
