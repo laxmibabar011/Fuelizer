@@ -5,20 +5,20 @@ import StationController from '../controller/station.controller.js';
 
 const router = Router();
 
-// All endpoints restricted to fuel-admin (tenant scope)
-router.use(authenticate, tenantDbMiddleware, authorizeRoles('fuel-admin'));
+// Apply authentication and tenant middleware to all routes
+router.use(authenticate, tenantDbMiddleware);
 
-// Booths
-router.get('/station/booths', StationController.listBooths);
-router.post('/station/booths', StationController.createBooth);
-router.put('/station/booths/:id', StationController.updateBooth);
-router.delete('/station/booths/:id', StationController.deleteBooth);
+// Booths - Read access for operators (POS system), write access for fuel-admin
+router.get('/station/booths', authorizeRoles('fuel-admin', 'operator'), StationController.listBooths);
+router.post('/station/booths', authorizeRoles('fuel-admin'), StationController.createBooth);
+router.put('/station/booths/:id', authorizeRoles('fuel-admin'), StationController.updateBooth);
+router.delete('/station/booths/:id', authorizeRoles('fuel-admin'), StationController.deleteBooth);
 
-// Nozzles (simple CRUD)
-router.get('/station/nozzles', StationController.listNozzles);
-router.post('/station/nozzles', StationController.createNozzle);
-router.put('/station/nozzles/:id', StationController.updateNozzle);
-router.delete('/station/nozzles/:id', StationController.deleteNozzle);
+// Nozzles - Read access for operators (POS system), write access for fuel-admin
+router.get('/station/nozzles', authorizeRoles('fuel-admin', 'operator'), StationController.listNozzles);
+router.post('/station/nozzles', authorizeRoles('fuel-admin'), StationController.createNozzle);
+router.put('/station/nozzles/:id', authorizeRoles('fuel-admin'), StationController.updateNozzle);
+router.delete('/station/nozzles/:id', authorizeRoles('fuel-admin'), StationController.deleteNozzle);
 
 export default router;
 

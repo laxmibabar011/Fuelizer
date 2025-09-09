@@ -15,4 +15,8 @@ export default defineConfig({
       },
     }),
   ],
+  server: {
+    host: "0.0.0.0", // Allow external connections
+    port: 5173,
+  },
 });

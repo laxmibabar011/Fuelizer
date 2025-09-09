@@ -39,6 +39,7 @@ import RequestHistory from "./pages/CreditCustomer/RequestHistory";
 // New Configuration Hub pages
 import StationSetup from "./pages/FuelAdmin/StationSetup/StationSetup";
 import ShiftStaffDashboard from "./pages/FuelAdmin/StaffShifts/ShiftStaffDashboard";
+import PaymentMethods from "./pages/FuelAdmin/Configuration/PaymentMethods";
 
 // New Daily Operations pages
 import TodaySetup from "./pages/FuelAdmin/BODEOD/TodaySetup";
@@ -51,6 +52,7 @@ import ReportsDashboard from "./pages/FuelAdmin/Reports/ReportsDashboard";
 // Operator pages
 import OperatorDashboard from "./pages/Dashboard/OperatorDashboard";
 import Transactions from "./pages/Operator/Transactions";
+import ResponsivePOSLayout from "./pages/Operator/POS/components/ResponsivePOSLayout";
 
 export default function App() {
   return (
@@ -122,6 +124,10 @@ export default function App() {
             <Route
               path="/fuel-admin/configuration/staff-shifts"
               element={<ShiftStaffDashboard />}
+            />
+            <Route
+              path="/fuel-admin/configuration/payment-methods"
+              element={<PaymentMethods />}
             />
 
             {/* Daily Operations Routes */}
@@ -195,6 +201,7 @@ export default function App() {
             }
           >
             <Route path="/operator" element={<OperatorDashboard />} />
+            <Route path="/operator/pos" element={<ResponsivePOSLayout />} />
             <Route path="/operator/transactions" element={<Transactions />} />
             <Route path="/operator/profile" element={<UserProfiles />} />
           </Route>

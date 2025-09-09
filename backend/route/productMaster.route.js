@@ -6,22 +6,22 @@ import { uploadSingle } from '../middleware/multer.middleware.js'
 
 const router = Router()
 
-// Tenant scoped routes; fuel-admin manages inventory
-router.use(authenticate, tenantDbMiddleware, authorizeRoles('fuel-admin'))
+// Apply authentication and tenant middleware to all routes
+router.use(authenticate, tenantDbMiddleware)
 
-// Categories
-router.post('/product-master/categories', ProductMasterController.createCategory)
-router.get('/product-master/categories', ProductMasterController.listCategories)
-router.put('/product-master/categories/:id', ProductMasterController.updateCategory)
-router.delete('/product-master/categories/:id', ProductMasterController.deleteCategory)
+// Categories - Read access for operators (POS system), write access for fuel-admin
+router.post('/product-master/categories', authorizeRoles('fuel-admin'), ProductMasterController.createCategory)
+router.get('/product-master/categories', authorizeRoles('fuel-admin', 'operator'), ProductMasterController.listCategories)
+router.put('/product-master/categories/:id', authorizeRoles('fuel-admin'), ProductMasterController.updateCategory)
+router.delete('/product-master/categories/:id', authorizeRoles('fuel-admin'), ProductMasterController.deleteCategory)
 
-// Products
-router.post('/product-master/products', uploadSingle('image'), ProductMasterController.createProduct)
-router.get('/product-master/products', ProductMasterController.listProducts)
-router.get('/product-master/products/:id', ProductMasterController.getProduct)
-router.put('/product-master/products/:id', uploadSingle('image'), ProductMasterController.updateProduct)
-router.delete('/product-master/products/:id', ProductMasterController.deleteProduct)
-router.patch('/product-master/products/:id/restore', ProductMasterController.restoreProduct)
+// Products - Read access for operators (POS system), write access for fuel-admin
+router.post('/product-master/products', authorizeRoles('fuel-admin'), uploadSingle('image'), ProductMasterController.createProduct)
+router.get('/product-master/products', authorizeRoles('fuel-admin', 'operator'), ProductMasterController.listProducts)
+router.get('/product-master/products/:id', authorizeRoles('fuel-admin', 'operator'), ProductMasterController.getProduct)
+router.put('/product-master/products/:id', authorizeRoles('fuel-admin'), uploadSingle('image'), ProductMasterController.updateProduct)
+router.delete('/product-master/products/:id', authorizeRoles('fuel-admin'), ProductMasterController.deleteProduct)
+router.patch('/product-master/products/:id/restore', authorizeRoles('fuel-admin'), ProductMasterController.restoreProduct)
 
 export default router
 
