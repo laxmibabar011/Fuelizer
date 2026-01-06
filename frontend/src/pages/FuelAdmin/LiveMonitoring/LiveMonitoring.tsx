@@ -1,169 +1,152 @@
-import React from "react";
-import { Card } from "../../../components/ui/card";
+import React, { useState, useEffect, useCallback } from "react";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "../../../components/ui/tabs/Tabs";
 import { Button } from "../../../components/ui/button";
-import { BoltIcon, FuelIcon, DollarLineIcon, ClockIcon } from "../../../icons";
+import { BoltIcon, ClockIcon } from "../../../icons";
+import DashboardOverview from "./DashboardOverview";
+import BoothMonitoring from "./BoothMonitoring";
+import NozzleTracking from "./NozzleTracking";
+import LiveTransactions from "./LiveTransactions";
+import OperatorStatus from "./OperatorStatus";
 
 const LiveMonitoring: React.FC = () => {
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+
+  // Global refresh handler for all tabs
+  const handleGlobalRefresh = useCallback(() => {
+    setLastUpdated(new Date());
+    // Trigger refresh in all tab components
+    window.dispatchEvent(new CustomEvent("liveMonitoringRefresh"));
+  }, []);
+
+  const toggleAutoRefresh = () => {
+    setAutoRefresh(!autoRefresh);
+  };
+
+  // Auto-refresh every 30 seconds when enabled
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval> | undefined;
+
+    if (autoRefresh) {
+      interval = setInterval(handleGlobalRefresh, 30000);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [autoRefresh, handleGlobalRefresh]);
+
   return (
     <div className="p-6 space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
             Live Sales Monitoring
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
-            Real-time view of sales happening right now
+            Real-time view of sales and operations
           </p>
         </div>
-        <div className="flex space-x-2">
-          <Button className="bg-green-600 hover:bg-green-700">
-            <ClockIcon className="h-4 w-4 mr-2" />
-            Refresh
-          </Button>
-          <Button className="bg-blue-600 hover:bg-blue-700">
-            <BoltIcon className="h-4 w-4 mr-2" />
-            Auto Refresh
-          </Button>
+        <div className="flex items-center space-x-4">
+          <div className="text-sm text-gray-500">
+            Last updated: {lastUpdated.toLocaleTimeString()}
+          </div>
+          <div className="flex space-x-2">
+            <Button
+              onClick={handleGlobalRefresh}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <ClockIcon className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
+            <Button
+              onClick={toggleAutoRefresh}
+              className={
+                autoRefresh
+                  ? "bg-red-600 hover:bg-red-700"
+                  : "bg-blue-600 hover:bg-blue-700"
+              }
+            >
+              <BoltIcon className="h-4 w-4 mr-2" />
+              {autoRefresh ? "Stop Auto" : "Auto Refresh"}
+            </Button>
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Nozzle P1 - Petrol */}
-        <Card className="p-6">
-          <div className="flex items-center mb-4">
-            <FuelIcon className="h-6 w-6 text-blue-600 mr-3" />
-            <h2 className="text-xl font-semibold">Nozzle P1 (Petrol)</h2>
-          </div>
-          <div className="space-y-4">
-            <div className="text-center">
-              <p className="text-3xl font-bold text-green-600">₹12,450</p>
-              <p className="text-sm text-gray-600">Total Sales Today</p>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="text-center">
-                <p className="text-lg font-semibold">128.5</p>
-                <p className="text-sm text-gray-600">Litres Sold</p>
-              </div>
-              <div className="text-center">
-                <p className="text-lg font-semibold">₹96.72</p>
-                <p className="text-sm text-gray-600">Rate</p>
-              </div>
-            </div>
-            <div className="p-3 bg-green-50 border border-green-200 rounded">
-              <p className="text-sm text-green-800">Active - Rajesh Kumar</p>
-            </div>
-          </div>
-        </Card>
-
-        {/* Nozzle P2 - Diesel */}
-        <Card className="p-6">
-          <div className="flex items-center mb-4">
-            <FuelIcon className="h-6 w-6 text-green-600 mr-3" />
-            <h2 className="text-xl font-semibold">Nozzle P2 (Diesel)</h2>
-          </div>
-          <div className="space-y-4">
-            <div className="text-center">
-              <p className="text-3xl font-bold text-green-600">₹8,962</p>
-              <p className="text-sm text-gray-600">Total Sales Today</p>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="text-center">
-                <p className="text-lg font-semibold">100.0</p>
-                <p className="text-sm text-gray-600">Litres Sold</p>
-              </div>
-              <div className="text-center">
-                <p className="text-lg font-semibold">₹89.62</p>
-                <p className="text-sm text-gray-600">Rate</p>
-              </div>
-            </div>
-            <div className="p-3 bg-green-50 border border-green-200 rounded">
-              <p className="text-sm text-green-800">Active - Priya Sharma</p>
-            </div>
-          </div>
-        </Card>
-
-        {/* Summary */}
-        <Card className="p-6">
-          <div className="flex items-center mb-4">
-            <DollarLineIcon className="h-6 w-6 text-purple-600 mr-3" />
-            <h2 className="text-xl font-semibold">Today's Summary</h2>
-          </div>
-          <div className="space-y-4">
-            <div className="text-center">
-              <p className="text-3xl font-bold text-purple-600">₹21,412</p>
-              <p className="text-sm text-gray-600">Total Sales</p>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="text-center">
-                <p className="text-lg font-semibold">228.5</p>
-                <p className="text-sm text-gray-600">Total Litres</p>
-              </div>
-              <div className="text-center">
-                <p className="text-lg font-semibold">2</p>
-                <p className="text-sm text-gray-600">Active Nozzles</p>
-              </div>
-            </div>
-            <div className="p-3 bg-blue-50 border border-blue-200 rounded">
-              <p className="text-sm text-blue-800">Last Updated: 2:30 PM</p>
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      {/* Recent Transactions */}
-      <Card className="p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold">Recent Transactions</h2>
-          <Button variant="outline" size="sm">
-            View All
-          </Button>
-        </div>
-        <div className="space-y-3">
-          <div className="flex items-center justify-between p-3 border rounded">
-            <div>
-              <p className="font-medium">Nozzle P1 - Petrol</p>
-              <p className="text-sm text-gray-600">15.5 litres @ ₹96.72</p>
-            </div>
-            <div className="text-right">
-              <p className="font-medium">₹1,499.16</p>
-              <p className="text-sm text-gray-600">2:28 PM</p>
-            </div>
-          </div>
-          <div className="flex items-center justify-between p-3 border rounded">
-            <div>
-              <p className="font-medium">Nozzle P2 - Diesel</p>
-              <p className="text-sm text-gray-600">20.0 litres @ ₹89.62</p>
-            </div>
-            <div className="text-right">
-              <p className="font-medium">₹1,792.40</p>
-              <p className="text-sm text-gray-600">2:25 PM</p>
-            </div>
-          </div>
-          <div className="flex items-center justify-between p-3 border rounded">
-            <div>
-              <p className="font-medium">Nozzle P1 - Petrol</p>
-              <p className="text-sm text-gray-600">12.0 litres @ ₹96.72</p>
-            </div>
-            <div className="text-right">
-              <p className="font-medium">₹1,160.64</p>
-              <p className="text-sm text-gray-600">2:22 PM</p>
-            </div>
+      {/* Auto-refresh indicator */}
+      {autoRefresh && (
+        <div className="flex items-center justify-center">
+          <div className="flex items-center space-x-2 bg-green-100 text-green-800 px-4 py-2 rounded-lg">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            <span className="text-sm font-medium">
+              Auto-refreshing every 30 seconds
+            </span>
           </div>
         </div>
-      </Card>
+      )}
 
-      {/* Coming Soon Notice */}
-      <Card className="p-6 bg-yellow-50 border-yellow-200">
-        <div className="text-center">
-          <h3 className="text-lg font-medium text-yellow-800 mb-2">
-            Daily Operations - Live Monitoring
-          </h3>
-          <p className="text-yellow-700">
-            This page will show real-time sales data with periodic updates. Full
-            functionality coming soon.
-          </p>
-        </div>
-      </Card>
+      {/* Tab Navigation */}
+      <Tabs defaultValue="dashboard" className="w-full">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger
+            value="dashboard"
+            className="flex items-center space-x-2"
+          >
+            <span>📊</span>
+            <span>Dashboard</span>
+          </TabsTrigger>
+          <TabsTrigger value="booths" className="flex items-center space-x-2">
+            <span>🏪</span>
+            <span>Booths</span>
+          </TabsTrigger>
+          <TabsTrigger value="nozzles" className="flex items-center space-x-2">
+            <span>⛽</span>
+            <span>Nozzles</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="transactions"
+            className="flex items-center space-x-2"
+          >
+            <span>💳</span>
+            <span>Transactions</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="operators"
+            className="flex items-center space-x-2"
+          >
+            <span>👥</span>
+            <span>Operators</span>
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Tab Contents */}
+        <TabsContent value="dashboard" className="mt-6">
+          <DashboardOverview />
+        </TabsContent>
+
+        <TabsContent value="booths" className="mt-6">
+          <BoothMonitoring />
+        </TabsContent>
+
+        <TabsContent value="nozzles" className="mt-6">
+          <NozzleTracking />
+        </TabsContent>
+
+        <TabsContent value="transactions" className="mt-6">
+          <LiveTransactions />
+        </TabsContent>
+
+        <TabsContent value="operators" className="mt-6">
+          <OperatorStatus />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

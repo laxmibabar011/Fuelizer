@@ -179,6 +179,28 @@ class StaffShiftService {
       params: { shiftId },
     });
   }
+
+  // ===== POS CONTEXT METHODS =====
+  async getCashierPOSContext() {
+    return apiClient.get("api/tenant/staffshift/pos/context");
+  }
+
+  async validatePOSAccess(params?: {
+    nozzleId?: string | number;
+    operatorId?: string;
+  }) {
+    const searchParams = new URLSearchParams();
+    if (params?.nozzleId)
+      searchParams.set("nozzleId", params.nozzleId.toString());
+    if (params?.operatorId) searchParams.set("operatorId", params.operatorId);
+
+    const queryString = searchParams.toString();
+    const url = queryString
+      ? `api/tenant/staffshift/pos/validate-access?${queryString}`
+      : "api/tenant/staffshift/pos/validate-access";
+
+    return apiClient.get(url);
+  }
 }
 
 export default new StaffShiftService();

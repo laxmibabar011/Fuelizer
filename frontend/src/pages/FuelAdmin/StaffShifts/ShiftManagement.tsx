@@ -19,7 +19,7 @@ import {
 import staffshiftService from "../../../services/staffshiftService";
 import { Modal } from "../../../components/ui/modal";
 import Input from "../../../components/form/input/InputField";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../components/ui/tabs/Tabs";
+import { Tabs, TabsList, TabsTrigger } from "../../../components/ui/tabs/Tabs";
 import Label from "../../../components/form/Label";
 
 interface UiShift {
@@ -101,18 +101,22 @@ const ShiftManagement: React.FC = () => {
       const res = await staffshiftService.listShifts();
       const apiShifts = (res.data?.data || []) as any[];
       const mapped: UiShift[] = apiShifts
-        .filter((s: any) => (activeTab === "MANAGER" ? s.shift_type === "MANAGER" : s.shift_type === "WORKER"))
+        .filter((s: any) =>
+          activeTab === "MANAGER"
+            ? s.shift_type === "MANAGER"
+            : s.shift_type === "WORKER"
+        )
         .map((s: any) => ({
-        id: String(s.id),
-        name: s.name,
-        timeRange: `${s.start_time?.slice(0, 5)} - ${s.end_time?.slice(0, 5)}`,
-        status: "not-started",
-        operators: [],
-        operatorCount: 0,
-        maxOperators: Number(s.max_operators) || 0,
-        handoverNotes: s.description || undefined,
-        shiftType: s.shift_type,
-      }));
+          id: String(s.id),
+          name: s.name,
+          timeRange: `${s.start_time?.slice(0, 5)} - ${s.end_time?.slice(0, 5)}`,
+          status: "not-started",
+          operators: [],
+          operatorCount: 0,
+          maxOperators: Number(s.max_operators) || 0,
+          handoverNotes: s.description || undefined,
+          shiftType: s.shift_type,
+        }));
       setShifts(mapped);
       setLoadError(null);
     } catch (e: any) {
@@ -127,7 +131,7 @@ const ShiftManagement: React.FC = () => {
   useEffect(() => {
     fetchShifts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [activeTab]);
+  }, [activeTab]);
 
   const handleCreateShift = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -229,7 +233,10 @@ const ShiftManagement: React.FC = () => {
             </Button>
           </div>
         </div>
-        <Tabs defaultValue={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+        <Tabs
+          defaultValue={activeTab}
+          onValueChange={(v) => setActiveTab(v as any)}
+        >
           <TabsList className="w-full grid grid-cols-2">
             <TabsTrigger value="MANAGER">Manager Shifts</TabsTrigger>
             <TabsTrigger value="WORKER">Worker Shifts</TabsTrigger>
@@ -369,7 +376,9 @@ const ShiftManagement: React.FC = () => {
               <div className="mt-2 grid grid-cols-2 gap-2">
                 <Button
                   type="button"
-                  variant={form.shift_type === "MANAGER" ? undefined : "outline"}
+                  variant={
+                    form.shift_type === "MANAGER" ? undefined : "outline"
+                  }
                   onClick={() => setForm({ ...form, shift_type: "MANAGER" })}
                 >
                   Manager

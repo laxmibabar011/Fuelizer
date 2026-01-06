@@ -204,13 +204,7 @@ const AttendantSelector: React.FC<AttendantSelectorProps> = ({
     <div className={className}>
       {totalCount <= 4 ? <CardView /> : <DropdownView />}
 
-      {/* Debug Info (remove in production) */}
-      {process.env.NODE_ENV === "development" && (
-        <div className="mt-2 text-xs text-gray-400 text-center">
-          {totalCount} attendant{totalCount !== 1 ? "s" : ""} •{" "}
-          {totalCount <= 4 ? "Card View" : "Dropdown View"}
-        </div>
-      )}
+      {/* Debug Info removed to avoid Node env type dependency */}
     </div>
   );
 };

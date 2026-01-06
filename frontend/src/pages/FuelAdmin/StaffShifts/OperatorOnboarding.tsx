@@ -29,7 +29,10 @@ const OperatorOnboarding: React.FC = () => {
     "WORKER"
   );
   const navigate = useNavigate();
-  const [createdUser, setCreatedUser] = useState<{ name: string; email: string } | null>(null);
+  const [createdUser, setCreatedUser] = useState<{
+    name: string;
+    email: string;
+  } | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -43,17 +46,11 @@ const OperatorOnboarding: React.FC = () => {
     try {
       if (onboardingType === "MANAGER") {
         // Onboard a Fuel Admin (Manager)
-        const res = await apiClient.post(
-          "/api/tenant/staffshift/admins/onboard",
-          form
-        );
+        await apiClient.post("/api/tenant/staffshift/admins/onboard", form);
         setCreatedUser({ name: form.name, email: form.email });
       } else {
         // Onboard a Worker (Operator)
-        const res = await apiClient.post(
-          "/api/tenant/staffshift/operators/onboard",
-          form
-        );
+        await apiClient.post("/api/tenant/staffshift/operators/onboard", form);
         setCreatedUser({ name: form.name, email: form.email });
       }
       setSuccess(true);
@@ -157,14 +154,18 @@ const OperatorOnboarding: React.FC = () => {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => navigate("/fuel-admin/configuration/staff-shifts")}
+                  onClick={() =>
+                    navigate("/fuel-admin/configuration/staff-shifts")
+                  }
                 >
                   Assign to Shift
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => navigate("/fuel-admin/configuration/staff-shifts")}
+                  onClick={() =>
+                    navigate("/fuel-admin/configuration/staff-shifts")
+                  }
                 >
                   Add to Operator Group
                 </Button>
@@ -176,8 +177,8 @@ const OperatorOnboarding: React.FC = () => {
           {submitting
             ? "Submitting..."
             : onboardingType === "MANAGER"
-            ? "Onboard Manager"
-            : "Onboard Operator"}
+              ? "Onboard Manager"
+              : "Onboard Operator"}
         </Button>
       </form>
     </Card>

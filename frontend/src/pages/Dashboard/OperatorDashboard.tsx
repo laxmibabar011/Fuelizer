@@ -4,7 +4,6 @@ import {
   FuelIcon,
   ReportIcon,
   CogIcon,
-  UsersIcon,
   ChartIcon,
   ClockIcon,
   DollarLineIcon,

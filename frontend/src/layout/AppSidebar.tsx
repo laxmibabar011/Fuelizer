@@ -17,6 +17,15 @@ import {
   CogIcon,
   ChevronDownIcon,
   ChevronRightIcon,
+  BoxIcon,
+  FileIcon,
+  ChartIcon,
+  TableIcon,
+  DollarLineIcon,
+  PieChartIcon,
+  TaskIcon,
+  ArrowDownIcon,
+  MailIcon,
 } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
 import SidebarWidget from "./SidebarWidget";
@@ -127,12 +136,69 @@ const AppSidebar: React.FC = () => {
       ],
     },
     {
+      icon: <ListIcon />,
+      name: "Decantation Logs",
+      path: "/fuel-admin/decantation-logs",
+    },
+    {
       icon: <ReportIcon />,
       name: "Reports & Analytics",
       path: "/fuel-admin/reports",
     },
     {
-      icon: <CreditCardIcon />,
+      icon: <BoxIcon />,
+      name: "Purchase Management",
+      subItems: [
+        {
+          name: "Purchase Orders",
+          path: "/fuel-admin/purchase",
+          icon: <FileIcon />,
+        },
+        {
+          name: "Vendors",
+          path: "/fuel-admin/purchase/vendors",
+          icon: <UsersIcon />,
+        },
+      ],
+    },
+    {
+      icon: <DollarLineIcon />,
+      name: "Sales Management",
+      path: "/fuel-admin/sales-management",
+    },
+    {
+      icon: <ChartIcon />,
+      name: "General Ledger",
+      subItems: [
+        {
+          name: "Chart of Accounts",
+          path: "/fuel-admin/general-ledger/chart-of-accounts",
+          icon: <TableIcon />,
+        },
+        {
+          name: "Payment Voucher",
+          path: "/fuel-admin/general-ledger/payment-voucher",
+          icon: <CreditCardIcon />,
+        },
+        {
+          name: "Receipt Voucher",
+          path: "/fuel-admin/general-ledger/receipt-voucher",
+          icon: <ArrowDownIcon />,
+        },
+        {
+          name: "Voucher Management",
+          path: "/fuel-admin/general-ledger/voucher-management",
+          icon: <TaskIcon />,
+        },
+        {
+          name: "Reports",
+          path: "/fuel-admin/general-ledger/reports",
+          icon: <PieChartIcon />,
+        },
+      ],
+    },
+    {
+      icon: <MailIcon />,
       name: "Credit Management",
       path: "/fuel-admin/credit",
     },

@@ -4,29 +4,33 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // Master DB connection
+let masterSequelize = null;
 export const getMasterSequelize = () => {
-	return new Sequelize(
-		process.env.MASTER_DB_NAME,
-		process.env.MASTER_DB_USER,
-		process.env.MASTER_DB_PASS,
-		{
-			host: process.env.MASTER_DB_HOST,
-			dialect: 'postgres',
-			logging: false,
-			pool: {
-				max: Number(process.env.DB_POOL_MAX || 20),
-				min: Number(process.env.DB_POOL_MIN || 0),
-				acquire: Number(process.env.DB_POOL_ACQUIRE_MS || 30000),
-				idle: Number(process.env.DB_POOL_IDLE_MS || 10000)
-			},
-			dialectOptions: {
-				keepAlive: true
-			},
-			retry: {
-				max: Number(process.env.DB_RETRY_MAX || 3)
+	if (!masterSequelize) {
+		masterSequelize = new Sequelize(
+			process.env.MASTER_DB_NAME,
+			process.env.MASTER_DB_USER,
+			process.env.MASTER_DB_PASS,
+			{
+				host: process.env.MASTER_DB_HOST,
+				dialect: 'postgres',
+				logging: false,
+				pool: {
+					max: Number(process.env.DB_POOL_MAX || 20),
+					min: Number(process.env.DB_POOL_MIN || 0),
+					acquire: Number(process.env.DB_POOL_ACQUIRE_MS || 30000),
+					idle: Number(process.env.DB_POOL_IDLE_MS || 10000)
+				},
+				dialectOptions: {
+					keepAlive: true
+				},
+				retry: {
+					max: Number(process.env.DB_RETRY_MAX || 3)
+				}
 			}
-		}
-	);
+		);
+	}
+	return masterSequelize;
 };
 
 // Tenant DB connection (dynamic with pooling)

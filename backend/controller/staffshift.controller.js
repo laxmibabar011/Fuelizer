@@ -506,4 +506,111 @@ export default class StaffShiftController {
       return sendResponse(res, { success: false, error: err.message, message: 'Failed to fetch operators for shift', status: 500 });
     }
   }
+
+  // ===== POS CONTEXT METHODS =====
+  static async getCashierPOSContext(req, res) {
+    try {
+      const userId = req.user.user_id;
+      const { User } = req.tenantSequelize.models;
+
+      // Resolve tenant user ID (same pattern as in operations controller)
+      let user = await User.findByPk(userId);
+      if (!user && req.user?.email) {
+        user = await User.findOne({ where: { email: req.user.email } });
+      }
+
+      if (!user) {
+        return sendResponse(res, { 
+          success: false, 
+          error: 'User not found', 
+          message: 'Cannot get POS context', 
+          status: 404 
+        });
+      }
+
+      const repo = new StaffShiftRepository(req.tenantSequelize);
+      const posContext = await repo.getCashierPOSContext(user.user_id);
+
+      if (!posContext) {
+        return sendResponse(res, { 
+          success: false, 
+          error: 'Cashier not assigned to any operator group', 
+          message: 'POS access denied. Please contact administrator.', 
+          status: 403 
+        });
+      }
+
+      return sendResponse(res, { 
+        data: posContext, 
+        message: 'POS context fetched successfully' 
+      });
+    } catch (err) {
+      console.error('Error in getCashierPOSContext:', err);
+      return sendResponse(res, { 
+        success: false, 
+        error: err.message, 
+        message: 'Failed to fetch POS context', 
+        status: 500 
+      });
+    }
+  }
+
+  static async validatePOSAccess(req, res) {
+    try {
+      const userId = req.user.user_id;
+      const { nozzleId, operatorId } = req.query;
+      const { User } = req.tenantSequelize.models;
+
+      // Resolve tenant user ID
+      let user = await User.findByPk(userId);
+      if (!user && req.user?.email) {
+        user = await User.findOne({ where: { email: req.user.email } });
+      }
+
+      if (!user) {
+        return sendResponse(res, { 
+          success: false, 
+          error: 'User not found', 
+          message: 'Cannot validate access', 
+          status: 404 
+        });
+      }
+
+      const repo = new StaffShiftRepository(req.tenantSequelize);
+      const validations = {
+        hasOperatorGroup: false,
+        nozzleAccess: false,
+        operatorAccess: false
+      };
+
+      // Check if cashier has operator group
+      const posContext = await repo.getCashierPOSContext(user.user_id);
+      validations.hasOperatorGroup = !!posContext;
+
+      if (posContext) {
+        // Validate nozzle access if provided
+        if (nozzleId) {
+          validations.nozzleAccess = await repo.validateCashierNozzleAccess(user.user_id, nozzleId);
+        }
+
+        // Validate operator access if provided
+        if (operatorId) {
+          validations.operatorAccess = await repo.validateCashierOperatorAccess(user.user_id, operatorId);
+        }
+      }
+
+      return sendResponse(res, { 
+        data: validations, 
+        message: 'Access validation completed' 
+      });
+    } catch (err) {
+      console.error('Error in validatePOSAccess:', err);
+      return sendResponse(res, { 
+        success: false, 
+        error: err.message, 
+        message: 'Failed to validate POS access', 
+        status: 500 
+      });
+    }
+  }
 } 

@@ -5,21 +5,20 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useAuth } from "../../../../context/AuthContext";
-import StationService from "../../../../services/stationService";
-import ProductMasterService from "../../../../services/productMasterService";
 import staffshiftService from "../../../../services/staffshiftService";
 import paymentMethodService from "../../../../services/paymentMethodService";
 import type {
   POSState,
   AttendantOption,
   ProductInfo,
-  NozzleInfo,
   BoothInfo,
-  PaymentMethod,
-  TransactionData,
+  CashierPOSContext,
 } from "../types";
 
 const INITIAL_STATE: POSState = {
+  cashierContext: null,
+  activeShift: null,
+
   booth: null,
   products: [],
   attendants: [],
@@ -68,6 +67,16 @@ export const usePOSState = () => {
     return "Cashier";
   }, [authUser]);
 
+  // Helper: Extract display name from email
+  const humanizeEmail = useCallback((email: string): string => {
+    const atIndex = email.indexOf("@");
+    if (atIndex > 0) {
+      const base = email.substring(0, atIndex);
+      return base.charAt(0).toUpperCase() + base.substring(1);
+    }
+    return email;
+  }, []);
+
   // Initialize POS data
   const initializePOS = useCallback(async () => {
     if (!authUser) return;
@@ -75,94 +84,116 @@ export const usePOSState = () => {
     setState((prev) => ({ ...prev, loading: true, error: null }));
 
     try {
-      // Load booth data, products, attendants, and payment methods in parallel
-      const [boothsRes, productsRes, nozzlesRes, paymentMethodsRes] =
-        await Promise.all([
-          StationService.listBooths(),
-          ProductMasterService.listProducts({ category_type: "Fuel" }),
-          StationService.listNozzles(),
-          paymentMethodService.getForPOS(),
-        ]);
+      // 1. Get cashier's POS context - independent of shift status
+      console.log("POS Debug - Loading cashier context...");
+      const [cashierContextRes, paymentMethodsRes] = await Promise.all([
+        staffshiftService.getCashierPOSContext(),
+        paymentMethodService.getForPOS(),
+      ]);
 
-      // Process booth data
-      const booths = boothsRes.data?.data || [];
-      const products = productsRes.data?.data || [];
-      const nozzles = nozzlesRes.data?.data || [];
+      const cashierContext: CashierPOSContext = cashierContextRes.data?.data;
       const paymentMethods = paymentMethodsRes || [];
 
-      // Debug: Log product data to understand structure
-      console.log("POS Debug - Products from backend:", products.slice(0, 2));
-      if (products.length > 0) {
-        console.log("POS Debug - First product structure:", products[0]);
-        console.log("POS Debug - Price fields:", {
-          sale_price: products[0]?.sale_price,
-          mrp: products[0]?.mrp,
-          uom: products[0]?.uom,
-        });
+      console.log("POS Debug - Cashier context:", cashierContext);
+
+      if (!cashierContext) {
+        throw new Error(
+          "You are not assigned to any operator group. Please contact your administrator."
+        );
       }
 
-      // Find cashier's assigned booth (simplified - take first active booth)
-      const assignedBooth =
-        booths.find((booth: any) => booth.active) || booths[0];
-
-      if (!assignedBooth) {
-        throw new Error("No booth assigned to this cashier");
+      // 2. Process assigned booths from context
+      if (!cashierContext.assignedBooths.length) {
+        throw new Error("No booths assigned to your operator group.");
       }
 
-      // Get nozzles for this booth
-      const boothNozzles = nozzles.filter(
-        (nozzle: any) =>
-          nozzle.boothId === assignedBooth.id ||
-          nozzle.boothId === assignedBooth.id?.toString()
-      );
-
+      // Use first assigned booth as default (can be enhanced later for multi-booth support)
+      const primaryBooth = cashierContext.assignedBooths[0];
       const boothInfo: BoothInfo = {
-        id: assignedBooth.id.toString(),
-        name: assignedBooth.name,
-        code: assignedBooth.code,
-        isActive: assignedBooth.active,
-        nozzles: boothNozzles.map((nozzle: any) => ({
+        id: primaryBooth.id.toString(),
+        name: primaryBooth.name,
+        code: primaryBooth.name, // Using name as code for now
+        isActive: true,
+        nozzles: primaryBooth.nozzles.map((nozzle) => ({
           id: nozzle.id.toString(),
           code: nozzle.code,
           productId: nozzle.productId?.toString() || "",
-          boothId: assignedBooth.id.toString(),
-          isActive: nozzle.active !== false,
+          boothId: nozzle.boothId.toString(),
+          isActive: nozzle.status === "active",
           isAvailable: true, // TODO: Get real-time status
         })),
       };
 
-      // Process products
-      const productList: ProductInfo[] = products.map((product: any) => {
-        // Try to get price from sale_price, fallback to mrp, then default values
-        let price = 0;
-        if (product.sale_price && product.sale_price > 0) {
-          price = parseFloat(product.sale_price);
-        } else if (product.mrp && product.mrp > 0) {
-          price = parseFloat(product.mrp);
-        } else {
-          // Default prices for common fuel types if no price is set
-          const name = product.name?.toLowerCase() || "";
-          if (name.includes("petrol") || name.includes("gasoline"))
-            price = 95.5;
-          else if (name.includes("diesel")) price = 87.2;
-          else if (name.includes("premium")) price = 102.3;
-          else if (name.includes("cng")) price = 75.0;
-          else price = 90.0; // Default fuel price
-        }
-
-        return {
-          id: product.id.toString(),
-          name: product.name,
-          category: product.category_type || "Fuel",
-          price: price,
-          unit: product.uom || "L",
-          isActive: product.status === "active",
-          color: getProductColor(product.name),
-        };
+      // 3. Process products from nozzles
+      const productMap = new Map<number, any>();
+      cashierContext.assignedBooths.forEach((booth) => {
+        booth.nozzles.forEach((nozzle) => {
+          if (nozzle.product) {
+            productMap.set(nozzle.product.id, nozzle.product);
+          }
+        });
       });
 
-      // Load attendants (cashier + operator group members)
-      const attendants = await loadAttendants();
+      const productList: ProductInfo[] = Array.from(productMap.values()).map(
+        (product) => {
+          // Get price from sale_price, fallback to mrp, then default values
+          let price = 0;
+          if (product.sale_price && product.sale_price > 0) {
+            price = parseFloat(product.sale_price);
+          } else if (product.mrp && product.mrp > 0) {
+            price = parseFloat(product.mrp);
+          } else {
+            // Default prices for common fuel types if no price is set
+            const name = product.name?.toLowerCase() || "";
+            if (name.includes("petrol") || name.includes("gasoline"))
+              price = 95.5;
+            else if (name.includes("diesel")) price = 87.2;
+            else if (name.includes("premium")) price = 102.3;
+            else if (name.includes("cng")) price = 75.0;
+            else price = 90.0; // Default fuel price
+          }
+
+          return {
+            id: product.id.toString(),
+            name: product.name,
+            category: product.category_type || "Fuel",
+            price: price,
+            unit: product.uom || "L",
+            isActive: true,
+            color: getProductColor(product.name),
+          };
+        }
+      );
+
+      // 4. Process team members as attendants
+      // Filter out cashier from team members since we add them separately
+      const teamMembersOnly = cashierContext.teamMembers.filter(
+        (member) => member.role !== "cashier"
+      );
+
+      const attendants: AttendantOption[] = [
+        // Add cashier themselves
+        {
+          id: cashierContext.cashier.user_id,
+          name:
+            cashierContext.cashier.full_name || getDisplayNameFromAuthUser(),
+          role: "cashier" as const,
+          isSelf: true,
+          isActive: true,
+          email: cashierContext.cashier.email,
+          phone: cashierContext.cashier.phone,
+        },
+        // Add only attendants (not cashier)
+        ...teamMembersOnly.map((member) => ({
+          id: member.id,
+          name: member.full_name || humanizeEmail(member.email),
+          role: "attendant" as const,
+          isSelf: false,
+          isActive: true,
+          email: member.email,
+          phone: member.phone,
+        })),
+      ];
 
       // Debug: Log final processed data
       console.log("POS Debug - Final product list:", productList);
@@ -172,6 +203,8 @@ export const usePOSState = () => {
 
       setState((prev) => ({
         ...prev,
+        cashierContext,
+        activeShift: null, // Will be set by backend during transaction validation
         booth: boothInfo,
         products: productList,
         attendants,
@@ -185,136 +218,7 @@ export const usePOSState = () => {
         loading: false,
       }));
     }
-  }, [authUser]);
-
-  // Load attendants (cashier + group members)
-  const loadAttendants = useCallback(async (): Promise<AttendantOption[]> => {
-    if (!authUser) return [];
-
-    try {
-      console.log("POS Debug - Loading attendants for user:", authUser);
-      console.log(
-        "POS Debug - User ID type:",
-        typeof authUser.userId,
-        "Value:",
-        authUser.userId
-      );
-      console.log("POS Debug - User details:", authUser.details);
-
-      // First, get all operator groups to find the one where this cashier is the cashier_id
-      const operatorGroupsRes = await staffshiftService.listGroups();
-      const operatorGroups = operatorGroupsRes.data?.data || [];
-
-      console.log("POS Debug - All operator groups:", operatorGroups);
-
-      // Find the group where this cashier is the cashier_id
-      const cashierGroup = operatorGroups.find(
-        (group: any) => group.cashier_id === String(authUser.userId)
-      );
-
-      console.log("POS Debug - Cashier group found:", cashierGroup);
-
-      if (!cashierGroup) {
-        console.warn("No operator group found for cashier:", authUser.userId);
-        // Fallback to just cashier
-        return [
-          {
-            id: String(authUser.userId),
-            name: getDisplayNameFromAuthUser(),
-            role: "cashier",
-            isSelf: true,
-            isActive: true,
-          },
-        ];
-      }
-
-      // Get the group members (attendants) for this group
-      const groupAttendantsRes = await staffshiftService.getGroupAttendants(
-        cashierGroup.id
-      );
-      const groupAttendants = groupAttendantsRes.data?.data || [];
-
-      console.log("POS Debug - Group attendants:", groupAttendants);
-      console.log("POS Debug - First attendant structure:", groupAttendants[0]);
-      console.log(
-        "POS Debug - Attendant data fields:",
-        groupAttendants[0]
-          ? {
-              user_id: groupAttendants[0].user_id,
-              id: groupAttendants[0].id,
-              UserDetails: groupAttendants[0].UserDetails,
-              User: groupAttendants[0].User,
-              full_name: groupAttendants[0].full_name,
-              name: groupAttendants[0].name,
-              email: groupAttendants[0].User?.email,
-            }
-          : "No attendants"
-      );
-
-      const attendants: AttendantOption[] = [
-        // Cashier (self) always first
-        {
-          id: String(authUser.userId),
-          name: getDisplayNameFromAuthUser(),
-          role: "cashier",
-          isSelf: true,
-          isActive: true,
-        },
-        // Operator group members (attendants)
-        ...groupAttendants.map((attendant: any) => {
-          console.log("POS Debug - Processing attendant:", attendant);
-
-          // Extract name with priority: full_name > name > email (without domain) > fallback
-          let displayName =
-            attendant.UserDetails?.full_name ||
-            attendant.full_name ||
-            attendant.name;
-
-          // If no name found, try to extract name from email
-          if (!displayName && attendant.User?.email) {
-            const email = attendant.User.email;
-            const atIndex = email.indexOf("@");
-            if (atIndex > 0) {
-              displayName =
-                email.substring(0, atIndex).charAt(0).toUpperCase() +
-                email.substring(1, atIndex);
-            } else {
-              displayName = email;
-            }
-          }
-
-          // Final fallback
-          if (!displayName) {
-            displayName = `Attendant ${attendant.id}`;
-          }
-
-          return {
-            id: String(attendant.user_id || attendant.id),
-            name: displayName,
-            role: "attendant" as const,
-            isSelf: false,
-            employeeId: String(attendant.employee_id || attendant.id),
-            isActive: attendant.is_active !== false,
-          };
-        }),
-      ];
-
-      console.log("POS Debug - Final attendants list:", attendants);
-      return attendants;
-    } catch (error) {
-      console.error("Failed to load attendants:", error);
-      // Fallback to just cashier
-      return [
-        {
-          id: String(authUser.userId),
-          name: getDisplayNameFromAuthUser(),
-          role: "cashier",
-          isSelf: true,
-          isActive: true,
-        },
-      ];
-    }
-  }, [authUser]);
+  }, [authUser, humanizeEmail, getDisplayNameFromAuthUser]);
 
   // Product color mapping
   const getProductColor = (productName: string): string => {
@@ -335,6 +239,5 @@ export const usePOSState = () => {
     state,
     setState,
     initializePOS,
-    loadAttendants,
   };
 };

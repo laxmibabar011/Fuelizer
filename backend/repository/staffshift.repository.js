@@ -427,5 +427,181 @@ export class StaffShiftRepository {
       return operators;
     }
   }
+
+  // ===== POS CONTEXT METHODS =====
+  async getCashierPOSContext(cashierId) {
+    try {
+      const operatorGroup = await this.OperatorGroup.findOne({
+        where: { cashier_id: cashierId },
+        include: [
+          {
+            model: this.sequelize.models.OperatorGroupBooth,
+            as: 'BoothAssignments',
+            where: { is_active: true },
+            required: false,
+            include: [
+              {
+                model: this.sequelize.models.Booth,
+                as: 'Booth',
+                include: [
+                  {
+                    model: this.sequelize.models.Nozzle,
+                    as: 'Nozzles',
+                    include: [
+                      {
+                        model: this.sequelize.models.Product,
+                        as: 'Product',
+                        attributes: ['id', 'name', 'sales_price'],
+                        include: [
+                          {
+                            model: this.sequelize.models.ProductCategory,
+                            as: 'ProductCategory',
+                            attributes: ['name']
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            model: this.OperatorGroupMember,
+            as: 'Members',
+            where: { is_active: true },
+            required: false,
+            include: [
+              {
+                model: this.User,
+                as: 'User',
+                attributes: ['user_id', 'email'],
+                include: [
+                  { 
+                    model: this.UserDetails, 
+                    as: 'UserDetails', 
+                    attributes: ['full_name', 'phone'] 
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            model: this.Shift,
+            as: 'Shift',
+            attributes: ['id', 'name', 'start_time', 'end_time', 'shift_type']
+          },
+          {
+            model: this.User,
+            as: 'Cashier',
+            attributes: ['user_id', 'email'],
+            include: [
+              { 
+                model: this.UserDetails, 
+                as: 'UserDetails', 
+                attributes: ['full_name', 'phone'] 
+              }
+            ]
+          }
+        ]
+      });
+
+      if (!operatorGroup) {
+        return null;
+      }
+
+      // Format the response for easier frontend consumption
+      return {
+        operatorGroup: {
+          id: operatorGroup.id,
+          name: operatorGroup.name,
+          shift_id: operatorGroup.shift_id,
+          shift: operatorGroup.Shift
+        },
+        cashier: {
+          user_id: operatorGroup.Cashier.user_id,
+          email: operatorGroup.Cashier.email,
+          full_name: operatorGroup.Cashier.UserDetails?.full_name,
+          phone: operatorGroup.Cashier.UserDetails?.phone
+        },
+        assignedBooths: (operatorGroup.BoothAssignments || []).map(assignment => ({
+          id: assignment.Booth.id,
+          name: assignment.Booth.name,
+          nozzles: (assignment.Booth.Nozzles || []).map(nozzle => ({
+            id: nozzle.id,
+            code: nozzle.code,
+            productId: nozzle.productId,
+            boothId: nozzle.boothId,
+            status: nozzle.status,
+            product: nozzle.Product ? {
+              id: nozzle.Product.id,
+              name: nozzle.Product.name,
+              category_type: nozzle.Product.ProductCategory?.category_type === 'Fuel' ? 'Fuel' : 'NonFuel',
+              sale_price: nozzle.Product.sales_price ?? 0,
+              mrp: nozzle.Product.sales_price ?? 0,
+              uom: 'L'
+            } : null
+          }))
+        })),
+        teamMembers: [
+          // Include cashier themselves as a team member
+          {
+            id: operatorGroup.Cashier.user_id,
+            email: operatorGroup.Cashier.email,
+            full_name: operatorGroup.Cashier.UserDetails?.full_name,
+            phone: operatorGroup.Cashier.UserDetails?.phone,
+            role: 'cashier'
+          },
+          // Include all attendants/team members
+          ...(operatorGroup.Members || []).map(member => ({
+            id: member.User.user_id,
+            email: member.User.email,
+            full_name: member.UserDetails?.full_name,
+            phone: member.UserDetails?.phone,
+            role: 'attendant'
+          }))
+        ]
+      };
+    } catch (error) {
+      console.error('Error getting cashier POS context:', error);
+      throw new Error(`Failed to get POS context: ${error.message}`);
+    }
+  }
+
+  async validateCashierNozzleAccess(cashierId, nozzleId) {
+    try {
+      const context = await this.getCashierPOSContext(cashierId);
+      if (!context) {
+        return false;
+      }
+
+      // Check if nozzle belongs to any of the cashier's assigned booths
+      const allNozzles = context.assignedBooths.flatMap(booth => booth.nozzles);
+      return allNozzles.some(nozzle => nozzle.id === parseInt(nozzleId));
+    } catch (error) {
+      console.error('Error validating nozzle access:', error);
+      return false;
+    }
+  }
+
+  async validateCashierOperatorAccess(cashierId, operatorId) {
+    try {
+      const context = await this.getCashierPOSContext(cashierId);
+      if (!context) {
+        return false;
+      }
+
+      // Cashier can always operate themselves
+      if (operatorId === cashierId) {
+        return true;
+      }
+
+      // Check if operator is in the cashier's team
+      return context.teamMembers.some(member => member.id === operatorId);
+    } catch (error) {
+      console.error('Error validating operator access:', error);
+      return false;
+    }
+  }
 }
  

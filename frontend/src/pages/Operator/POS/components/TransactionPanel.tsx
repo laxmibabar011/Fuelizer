@@ -87,12 +87,7 @@ const TransactionPanel: React.FC<TransactionPanelProps> = ({
                       {calculations.formatCurrency(selectedProduct.price)}/
                       {selectedProduct.unit}
                     </p>
-                    {/* Debug: Show raw price data */}
-                    {process.env.NODE_ENV === "development" && (
-                      <p className="text-xs text-blue-600">
-                        Debug: Raw price = {selectedProduct.price}
-                      </p>
-                    )}
+                    {/* Debug info removed to avoid Node env type dependency */}
                   </div>
                 </div>
               </div>

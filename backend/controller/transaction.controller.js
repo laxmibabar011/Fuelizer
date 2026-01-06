@@ -1,13 +1,12 @@
 import { sendResponse } from '../util/response.util.js';
 import DateUtil from '../util/date.util.js';
 import { TransactionRepository } from '../repository/transaction.repository.js';
-import { StaffShiftRepository } from '../repository/staffshift.repository.js';
 
 export default class TransactionController {
   // ===== PAYMENT METHOD CRUD =====
   static async createPaymentMethod(req, res) {
     try {
-      const { name } = req.body;
+      const { name, bill_mode, party_name_strategy, default_party_name, party_name_uppercase } = req.body;
 
       if (!name) {
         return sendResponse(res, { 
@@ -18,8 +17,23 @@ export default class TransactionController {
         });
       }
 
+      if (bill_mode && !['cash', 'credit', 'card', 'cash_party'].includes(bill_mode)) {
+        return sendResponse(res, { 
+          success: false, 
+          error: 'Bill mode must be one of: cash, credit, card, cash_party', 
+          message: 'Validation error', 
+          status: 400 
+        });
+      }
+
       const transactionRepo = new TransactionRepository(req.tenantSequelize);
-      const paymentMethod = await transactionRepo.createPaymentMethod({ name });
+      const paymentMethod = await transactionRepo.createPaymentMethod({ 
+        name, 
+        bill_mode: bill_mode || 'card',
+        party_name_strategy: party_name_strategy || 'fixed',
+        default_party_name: default_party_name || null,
+        party_name_uppercase: party_name_uppercase !== false
+      });
 
       return sendResponse(res, { 
         data: paymentMethod, 
@@ -89,8 +103,18 @@ export default class TransactionController {
     try {
       const { id } = req.params;
       const updateData = req.body;
+      
+      // Validate bill_mode if provided
+      if (updateData.bill_mode && !['cash', 'credit', 'card', 'cash_party'].includes(updateData.bill_mode)) {
+        return sendResponse(res, { 
+          success: false, 
+          error: 'Bill mode must be one of: cash, credit, card, cash_party', 
+          message: 'Validation error', 
+          status: 400 
+        });
+      }
+      
       const transactionRepo = new TransactionRepository(req.tenantSequelize);
-
       const result = await transactionRepo.updatePaymentMethod(id, updateData);
 
       return sendResponse(res, { 
@@ -228,10 +252,19 @@ export default class TransactionController {
       const { operatorId } = req.params;
       const { startDate, endDate } = req.query;
       
+      console.log("=== GET TRANSACTIONS BY OPERATOR DEBUG ===");
+      console.log("operatorId from params:", operatorId);
+      console.log("startDate:", startDate);
+      console.log("endDate:", endDate);
+      
       const dateRange = startDate && endDate ? { start: startDate, end: endDate } : null;
+      console.log("dateRange:", dateRange);
       
       const transactionRepo = new TransactionRepository(req.tenantSequelize);
       const transactions = await transactionRepo.getTransactionsByOperator(operatorId, dateRange);
+
+      console.log("Transactions found:", transactions.length);
+      console.log("First transaction:", transactions[0]);
 
       return sendResponse(res, { 
         data: transactions, 
@@ -277,11 +310,75 @@ export default class TransactionController {
     }
   }
 
+  static async getTransactionsByOperatorGroup(req, res) {
+    try {
+      const { operatorGroupId } = req.params;
+      const transactionRepo = new TransactionRepository(req.tenantSequelize);
+      const transactions = await transactionRepo.getTransactionsByOperatorGroup(operatorGroupId);
+
+      return sendResponse(res, { 
+        data: transactions, 
+        message: 'Operator group transactions fetched successfully' 
+      });
+    } catch (err) {
+      return sendResponse(res, { 
+        success: false, 
+        error: err.message, 
+        message: 'Failed to fetch operator group transactions', 
+        status: 500 
+      });
+    }
+  }
+
+  static async getAllTransactions(req, res) {
+    try {
+      const { limit = 50 } = req.query;
+      const transactionRepo = new TransactionRepository(req.tenantSequelize);
+      
+      // Get all transactions with a reasonable limit, ordered by most recent
+      const transactions = await transactionRepo.getAllTransactions(parseInt(limit));
+
+      return sendResponse(res, { 
+        data: transactions, 
+        message: 'All transactions fetched successfully' 
+      });
+    } catch (err) {
+      return sendResponse(res, { 
+        success: false, 
+        error: err.message, 
+        message: 'Failed to fetch all transactions', 
+        status: 500 
+      });
+    }
+  }
+
   // ===== CASHIER OPERATIONS =====
   static async recordTransactionByCashier(req, res) {
     try {
       const transactionData = req.body;
-      const cashierId = req.user.user_id;
+      const jwtUserId = req.user.user_id;
+      
+      // Debug: User resolution
+      console.log(`Resolving user: ${jwtUserId || 'undefined'} -> ${req.user?.email}`);
+
+      // Resolve tenant user ID (same pattern as in operations controller)
+      const { User } = req.tenantSequelize.models;
+      let user = await User.findByPk(jwtUserId);
+      if (!user && req.user?.email) {
+        user = await User.findOne({ where: { email: req.user.email } });
+      }
+
+      if (!user) {
+        return sendResponse(res, { 
+          success: false, 
+          error: 'User not found', 
+          message: 'Cannot process transaction', 
+          status: 404 
+        });
+      }
+
+      const cashierId = user.user_id;
+      console.log(`Resolved cashierId: ${cashierId}`);
 
       // Validate required fields
       const requiredFields = ['operatorId', 'nozzleId', 'litresSold', 'pricePerLitre', 'paymentMethodId'];
@@ -297,22 +394,11 @@ export default class TransactionController {
       }
 
       const transactionRepo = new TransactionRepository(req.tenantSequelize);
-      const staffRepo = new StaffShiftRepository(req.tenantSequelize);
-
-      // Verify cashier is assigned to the operator
-      const operatorGroup = await staffRepo.getOperatorGroupById(transactionData.operatorGroupId);
-      if (!operatorGroup || operatorGroup.cashier_id !== cashierId) {
-        return sendResponse(res, { 
-          success: false, 
-          error: 'Not authorized to record transactions for this operator', 
-          message: 'Authorization error', 
-          status: 403 
-        });
-      }
 
       // Calculate total amount
       const totalAmount = parseFloat(transactionData.litresSold) * parseFloat(transactionData.pricePerLitre);
 
+      // Repository handles all validation (cashier authorization, nozzle access, etc.)
       const transaction = await transactionRepo.recordTransactionByCashier(cashierId, {
         ...transactionData,
         total_amount: totalAmount,

@@ -25,9 +25,27 @@ interface NozzleRow {
 }
 
 const sampleRows: NozzleRow[] = [
-  { id: "1", code: "P1", fuel: "Petrol", status: "active", updatedAt: "2025-01-10 14:22" },
-  { id: "2", code: "D2", fuel: "Diesel", status: "inactive", updatedAt: "2025-01-08 09:10" },
-  { id: "3", code: "PP3", fuel: "Power Petrol", status: "active", updatedAt: "2025-01-05 18:35" },
+  {
+    id: "1",
+    code: "P1",
+    fuel: "Petrol",
+    status: "active",
+    updatedAt: "2025-01-10 14:22",
+  },
+  {
+    id: "2",
+    code: "D2",
+    fuel: "Diesel",
+    status: "inactive",
+    updatedAt: "2025-01-08 09:10",
+  },
+  {
+    id: "3",
+    code: "PP3",
+    fuel: "Power Petrol",
+    status: "active",
+    updatedAt: "2025-01-05 18:35",
+  },
 ];
 
 // Dynamic fuel options loaded from backend Product Master
@@ -40,24 +58,36 @@ const ManageNozzles: React.FC = () => {
   const boothName = (location.state as any)?.boothName || `Booth ${boothId}`;
 
   const [rows, setRows] = useState<NozzleRow[]>(sampleRows);
-  const [fuelOptions, setFuelOptions] = useState<{ value: string; label: string }[]>(staticFuelOptions);
+  const [fuelOptions, setFuelOptions] =
+    useState<{ value: string; label: string }[]>(staticFuelOptions);
   React.useEffect(() => {
-    ProductMasterService.listProducts({ category_type: "Fuel" }).then((res) => {
+    ProductMasterService.listProducts({ status: "active" }).then((res) => {
       const list = (res.data?.data || []) as any[];
-      setFuelOptions(list.map((p) => ({ value: String(p.id), label: p.name })));
+      // Filter only products with category_type = "Fuel"
+      const fuelProducts = list.filter(
+        (p: any) => p.ProductCategory?.category_type === "Fuel"
+      );
+      setFuelOptions(
+        fuelProducts.map((p) => ({ value: String(p.id), label: p.name }))
+      );
     });
   }, []);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
-  const [form, setForm] = useState<{ code: string; fuel: string; active: boolean }>({
+  const [form, setForm] = useState<{
+    code: string;
+    fuel: string;
+    active: boolean;
+  }>({
     code: "",
     fuel: "",
     active: true,
   });
 
   const modalTitle = useMemo(
-    () => (isEdit ? `Edit Nozzle ${form.code}` : `Add New Nozzle to ${boothName}`),
+    () =>
+      isEdit ? `Edit Nozzle ${form.code}` : `Add New Nozzle to ${boothName}`,
     [isEdit, form.code, boothName]
   );
 
@@ -69,7 +99,11 @@ const ManageNozzles: React.FC = () => {
 
   const openEdit = (row: NozzleRow) => {
     setIsEdit(true);
-    setForm({ code: row.code, fuel: row.fuel.toLowerCase().replace(" ", "-"), active: row.status === "active" });
+    setForm({
+      code: row.code,
+      fuel: row.fuel.toLowerCase().replace(" ", "-"),
+      active: row.status === "active",
+    });
     setIsModalOpen(true);
   };
 
@@ -81,7 +115,8 @@ const ManageNozzles: React.FC = () => {
             ? {
                 ...r,
                 fuel:
-                  fuelOptions.find((f) => f.value === form.fuel)?.label || r.fuel,
+                  fuelOptions.find((f) => f.value === form.fuel)?.label ||
+                  r.fuel,
                 status: form.active ? "active" : "inactive",
                 updatedAt: new Date().toLocaleString(),
               }
@@ -103,13 +138,16 @@ const ManageNozzles: React.FC = () => {
     setIsModalOpen(false);
   };
 
-  const removeRow = (id: string) => setRows((prev) => prev.filter((r) => r.id !== id));
+  const removeRow = (id: string) =>
+    setRows((prev) => prev.filter((r) => r.id !== id));
 
   return (
     <div className="p-6 space-y-6">
       {/* Breadcrumb */}
       <div>
-        <PageBreadcrumb pageTitle={`Configuration Hub / Station Setup / ${boothName}`} />
+        <PageBreadcrumb
+          pageTitle={`Configuration Hub / Station Setup / ${boothName}`}
+        />
       </div>
 
       {/* Page Header */}
@@ -132,26 +170,44 @@ const ManageNozzles: React.FC = () => {
         <Table className="">
           <TableHeader>
             <TableRow className="bg-gray-50 dark:bg-gray-800">
-              <TableCell isHeader className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <TableCell
+                isHeader
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
                 Nozzle Code
               </TableCell>
-              <TableCell isHeader className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <TableCell
+                isHeader
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
                 Mapped Fuel Product
               </TableCell>
-              <TableCell isHeader className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <TableCell
+                isHeader
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
                 Status
               </TableCell>
-              <TableCell isHeader className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <TableCell
+                isHeader
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
                 Last Updated
               </TableCell>
-              <TableCell isHeader className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <TableCell
+                isHeader
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
                 Actions
               </TableCell>
             </TableRow>
           </TableHeader>
           <TableBody>
             {rows.map((row) => (
-              <TableRow key={row.id} className="border-t border-gray-100 dark:border-gray-800">
+              <TableRow
+                key={row.id}
+                className="border-t border-gray-100 dark:border-gray-800"
+              >
                 <TableCell className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100 font-medium">
                   {row.code}
                 </TableCell>
@@ -160,9 +216,13 @@ const ManageNozzles: React.FC = () => {
                 </TableCell>
                 <TableCell className="px-6 py-4">
                   {row.status === "active" ? (
-                    <Badge className="bg-green-500 text-white border-transparent">Active</Badge>
+                    <Badge className="bg-green-500 text-white border-transparent">
+                      Active
+                    </Badge>
                   ) : (
-                    <Badge className="bg-gray-300 text-gray-900 dark:bg-gray-700 dark:text-gray-100 border-transparent">Inactive</Badge>
+                    <Badge className="bg-gray-300 text-gray-900 dark:bg-gray-700 dark:text-gray-100 border-transparent">
+                      Inactive
+                    </Badge>
                   )}
                 </TableCell>
                 <TableCell className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
@@ -193,9 +253,15 @@ const ManageNozzles: React.FC = () => {
       </div>
 
       {/* Add/Edit Nozzle Modal */}
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} className="max-w-xl w-full">
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        className="max-w-xl w-full"
+      >
         <div className="px-6 pt-6 pb-4">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">{modalTitle}</h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+            {modalTitle}
+          </h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
             Configure the nozzle code, mapped fuel product, and active status.
           </p>
@@ -209,7 +275,9 @@ const ManageNozzles: React.FC = () => {
               <input
                 type="text"
                 value={form.code}
-                onChange={(e) => setForm((s) => ({ ...s, code: e.target.value }))}
+                onChange={(e) =>
+                  setForm((s) => ({ ...s, code: e.target.value }))
+                }
                 placeholder="e.g., P1, D2"
                 disabled={isEdit}
                 className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-none focus:ring focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
@@ -237,7 +305,9 @@ const ManageNozzles: React.FC = () => {
               <Switch
                 label={form.active ? "Active" : "Inactive"}
                 defaultChecked={form.active}
-                onChange={(checked) => setForm((s) => ({ ...s, active: checked }))}
+                onChange={(checked) =>
+                  setForm((s) => ({ ...s, active: checked }))
+                }
               />
             </div>
           </div>
@@ -246,7 +316,9 @@ const ManageNozzles: React.FC = () => {
             <Button variant="outline" onClick={() => setIsModalOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={saveNozzle}>{isEdit ? "Update Nozzle" : "Save Nozzle"}</Button>
+            <Button onClick={saveNozzle}>
+              {isEdit ? "Update Nozzle" : "Save Nozzle"}
+            </Button>
           </div>
         </div>
       </Modal>

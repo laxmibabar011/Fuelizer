@@ -31,15 +31,18 @@ class POSService {
   ): Promise<TransactionResponse> {
     const payload = {
       operatorId: transactionData.attendantId,
+      operatorGroupId: transactionData.operatorGroupId,
       nozzleId: transactionData.nozzleId,
+      // Send both amount and price in amount-mode; backend will prefer amount if present
+      amount: transactionData.amount,
       litresSold: transactionData.litres,
-      pricePerLitre: 0, // Will be set by backend from current price
+      pricePerLitre: transactionData.pricePerLitre,
       paymentMethodId: transactionData.paymentMethodId,
       creditCustomerId: transactionData.creditCustomerId,
     };
 
     const response = await apiClient.post(
-      "/api/tenant/transactions/record",
+      "/api/tenant/transactions/cashier",
       payload
     );
     return response.data;

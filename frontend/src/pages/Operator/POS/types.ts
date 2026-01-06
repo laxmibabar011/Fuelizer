@@ -11,6 +11,8 @@ export interface AttendantOption {
   employeeId?: string;
   isActive: boolean;
   avatar?: string;
+  email?: string;
+  phone?: string;
 }
 
 export interface ProductInfo {
@@ -44,8 +46,10 @@ export interface TransactionData {
   nozzleId: string;
   productId: string;
   attendantId: string;
+  operatorGroupId: string;
   amount: number;
   litres: number;
+  pricePerLitre: number;
   paymentMethodId: string;
   creditCustomerId?: string;
 }
@@ -58,7 +62,66 @@ export interface PaymentMethod {
   requiresCustomer?: boolean; // For credit payments
 }
 
+export interface CashierPOSContext {
+  operatorGroup: {
+    id: number;
+    name: string;
+    shift_id: number;
+    shift: {
+      id: number;
+      name: string;
+      start_time: string;
+      end_time: string;
+      shift_type: string;
+    };
+  };
+  cashier: {
+    user_id: string;
+    email: string;
+    full_name?: string;
+    phone?: string;
+  };
+  assignedBooths: Array<{
+    id: number;
+    name: string;
+    nozzles: Array<{
+      id: number;
+      code: string;
+      productId: number;
+      boothId: number;
+      status: string;
+      product: {
+        id: number;
+        name: string;
+        category_type: string;
+        sale_price: number;
+        mrp: number;
+        uom: string;
+      } | null;
+    }>;
+  }>;
+  teamMembers: Array<{
+    id: string;
+    email: string;
+    full_name?: string;
+    phone?: string;
+    role: string;
+  }>;
+}
+
+export interface ActiveShiftInfo {
+  id: number;
+  fuel_admin_id: string;
+  operational_day_id: number;
+  status: "ACTIVE";
+  started_at: string;
+}
+
 export interface POSState {
+  // Context Data
+  cashierContext: CashierPOSContext | null;
+  activeShift: ActiveShiftInfo | null;
+
   // Data
   booth: BoothInfo | null;
   products: ProductInfo[];

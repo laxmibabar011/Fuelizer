@@ -1,10 +1,44 @@
 import { sendResponse } from '../util/response.util.js';
+import { Op } from 'sequelize';
 import { logger } from '../util/logger.util.js';
 import { UserRepository } from '../repository/user.repository.js';
 import { CreditRepository } from '../repository/credit.repository.js';
 import { hashPassword } from '../util/auth.util.js';
 
 export default class CreditController {
+  static async getCreditCustomers(req, res) {
+    try {
+      const { tenantSequelize } = req;
+      const { q = '', limit = 20 } = req.query;
+      const { CreditAccount } = tenantSequelize.models;
+
+      if (!CreditAccount) {
+        return sendResponse(res, { success: false, error: 'CreditAccount model not available', message: 'Model missing', status: 500 });
+      }
+
+      const where = q
+        ? {
+            [Op.or]: [
+              { companyName: { [Op.iLike]: `%${q}%` } },
+              { contactName: { [Op.iLike]: `%${q}%` } },
+            ],
+          }
+        : {};
+
+      const accounts = await CreditAccount.findAll({
+        where,
+        order: [['companyName', 'ASC']],
+        limit: Math.min(Number(limit) || 20, 50),
+      });
+
+      // Normalize to minimal objects the UI expects
+      const customers = accounts.map(a => ({ id: a.id, name: a.companyName }));
+
+      return sendResponse(res, { data: customers, message: 'Credit customers fetched successfully', status: 200 });
+    } catch (err) {
+      return sendResponse(res, { success: false, error: err.message, message: 'Failed to fetch credit customers', status: 500 });
+    }
+  }
   static async onboardPartner(req, res) {
     try {
       const {

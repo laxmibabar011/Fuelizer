@@ -35,6 +35,7 @@ import ProductMasterDashboard from "./pages/FuelAdmin/ProductMaster/ProductMaste
 import ManageNozzles from "./pages/FuelAdmin/StationSetup/ManageNozzles";
 import FuelRequest from "./pages/CreditCustomer/FuelRequest";
 import RequestHistory from "./pages/CreditCustomer/RequestHistory";
+import { DecantationLogsDashboard } from "./pages/FuelAdmin/DecantationLogs/DecantationLogsDashboard";
 
 // New Configuration Hub pages
 import StationSetup from "./pages/FuelAdmin/StationSetup/StationSetup";
@@ -48,6 +49,16 @@ import EndOfDay from "./pages/FuelAdmin/BODEOD/EndOfDay";
 
 // New Reports page
 import ReportsDashboard from "./pages/FuelAdmin/Reports/ReportsDashboard";
+
+// Purchase Management pages
+import PurchaseDashboard from "./pages/FuelAdmin/Purchase/PurchaseDashboard";
+import PurchaseOrderForm from "./pages/FuelAdmin/Purchase/PurchaseOrderForm";
+import VendorManagement from "./pages/FuelAdmin/Purchase/VendorManagement";
+import SalesManagement from "./pages/FuelAdmin/SalesManagement/SalesManagement";
+
+// General Ledger pages
+import { ChartOfAccounts, PaymentVoucher, ReceiptVoucher, VoucherManagement } from "./pages/FuelAdmin/GeneralLedger";
+import Reports from "./pages/FuelAdmin/GeneralLedger/Reports";
 
 // Operator pages
 import OperatorDashboard from "./pages/Dashboard/OperatorDashboard";
@@ -146,6 +157,25 @@ export default function App() {
 
             {/* Reports Route */}
             <Route path="/fuel-admin/reports" element={<ReportsDashboard />} />
+
+            {/* Decantation Logs Route */}
+            <Route path="/fuel-admin/decantation-logs" element={<DecantationLogsDashboard />} />
+
+            {/* Purchase Management Routes */}
+            <Route path="/fuel-admin/purchase" element={<PurchaseDashboard />} />
+            <Route path="/fuel-admin/purchase/new" element={<PurchaseOrderForm />} />
+            <Route path="/fuel-admin/purchase/edit/:id" element={<PurchaseOrderForm />} />
+            <Route path="/fuel-admin/purchase/vendors" element={<VendorManagement />} />
+
+            {/* Sales Management Route */}
+            <Route path="/fuel-admin/sales-management" element={<SalesManagement />} />
+
+            {/* General Ledger Routes */}
+            <Route path="/fuel-admin/general-ledger/chart-of-accounts" element={<ChartOfAccounts />} />
+            <Route path="/fuel-admin/general-ledger/payment-voucher" element={<PaymentVoucher />} />
+            <Route path="/fuel-admin/general-ledger/receipt-voucher" element={<ReceiptVoucher />} />
+            <Route path="/fuel-admin/general-ledger/voucher-management" element={<VoucherManagement />} />
+            <Route path="/fuel-admin/general-ledger/reports" element={<Reports />} />
 
             <Route
               path="/fuel-admin/credit-partners"

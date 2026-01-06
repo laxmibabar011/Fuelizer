@@ -8,18 +8,30 @@ import apiClient from "./apiClient";
 export interface PaymentMethodDTO {
   id: number;
   name: string;
+  bill_mode: "cash" | "credit" | "card" | "cash_party";
   is_active: boolean;
+  party_name_strategy?: "fixed" | "credit_customer";
+  default_party_name?: string;
+  party_name_uppercase?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
 
 export interface CreatePaymentMethodRequest {
   name: string;
+  bill_mode: "cash" | "credit" | "card" | "cash_party";
+  party_name_strategy?: "fixed" | "credit_customer";
+  default_party_name?: string;
+  party_name_uppercase?: boolean;
 }
 
 export interface UpdatePaymentMethodRequest {
   name?: string;
+  bill_mode?: "cash" | "credit" | "card" | "cash_party";
   is_active?: boolean;
+  party_name_strategy?: "fixed" | "credit_customer";
+  default_party_name?: string;
+  party_name_uppercase?: boolean;
 }
 
 class PaymentMethodService {

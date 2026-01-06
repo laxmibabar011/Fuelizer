@@ -19,7 +19,7 @@ const ProductPanel: React.FC<ProductPanelProps> = ({
   booth,
   products,
   selectedProduct,
-  selectedNozzle,
+  // selectedNozzle is unused here
   onProductSelect,
 }) => {
   // Group nozzles by product

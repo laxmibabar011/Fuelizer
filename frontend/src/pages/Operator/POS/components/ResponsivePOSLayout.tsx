@@ -125,13 +125,7 @@ const ResponsivePOSLayout: React.FC = () => {
           onEnterFullscreen={enterFullscreen}
         />
 
-      {/* Fullscreen Status Indicator */}
-      {process.env.NODE_ENV === "development" && (
-        <div className="fixed bottom-2 left-2 text-xs bg-black bg-opacity-50 text-white px-2 py-1 rounded">
-          {orientation} • {screenSize.width}×{screenSize.height} •{" "}
-          {isFullscreen ? "Fullscreen" : "Windowed"}
-        </div>
-      )}
+      {/* Fullscreen Status Indicator removed to avoid Node env type dependency */}
 
       {/* Fullscreen Not Supported Warning */}
       {!isFullscreenSupported && (

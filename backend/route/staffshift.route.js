@@ -56,4 +56,8 @@ router.get('/staffshift/operator-groups/:groupId/booths', authorizeRoles('fuel-a
 router.delete('/staffshift/operator-groups/:groupId/booths/:boothId', authorizeRoles('fuel-admin'), GroupBoothController.unmapGroupFromBooth);
 router.get('/staffshift/booth-assignments', authorizeRoles('fuel-admin', 'operator'), GroupBoothController.listBoothAssignmentsByShift);
 
+// ===== POS CONTEXT ROUTES =====
+router.get('/staffshift/pos/context', authorizeRoles('operator'), StaffShiftController.getCashierPOSContext);
+router.get('/staffshift/pos/validate-access', authorizeRoles('operator'), StaffShiftController.validatePOSAccess);
+
 export default router; 

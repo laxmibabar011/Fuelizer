@@ -23,6 +23,8 @@ interface PaymentMethodRow extends PaymentMethodDTO {
   icon: string;
 }
 
+type BillMode = "cash" | "credit" | "card" | "cash_party";
+
 const PaymentMethods: React.FC = () => {
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethodRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,7 +41,11 @@ const PaymentMethods: React.FC = () => {
   // Form states
   const [formData, setFormData] = useState({
     name: "",
+    bill_mode: "cash" as BillMode,
     is_active: true,
+    party_name_strategy: "fixed" as "fixed" | "credit_customer",
+    default_party_name: "",
+    party_name_uppercase: true,
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -110,7 +116,14 @@ const PaymentMethods: React.FC = () => {
 
   // Reset form
   const resetForm = () => {
-    setFormData({ name: "", is_active: true });
+    setFormData({
+      name: "",
+      bill_mode: "cash" as BillMode,
+      is_active: true,
+      party_name_strategy: "fixed",
+      default_party_name: "",
+      party_name_uppercase: true,
+    });
     setFormErrors({});
     setSelectedMethod(null);
   };
@@ -148,7 +161,13 @@ const PaymentMethods: React.FC = () => {
 
     try {
       setSubmitting(true);
-      await paymentMethodService.create({ name: formData.name.trim() });
+      await paymentMethodService.create({
+        name: formData.name.trim(),
+        bill_mode: formData.bill_mode,
+        party_name_strategy: formData.party_name_strategy,
+        default_party_name: formData.default_party_name?.trim() || undefined,
+        party_name_uppercase: formData.party_name_uppercase,
+      });
       await loadPaymentMethods();
       setShowAddModal(false);
       resetForm();
@@ -169,7 +188,11 @@ const PaymentMethods: React.FC = () => {
       setSubmitting(true);
       await paymentMethodService.update(selectedMethod.id, {
         name: formData.name.trim(),
+        bill_mode: formData.bill_mode,
         is_active: formData.is_active,
+        party_name_strategy: formData.party_name_strategy,
+        default_party_name: formData.default_party_name?.trim() || undefined,
+        party_name_uppercase: formData.party_name_uppercase,
       });
       await loadPaymentMethods();
       setShowEditModal(false);
@@ -205,7 +228,11 @@ const PaymentMethods: React.FC = () => {
     setSelectedMethod(method);
     setFormData({
       name: method.name,
+      bill_mode: method.bill_mode,
       is_active: method.is_active,
+      party_name_strategy: (method.party_name_strategy as any) || "fixed",
+      default_party_name: method.default_party_name || "",
+      party_name_uppercase: method.party_name_uppercase ?? true,
     });
     setFormErrors({});
     setShowEditModal(true);
@@ -316,6 +343,9 @@ const PaymentMethods: React.FC = () => {
                       Payment Method
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Bill Mode
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Status
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -348,6 +378,11 @@ const PaymentMethods: React.FC = () => {
                             </div>
                           </div>
                         </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 capitalize">
+                          {method.bill_mode.replace("_", " ")}
+                        </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span
@@ -435,6 +470,96 @@ const PaymentMethods: React.FC = () => {
                       />
                     </div>
 
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Bill Mode <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        value={formData.bill_mode}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            bill_mode: e.target.value as BillMode,
+                          })
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white"
+                      >
+                        <option value="cash">Cash</option>
+                        <option value="credit">Credit</option>
+                        <option value="card">Card Swipe</option>
+                        <option value="cash_party">Cash Party</option>
+                      </select>
+                    </div>
+
+                    {/* Party Name Strategy */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Party Name Strategy
+                      </label>
+                      <select
+                        value={formData.party_name_strategy}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            party_name_strategy: e.target.value as
+                              | "fixed"
+                              | "credit_customer",
+                          })
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white"
+                      >
+                        <option value="fixed">
+                          Fixed (use default party name)
+                        </option>
+                        <option value="credit_customer">
+                          Credit Customer (use selected customer name)
+                        </option>
+                      </select>
+                    </div>
+
+                    {formData.party_name_strategy === "fixed" && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Default Party Name
+                        </label>
+                        <Input
+                          placeholder="e.g., Cash, SALES BY PAYTM, SALES BY HP PAY"
+                          value={formData.default_party_name}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              default_party_name: e.target.value,
+                            })
+                          }
+                        />
+                        <div className="mt-2 flex items-center space-x-2">
+                          <Switch
+                            label=""
+                            defaultChecked={formData.party_name_uppercase}
+                            onChange={(checked) =>
+                              setFormData({
+                                ...formData,
+                                party_name_uppercase: checked,
+                              })
+                            }
+                          />
+                          <label className="text-sm text-gray-700">
+                            Uppercase in Excel
+                          </label>
+                        </div>
+                        {formData.default_party_name && (
+                          <div className="mt-2 text-xs text-gray-600">
+                            Preview:{" "}
+                            <span className="font-semibold">
+                              {formData.party_name_uppercase
+                                ? formData.default_party_name.toUpperCase()
+                                : formData.default_party_name}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     {formErrors.submit && (
                       <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">
                         {formErrors.submit}
@@ -498,6 +623,96 @@ const PaymentMethods: React.FC = () => {
                         hint={formErrors.name}
                       />
                     </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Bill Mode <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        value={formData.bill_mode}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            bill_mode: e.target.value as BillMode,
+                          })
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white"
+                      >
+                        <option value="cash">Cash</option>
+                        <option value="credit">Credit</option>
+                        <option value="card">Card</option>
+                        <option value="cash_party">Cash Party</option>
+                      </select>
+                    </div>
+
+                    {/* Party Name Strategy (Edit) */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Party Name Strategy
+                      </label>
+                      <select
+                        value={formData.party_name_strategy}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            party_name_strategy: e.target.value as
+                              | "fixed"
+                              | "credit_customer",
+                          })
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white"
+                      >
+                        <option value="fixed">
+                          Fixed (use default party name)
+                        </option>
+                        <option value="credit_customer">
+                          Credit Customer (use selected customer name)
+                        </option>
+                      </select>
+                    </div>
+
+                    {formData.party_name_strategy === "fixed" && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Default Party Name
+                        </label>
+                        <Input
+                          placeholder="e.g., Cash, SALES BY PAYTM, SALES BY HP PAY"
+                          value={formData.default_party_name}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              default_party_name: e.target.value,
+                            })
+                          }
+                        />
+                        <div className="mt-2 flex items-center space-x-2">
+                          <Switch
+                            label=""
+                            defaultChecked={formData.party_name_uppercase}
+                            onChange={(checked) =>
+                              setFormData({
+                                ...formData,
+                                party_name_uppercase: checked,
+                              })
+                            }
+                          />
+                          <label className="text-sm text-gray-700">
+                            Uppercase in Excel
+                          </label>
+                        </div>
+                        {formData.default_party_name && (
+                          <div className="mt-2 text-xs text-gray-600">
+                            Preview:{" "}
+                            <span className="font-semibold">
+                              {formData.party_name_uppercase
+                                ? formData.default_party_name.toUpperCase()
+                                : formData.default_party_name}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     <div className="flex items-center space-x-2">
                       <Switch

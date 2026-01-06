@@ -1,4 +1,5 @@
 import { useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 
 interface ModalProps {
   isOpen: boolean;
@@ -53,17 +54,17 @@ export const Modal: React.FC<ModalProps> = ({
     ? "w-full h-full"
     : "relative w-full rounded-3xl overflow-hidden bg-white dark:bg-gray-900";
 
-  return (
-    <div className="fixed inset-0 flex items-start justify-center modal z-99999 py-8">
+  return createPortal(
+    <div className="fixed inset-0 flex items-start justify-center modal z-[1000000] py-8">
       {!isFullscreen && (
         <div
-          className="fixed inset-0 h-full w-full bg-gray-400/20"
+          className="fixed inset-0 h-full w-full bg-gray-900/40 backdrop-blur-sm"
           onClick={onClose}
         ></div>
       )}
       <div
         ref={modalRef}
-        className={`${contentClasses} ${className}`}
+        className={`${contentClasses} ${className} max-h-[90vh] flex flex-col`}
         onClick={(e) => e.stopPropagation()}
       >
         {showCloseButton && (
@@ -87,8 +88,9 @@ export const Modal: React.FC<ModalProps> = ({
             </svg>
           </button>
         )}
-        <div>{children}</div>
+        <div className="overflow-y-auto max-h-[85vh]">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

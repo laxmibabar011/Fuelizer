@@ -15,7 +15,13 @@ export const setupAssociations = (models) => {
     ShiftAssignment,
     MeterReading,
     ShiftLedger,
-    Nozzle
+    Nozzle,
+    ProductMaster,
+    DecantationTable,
+    DecantationEntry,
+    LedgerAccount,
+    JournalVoucher,
+    JournalEntry
   } = models;
 
   // ===== OPERATOR GROUP ASSOCIATIONS =====
@@ -25,6 +31,10 @@ export const setupAssociations = (models) => {
   
   if (OperatorGroup && OperatorGroupMember) {
     OperatorGroup.hasMany(OperatorGroupMember, { foreignKey: 'operator_group_id', as: 'Members' });
+  }
+  
+  if (OperatorGroup && OperatorGroupBooth) {
+    OperatorGroup.hasMany(OperatorGroupBooth, { foreignKey: 'operator_group_id', as: 'BoothAssignments' });
   }
 
   // ===== OPERATOR GROUP MEMBER ASSOCIATIONS =====
@@ -87,7 +97,6 @@ export const setupAssociations = (models) => {
   if (ShiftAssignment && UserDetails) {
     ShiftAssignment.belongsTo(UserDetails, { foreignKey: 'user_id', targetKey: 'user_id', as: 'UserDetails' });
   }
-
   // ===== METER READING ASSOCIATIONS =====
   if (MeterReading && ShiftLedger) {
     MeterReading.belongsTo(ShiftLedger, { foreignKey: 'shift_ledger_id' });
@@ -97,6 +106,34 @@ export const setupAssociations = (models) => {
   if (MeterReading && Nozzle) {
     MeterReading.belongsTo(Nozzle, { foreignKey: 'nozzle_id' });
     Nozzle.hasMany(MeterReading, { foreignKey: 'nozzle_id' });
+  }
+
+  // ===== DECANTATION LOGS ASSOCIATIONS =====
+  if (DecantationEntry && User) {
+    DecantationEntry.belongsTo(User, { foreignKey: 'created_by', targetKey: 'user_id', as: 'CreatedBy' });
+    DecantationEntry.belongsTo(User, { foreignKey: 'updated_by', targetKey: 'user_id', as: 'UpdatedBy' });
+  }
+  // ===== BOOTH & NOZZLE ASSOCIATIONS =====
+  // Note: Booth.hasMany(Nozzle, {as: 'Nozzles'}) and Nozzle.belongsTo(Booth) are defined in station.model.js
+  // Note: Product.hasMany(Nozzle) and Nozzle.belongsTo(Product) are defined in station.model.js
+  
+  // No additional associations needed here - they're handled in station.model.js
+
+  // (duplicate DecantationEntry associations removed)
+
+  // ===== GENERAL LEDGER ASSOCIATIONS =====
+  // JournalVoucher to User (created_by relationship)
+  if (JournalVoucher && User) {
+    JournalVoucher.belongsTo(User, { 
+      foreignKey: 'created_by_id', 
+      targetKey: 'user_id', 
+      as: 'CreatedBy' 
+    });
+    User.hasMany(JournalVoucher, { 
+      foreignKey: 'created_by_id', 
+      sourceKey: 'user_id', 
+      as: 'CreatedVouchers' 
+    });
   }
 
   console.log('[associations.js]: Cross-model associations set up successfully');

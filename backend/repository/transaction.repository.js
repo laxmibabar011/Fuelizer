@@ -49,25 +49,39 @@ export class TransactionRepository {
   async getTransactionById(id) {
     return await this.Transaction.findByPk(id, {
       include: [
-        { model: this.ShiftLedger },
         { model: this.User, as: 'Operator' },
         { model: this.Nozzle },
-        { model: this.PaymentMethod },
-        { model: this.CreditCustomer }
+        { model: this.PaymentMethod }
       ]
     });
   }
 
-  async getTransactionsByShiftLedger(shiftLedgerId) {
+  async getTransactionsByOperatorGroup(operatorGroupId) {
     return await this.Transaction.findAll({
-      where: { shift_ledger_id: shiftLedgerId },
+      where: { operator_group_id: operatorGroupId },
       include: [
         { model: this.User, as: 'Operator' },
         { model: this.Nozzle },
-        { model: this.PaymentMethod },
-        { model: this.CreditCustomer }
+        { model: this.PaymentMethod }
       ],
-      order: [['transaction_time', 'ASC']]
+      order: [['transaction_time', 'DESC']]
+    });
+  }
+
+  async getAllTransactions(limit = 50) {
+    return await this.Transaction.findAll({
+      include: [
+        { model: this.User, as: 'Operator' },
+        { 
+          model: this.Nozzle,
+          include: [
+            { model: this.sequelize.models.Product, as: 'Product' }
+          ]
+        },
+        { model: this.PaymentMethod }
+      ],
+      order: [['transaction_time', 'DESC']],
+      limit: limit
     });
   }
 
@@ -83,10 +97,8 @@ export class TransactionRepository {
     return await this.Transaction.findAll({
       where,
       include: [
-        { model: this.ShiftLedger },
         { model: this.Nozzle },
-        { model: this.PaymentMethod },
-        { model: this.CreditCustomer }
+        { model: this.PaymentMethod }
       ],
       order: [['transaction_time', 'DESC']]
     });
@@ -100,11 +112,9 @@ export class TransactionRepository {
         }
       },
       include: [
-        { model: this.ShiftLedger },
         { model: this.User, as: 'Operator' },
         { model: this.Nozzle },
-        { model: this.PaymentMethod },
-        { model: this.CreditCustomer }
+        { model: this.PaymentMethod }
       ],
       order: [['transaction_time', 'DESC']]
     });
@@ -217,26 +227,89 @@ export class TransactionRepository {
 
   // ===== CASHIER OPERATIONS =====
   async recordTransactionByCashier(cashierId, transactionData) {
+    const { StaffShiftRepository } = await import('./staffshift.repository.js');
+    
     return await this.sequelize.transaction(async (t) => {
-      // Verify cashier has active shift
-      const activeShift = await this.ShiftLedger.findOne({
-        where: {
-          fuel_admin_id: cashierId,
-          status: 'ACTIVE'
-        }
-      }, { transaction: t });
-
-      if (!activeShift) {
-        throw new Error('No active shift found for cashier');
+      // 1. Get cashier's POS context with full validation
+      const staffRepo = new StaffShiftRepository(this.sequelize);
+      const cashierContext = await staffRepo.getCashierPOSContext(cashierId);
+      
+      if (!cashierContext) {
+        throw new Error('Cashier not assigned to any operator group');
       }
 
-      // Create transaction
-      const transaction = await this.createTransaction({
-        ...transactionData,
-        shift_ledger_id: activeShift.id
-      }, { transaction: t });
+      // 2. Validate nozzle belongs to cashier's assigned booths
+      const assignedBoothIds = cashierContext.assignedBooths.map(booth => booth.id);
+      const nozzle = await this.Nozzle.findByPk(transactionData.nozzleId || transactionData.nozzle_id, {
+        transaction: t
+      });
+      
+      if (!nozzle) {
+        throw new Error('Nozzle not found');
+      }
 
-      return transaction;
+      if (!assignedBoothIds.includes(nozzle.boothId)) {
+        throw new Error('Nozzle not assigned to cashier\'s booth');
+      }
+
+      // 3. Validate operator belongs to cashier's team
+      const operatorId = transactionData.operatorId || transactionData.operator_id;
+      const teamMemberIds = cashierContext.teamMembers.map(member => member.id);
+      
+      // Debug: Operator validation
+      console.log(`Validating operator '${operatorId}' for cashier '${cashierId}' with team: [${teamMemberIds.join(', ')}]`);
+      
+      if (operatorId !== cashierId && !teamMemberIds.includes(operatorId)) {
+        throw new Error(`Operator '${operatorId}' not authorized for cashier '${cashierId}'. Team: [${teamMemberIds.join(', ')}]`);
+      }
+
+      // 4. POS transactions are independent - no shift ledger requirement
+      console.log('POS transaction processing - fully independent mode');
+
+      // 5. Create transaction with full context
+      // Amount-mode: if amount is provided, store it EXACTLY; compute litres from amount/price
+      // Litres-mode: if litres is provided, compute total = litres * price
+      const priceRaw = transactionData.pricePerLitre || transactionData.price_per_litre_at_sale;
+      const amountRaw = (transactionData.amount !== undefined ? transactionData.amount : transactionData.total_amount);
+      const litresRaw = transactionData.litresSold || transactionData.litres_sold;
+
+      const priceNum = Number(priceRaw);
+      let litresNum = litresRaw != null ? Number(litresRaw) : undefined;
+      let totalNum = amountRaw != null ? Number(amountRaw) : undefined;
+
+      if (totalNum != null && !Number.isNaN(totalNum)) {
+        // Amount-mode: compute litres to 4 dp; keep total as-is to 4 dp
+        const litresComputed = priceNum > 0 ? totalNum / priceNum : 0;
+        litresNum = Number(litresComputed.toFixed(4));
+        totalNum = Number(totalNum.toFixed(4));
+      } else {
+        // Litres-mode: compute total to 4 dp
+        litresNum = Number((litresNum ?? 0).toFixed(4));
+        totalNum = Number((litresNum * priceNum).toFixed(4));
+      }
+
+      const enhancedTransactionData = {
+        ...transactionData,
+        // Normalize field names
+        nozzle_id: transactionData.nozzleId || transactionData.nozzle_id,
+        operator_id: operatorId,
+        litres_sold: litresNum,
+        price_per_litre_at_sale: Number(priceNum.toFixed(4)),
+        payment_method_id: transactionData.paymentMethodId || transactionData.payment_method_id,
+        credit_customer_id: transactionData.creditCustomerId || transactionData.credit_customer_id,
+        
+        // Add context fields - POS independent mode
+        operator_group_id: cashierContext.operatorGroup.id,
+        // Note: Only store the actual operator who performed the transaction
+        
+        total_amount: totalNum,
+      };
+
+      const transaction = await this.createTransaction(enhancedTransactionData, { transaction: t });
+
+      // 6. Return transaction with populated associations for response
+      return await this.getTransactionById(transaction.id);
     });
   }
 }
+

@@ -141,7 +141,7 @@ const POSInterface: React.FC<POSInterfaceProps> = ({
         error: null,
       }));
 
-      // Open Credit modal when selecting Credit (UI-only)
+      // Open Credit modal when selecting Credit
       if (method.name.toLowerCase() === "credit") {
         setShowCreditModal(true);
       }
@@ -159,6 +159,12 @@ const POSInterface: React.FC<POSInterfaceProps> = ({
       amount,
       litres,
     } = state;
+
+    // If credit payment is selected, force customer selection first
+    if (selectedPaymentMethod?.name?.toLowerCase() === "credit") {
+      setShowCreditModal(true);
+      return;
+    }
 
     // Validate transaction
     const validation = calculations.validateTransaction(
@@ -180,21 +186,30 @@ const POSInterface: React.FC<POSInterfaceProps> = ({
     setIsProcessingTransaction(true);
 
     try {
-      // Prepare transaction data
+      // Validate we have all required context
+      if (!state.cashierContext) {
+        throw new Error("Cashier context not loaded");
+      }
+
+      // Prepare transaction data with full context
       const transactionData: TransactionData = {
         nozzleId: selectedNozzle!.id,
         productId: selectedProduct!.id,
         attendantId: selectedAttendant!.id,
+        operatorGroupId: state.cashierContext.operatorGroup.id.toString(),
         amount,
         litres,
+        pricePerLitre: selectedProduct!.price,
         paymentMethodId: selectedPaymentMethod!.id,
       };
 
-      // TODO: Call transaction API
-      console.log("Processing transaction:", transactionData);
+      console.log("Processing transaction with full context:", transactionData);
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Call real transaction API
+      const posService = (await import("../../../services/posService")).default;
+      const result = await posService.recordTransaction(transactionData);
+
+      console.log("Transaction completed successfully:", result);
 
       // Show success and reset
       setState((prev) => ({
@@ -217,7 +232,7 @@ const POSInterface: React.FC<POSInterfaceProps> = ({
     }
   }, [state, calculations, setState]);
 
-  // Transaction Reset Handler
+  // Transaction Reset Handler (define before dependent callbacks)
   const handleResetTransaction = useCallback(() => {
     setState((prev) => ({
       ...prev,
@@ -232,6 +247,59 @@ const POSInterface: React.FC<POSInterfaceProps> = ({
       showConfirmation: false,
     }));
   }, [setState]);
+
+  // Variant: complete with credit customer id
+  const handleCompleteTransactionWithCustomer = useCallback(
+    async (creditCustomerId: string) => {
+      const {
+        selectedProduct,
+        selectedNozzle,
+        selectedAttendant,
+        selectedPaymentMethod,
+        amount,
+        litres,
+      } = state;
+
+      const validation = calculations.validateTransaction(
+        amount,
+        litres,
+        selectedProduct,
+        selectedAttendant,
+        selectedPaymentMethod
+      );
+      if (!validation.isValid) {
+        setState((prev) => ({ ...prev, error: validation.errors.join(", ") }));
+        return;
+      }
+      setIsProcessingTransaction(true);
+      try {
+        if (!state.cashierContext)
+          throw new Error("Cashier context not loaded");
+        const posService = (await import("../../../services/posService"))
+          .default;
+        await posService.recordTransaction({
+          nozzleId: selectedNozzle!.id,
+          productId: selectedProduct!.id,
+          attendantId: selectedAttendant!.id,
+          operatorGroupId: state.cashierContext.operatorGroup.id.toString(),
+          amount,
+          litres,
+          pricePerLitre: selectedProduct!.price,
+          paymentMethodId: selectedPaymentMethod!.id,
+          creditCustomerId,
+        });
+        setState((prev) => ({ ...prev, showConfirmation: true, error: null }));
+        setTimeout(() => {
+          handleResetTransaction();
+        }, 3000);
+      } catch (e: any) {
+        setState((p) => ({ ...p, error: e.message || "Transaction failed" }));
+      } finally {
+        setIsProcessingTransaction(false);
+      }
+    },
+    [state, calculations, setState, handleResetTransaction]
+  );
 
   // Manual close confirmation handler
   const handleCloseConfirmation = useCallback(() => {
@@ -374,6 +442,15 @@ const POSInterface: React.FC<POSInterfaceProps> = ({
       <CreditModal
         isOpen={showCreditModal}
         onClose={() => setShowCreditModal(false)}
+        onConfirm={({ creditCustomerId }) => {
+          // Store chosen customer and immediately complete
+          setState((prev) => ({ ...prev }));
+          setShowCreditModal(false);
+          // attach creditCustomerId to next record call via posService
+          (async () => {
+            await handleCompleteTransactionWithCustomer(creditCustomerId);
+          })();
+        }}
         productName={state.selectedProduct?.name}
         nozzleCode={state.selectedNozzle?.code}
         inputMode={state.inputMode}

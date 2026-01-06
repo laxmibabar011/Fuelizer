@@ -94,11 +94,15 @@ const StationSetup: React.FC = () => {
       const { default: ProductMasterService } = await import(
         "../../../services/productMasterService"
       );
-      const res = await ProductMasterService.listProducts({
-        category_type: "Fuel",
-      });
+      const res = await ProductMasterService.listProducts({ status: "active" });
       const products = res.data?.data || [];
-      const options = products.map((p: any) => ({
+      
+      // Filter only products with category_type = "Fuel"
+      const fuelProducts = products.filter((p: any) => 
+        p.ProductCategory?.category_type === "Fuel"
+      );
+      
+      const options = fuelProducts.map((p: any) => ({
         value: String(p.id),
         label: p.name,
       }));

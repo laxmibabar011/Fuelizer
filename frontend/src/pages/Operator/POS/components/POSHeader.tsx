@@ -4,13 +4,7 @@
  */
 
 import React, { useState, useEffect } from "react";
-import Button from "../../../../components/ui/button/Button";
-import {
-  BuildingIcon,
-  ClockIcon,
-  BoltIcon,
-  CloseIcon,
-} from "../../../../icons";
+import { BuildingIcon, BoltIcon, CloseIcon } from "../../../../icons";
 import type { BoothInfo } from "../types";
 
 interface POSHeaderProps {

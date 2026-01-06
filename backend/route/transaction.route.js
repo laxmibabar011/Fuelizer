@@ -17,10 +17,12 @@ router.delete('/payment-methods/:id', TransactionController.deletePaymentMethod)
 
 // ===== TRANSACTION ROUTES =====
 router.post('/transactions', TransactionController.createTransaction);
-router.get('/transactions/:id', TransactionController.getTransactionById);
+router.get('/transactions/date-range', TransactionController.getTransactionsByDateRange);
 router.get('/transactions/shift/:shiftLedgerId', TransactionController.getTransactionsByShift);
 router.get('/transactions/operator/:operatorId', TransactionController.getTransactionsByOperator);
-router.get('/transactions/date-range', TransactionController.getTransactionsByDateRange);
+router.get('/transactions/operator-group/:operatorGroupId', TransactionController.getTransactionsByOperatorGroup);
+router.get('/transactions/all', TransactionController.getAllTransactions);
+router.get('/transactions/:id', TransactionController.getTransactionById);
 
 // ===== CASHIER OPERATIONS =====
 router.post('/transactions/cashier', TransactionController.recordTransactionByCashier);

@@ -12,7 +12,7 @@ export class StationRepository {
     if (inputId === undefined || inputId === null) return null;
 
     // If a Product with this id exists, use it directly
-    const existingProduct = await this.models.Product.findByPk(inputId);
+    const existingProduct = await this.sequelize.models.Product?.findByPk(inputId);
     if (existingProduct) return existingProduct.id;
 
     // Otherwise, see if this id is a ProductMaster id and mirror by name
@@ -20,9 +20,9 @@ export class StationRepository {
     if (ProductMaster) {
       const pm = await ProductMaster.findByPk(inputId);
       if (pm) {
-        const [product] = await this.models.Product.findOrCreate({
+        const [product] = await this.sequelize.models.Product.findOrCreate({
           where: { name: pm.name },
-          defaults: { name: pm.name, category: 'Fuel' }
+          defaults: { name: pm.name }
         });
         return product.id;
       }
@@ -38,7 +38,12 @@ export class StationRepository {
       order: [['id', 'ASC']], 
       include: [{ 
         model: this.models.Nozzle,
-        include: [{ model: this.models.Product }]
+        as: 'Nozzles',
+        include: [{ 
+          model: this.sequelize.models.Product, 
+          as: 'Product',
+          include: [{ model: this.sequelize.models.ProductCategory, as: 'ProductCategory', attributes: ['name', 'category_type'] }]
+        }]
       }] 
     });
   }
@@ -63,7 +68,7 @@ export class StationRepository {
     return this.models.Nozzle.findAll({
       include: [
         { model: this.models.Booth, attributes: ['name', 'code'] },
-        { model: this.models.Product, attributes: ['name'] }
+        { model: this.sequelize.models.Product, as: 'Product', attributes: ['name'] }
       ],
       order: [['id', 'ASC']]
     });
@@ -80,7 +85,7 @@ export class StationRepository {
     await nozzle.reload({
       include: [
         { model: this.models.Booth, attributes: ['name', 'code'] },
-        { model: this.models.Product, attributes: ['name'] }
+        { model: this.sequelize.models.Product, as: 'Product', attributes: ['name'] }
       ]
     });
     return nozzle;
@@ -100,7 +105,7 @@ export class StationRepository {
     await nozzle.reload({
       include: [
         { model: this.models.Booth, attributes: ['name', 'code'] },
-        { model: this.models.Product, attributes: ['name'] }
+        { model: this.sequelize.models.Product, as: 'Product', attributes: ['name'] }
       ]
     });
     return nozzle;

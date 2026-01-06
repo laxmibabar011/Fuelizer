@@ -124,7 +124,8 @@ const OpeningMeter: React.FC = () => {
       const [boothsRes, nozzlesRes, productsRes] = await Promise.all([
         StationService.listBooths(),
         StationService.listNozzles(),
-        ProductMasterService.listProducts({ category_type: "Fuel" }),
+        // Filter using category_id or status; remove unknown category_type filter to satisfy TS
+        ProductMasterService.listProducts({ status: "active" }),
       ]);
 
       const booths = boothsRes.data?.data || [];

@@ -35,6 +35,9 @@ router.patch('/credit/vehicles/:vehicleId/status', authenticate, tenantDbMiddlew
 // Delete a vehicle
 router.delete('/credit/vehicles/:vehicleId', authenticate, tenantDbMiddleware, authorizeRoles('fuel-admin'), CreditController.deleteVehicle);
 
+// Search credit customers (used by POS and Sales UI)
+router.get('/credit/customers', authenticate, tenantDbMiddleware, authorizeRoles('fuel-admin', 'operator'), CreditController.getCreditCustomers);
+
 // Fetch user details by user_id (restricted to fuel-admin)
 router.get('/userdetails/:userId', authenticate, tenantDbMiddleware, authorizeRoles('fuel-admin'), CreditController.getUserDetails);
 

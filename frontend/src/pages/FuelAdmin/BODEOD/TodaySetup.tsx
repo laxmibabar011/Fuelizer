@@ -77,8 +77,8 @@ const TodaySetup: React.FC = () => {
     setLoading(true);
     try {
       // Load fuel products from Product Master
-      const { default: ProductMasterService } = await import("../../../services/productMasterService");
-      const productsRes = await ProductMasterService.listProducts({ category_type: "Fuel" });
+  const { default: ProductMasterService } = await import("../../../services/productMasterService");
+  const productsRes = await ProductMasterService.listProducts({ status: "active" });
       const products = productsRes.data?.data || [];
       setFuelProducts(products);
 
