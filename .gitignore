@@ -7,8 +7,7 @@
 # Ignore .env files
 **/.env
 
-#frontend readme_file
-**/README.md
+
 **/.cursor
 
 # Logs
